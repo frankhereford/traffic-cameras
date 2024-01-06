@@ -2,11 +2,24 @@
 /* eslint-disable @next/next/no-img-element */
 import Head from "next/head";
 import Link from "next/link";
+import Map from "~/pages/components/Map";
 
 import { api } from "~/utils/api";
 
 export default function Home() {
   const hello = api.post.hello.useQuery({ text: "from tRPC" });
+
+
+  const containerStyle = {
+    width: '400px',
+    height: '400px'
+  };
+
+  const center = {
+    lat: 30.2672,
+    lng: -97.7431
+  };
+
 
   return (
     <>
@@ -17,6 +30,7 @@ export default function Home() {
       </Head>
       <main className="">
         <img src="https://cctv.austinmobility.io/image/326.jpg" />
+        <Map center={center} containerStyle={containerStyle} />
       </main>
     </>
   );
