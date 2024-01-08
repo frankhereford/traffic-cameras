@@ -1,8 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, LatLngBoundsLiteral } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+
+type Center = {
+    lat: number;
+    lng: number;
+};
 
 interface MapProps {
-    center: LatLngBoundsLiteral;
+    center: Center;
     containerStyle: {
         width: string;
         height: string;
