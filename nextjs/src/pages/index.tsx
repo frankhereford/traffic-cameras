@@ -1,24 +1,51 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable jsx-a11y/alt-text */
 /* eslint-disable @next/next/no-img-element */
+import React, { useState, useEffect } from 'react';
 import Head from "next/head";
 import Link from "next/link";
 import Map from "~/pages/components/Map";
 
 import { api } from "~/utils/api";
 
+interface Data {
+  location?: {
+    coordinates?: number[]; // replace 'any' with the type of your coordinates
+  };
+}
+
+const camera = 326;
+//const camera = 533;
+
+const cctv = 'https://cctv.austinmobility.io/image/' + camera + '.jpg';
+
 export default function Home() {
+
+  const [data, setData] = useState<Data | null>(null);
+  const [center, setCenter] = useState({ lat: 30.2672, lng: -97.7431 });
 
   const containerStyle = {
     width: '50vw', // 50% of viewport width
     height: '100vh' // 100% of viewport height
   };
 
-  const center = {
-    lat: 30.2672,
-    lng: -97.7431
-  };
+  useEffect(() => {
+    console.log(data);
+    if (data?.location?.coordinates) {
+      const [lng, lat] = data.location.coordinates;
+      if (lat && lng)
+        setCenter({ lat, lng });
+    }
+  }, [data]);
 
-
+  useEffect(() => {
+    // Fetch the data when the component mounts
+    fetch('https://data.austintexas.gov/resource/b4k4-adkb.json?$where=camera_id=%22' + camera + '%22')
+      .then(response => response.json())
+      .then(data => setData(data[0]))
+      .catch(error => console.error('Error:', error)); // Log any errors to the console
+  }, []);
 
   return (
     <>
@@ -28,7 +55,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main style={{ display: 'flex', backgroundColor: '#333' }}> {/* Use Flexbox to split the main area and set the background color to dark grey */}
-        <img src="https://cctv.austinmobility.io/image/326.jpg" style={{ width: '50vw', height: '100vh', objectFit: 'contain' }} /> {/* Scale the image to fit the horizontal space */}
+        <img src={cctv} style={{ width: '50vw', height: '100vh', objectFit: 'contain' }} /> {/* Scale the image to fit the horizontal space */}
         <Map center={center} containerStyle={containerStyle} />
       </main>
     </>

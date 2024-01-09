@@ -23,8 +23,14 @@ const Map: React.FC<MapProps> = ({ center, containerStyle }) => {
     const [map, setMap] = useState<google.maps.Map | null>(null);
 
     const onLoad = useCallback((map: google.maps.Map) => {
-        const bounds = new window.google.maps.LatLngBounds(center);
-        map.fitBounds(bounds);
+        const circle = new window.google.maps.Circle({
+            center: center,
+            radius: 200 * 0.3048, // Convert feet to meters
+        });
+
+        const bounds = circle.getBounds();
+
+        map.fitBounds(bounds!);
         setMap(map);
     }, [center]);
 
@@ -32,15 +38,14 @@ const Map: React.FC<MapProps> = ({ center, containerStyle }) => {
         setMap(null);
     }, []);
 
-    console.log("isLoaded", isLoaded)
-
     return isLoaded ? (
         <GoogleMap
             mapContainerStyle={containerStyle}
             center={center}
-            zoom={10}
+            zoom={9}
             onLoad={onLoad}
             onUnmount={onUnmount}
+            options={{ tilt: 0, mapTypeId: 'satellite' }} // Set tilt to 0 for a top-down view
         >
             { /* Child components, such as markers, info windows, etc. */}
             <></>
