@@ -25,11 +25,6 @@ export default function Home() {
   const [data, setData] = useState<Data | null>(null);
   const [center, setCenter] = useState({ lat: 30.2672, lng: -97.7431 });
 
-  const containerStyle = {
-    width: '50vw', // 50% of viewport width
-    height: '100vh' // 100% of viewport height
-  };
-
   useEffect(() => {
     console.log(data);
     if (data?.location?.coordinates) {
@@ -56,7 +51,7 @@ export default function Home() {
       </Head>
       <main style={{ display: 'flex', backgroundColor: '#333' }}> {/* Use Flexbox to split the main area and set the background color to dark grey */}
         <img src={cctv} style={{ width: '50vw', height: '100vh', objectFit: 'contain' }} /> {/* Scale the image to fit the horizontal space */}
-        <Map center={center} containerStyle={containerStyle} />
+        <Map center={center} containerStyle={{ width: '50vw', height: '100vh' }} />
       </main>
     </>
   );
