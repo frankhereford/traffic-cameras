@@ -7,6 +7,7 @@ type Center = {
 };
 
 interface MapProps {
+    coordinates: Array<{ cctv: [number, number], map: [number, number] }>;
     center: Center;
     containerStyle: {
         width: string;
