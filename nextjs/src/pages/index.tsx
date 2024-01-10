@@ -18,12 +18,10 @@ interface Data {
 const camera = 326;
 //const camera = 533;
 
-
 export default function Home() {
 
   const [data, setData] = useState<Data | null>(null);
   const [center, setCenter] = useState({ lat: 30.2672, lng: -97.7431 });
-
 
   useEffect(() => {
     //console.log(data);
