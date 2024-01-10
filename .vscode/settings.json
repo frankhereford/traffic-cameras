@@ -18,5 +18,8 @@
     "titleBar.inactiveBackground": "#044a9399",
     "titleBar.inactiveForeground": "#e7e7e799"
   },
-  "peacock.color": "#044a93"
+  "peacock.color": "#044a93",
+  "cSpell.words": [
+    "zustand"
+  ]
 }
