@@ -4,7 +4,6 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect } from 'react';
 import Head from "next/head";
-import Link from "next/link";
 import Map from "~/pages/components/Map";
 import CCTVImage from "~/pages/components/CCTVImage";
 
@@ -19,24 +18,15 @@ interface Data {
 const camera = 326;
 //const camera = 533;
 
-function cctv_create_point(x: number, y: number) {
-  console.log("cctv_create_point")
-  console.log("x,y", x, y)
-  return { x: x, y: y };
-}
 
 export default function Home() {
 
   const [data, setData] = useState<Data | null>(null);
   const [center, setCenter] = useState({ lat: 30.2672, lng: -97.7431 });
-  const [coordinates, setCoordinates] = useState<Array<{ cctv: [number, number], map: [number, number] }>>([]);
 
-  const addCoordinates = (cctvCoords: [number, number], mapCoords: [number, number]) => {
-    setCoordinates(prevCoordinates => [...prevCoordinates, { cctv: cctvCoords, map: mapCoords }]);
-  };
 
   useEffect(() => {
-    console.log(data);
+    //console.log(data);
     if (data?.location?.coordinates) {
       const [lng, lat] = data.location.coordinates;
       if (lat && lng)
@@ -59,8 +49,8 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main style={{ display: 'flex', backgroundColor: '#333' }}>
-        <CCTVImage cameraId={camera} coordinates={coordinates} createPoint={cctv_create_point} />
-        <Map coordinates={coordinates} center={center} containerStyle={{ width: '50vw', height: '100vh' }} />
+        <CCTVImage cameraId={camera} />
+        <Map center={center} containerStyle={{ width: '50vw', height: '100vh' }} />
       </main>
     </>
   );

@@ -1,20 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect } from 'react';
-
+import useCoordinateStore from '../hooks/CoordinateStore';
 
 interface CCTVImageProps {
     cameraId: number;
-    coordinates: Array<{ cctv: [number, number], map: [number, number] }>;
-    createPoint: (x: number, y: number) => { x: number, y: number };
 }
 
-const CCTVImage: React.FC<CCTVImageProps> = ({ cameraId, coordinates }) => {
+const CCTVImage: React.FC<CCTVImageProps> = ({ cameraId }) => {
     const cctv = 'https://cctv.austinmobility.io/image/' + cameraId + '.jpg';
 
-
-    useEffect(() => {
-        console.log(coordinates);
-    }, [coordinates]);
-
+    const coordinates = useCoordinateStore((state) => state.coordinates);
+    console.log("coordinates", coordinates);
+    const addCoordinates = useCoordinateStore((state) => state.addCoordinates)
 
 
     return (
