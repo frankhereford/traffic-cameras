@@ -1,4 +1,5 @@
 import { Button } from "~/pages/ui/button"
+import { ComboboxDemo } from "~/pages/ui/combobox"
 import React, { useEffect } from "react"
 
 const CameraPicker: React.FC = ({}) => {
@@ -14,6 +15,7 @@ const CameraPicker: React.FC = ({}) => {
     <>
       <div className="flex h-screen items-center justify-center">
         <Button>CameraPicker</Button>
+        <ComboboxDemo />
       </div>
     </>
   )
