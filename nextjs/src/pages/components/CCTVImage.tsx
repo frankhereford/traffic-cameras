@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -15,8 +16,14 @@ const CCTVImage: React.FC<CCTVImageProps> = ({ cameraId }) => {
   const addCoordinates = useCoordinateStore((state) => state.addCoordinates)
 
   useEffect(() => {
-    console.log("coordinates: ", coordinates)
+    console.log("coordinates (CCTV): ", coordinates)
   }, [coordinates])
+
+  const mapCenter = useCoordinateStore((state) => state.mapCenter)
+
+  useEffect(() => {
+    console.log("mapCenter (CCTV): ", mapCenter)
+  }, [mapCenter])
 
   const handleImageClick = (
     event: React.MouseEvent<HTMLImageElement, MouseEvent>,
@@ -39,6 +46,7 @@ const CCTVImage: React.FC<CCTVImageProps> = ({ cameraId }) => {
   return (
     <img
       src={cctv}
+      alt="CCTV"
       style={{ width: "50vw", height: "100vh", objectFit: "contain" }}
       onClick={handleImageClick}
     />

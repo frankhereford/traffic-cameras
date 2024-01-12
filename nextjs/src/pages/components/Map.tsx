@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from "react"
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import React, { useState, useCallback, useEffect } from "react"
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api"
+import useCoordinateStore from "../hooks/CoordinateStore"
 
 type Center = {
   lat: number
@@ -16,6 +18,10 @@ interface MapProps {
 }
 
 const Map: React.FC<MapProps> = ({ center, containerStyle }) => {
+  const coordinates = useCoordinateStore((state) => state.coordinates)
+  const addCoordinates = useCoordinateStore((state) => state.addCoordinates)
+  const setMapCenter = useCoordinateStore((state) => state.setMapCenter)
+
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: "AIzaSyAcbnyfHzwzLinnwjgapc7eMOg22yXkmuY",
@@ -34,9 +40,14 @@ const Map: React.FC<MapProps> = ({ center, containerStyle }) => {
 
       map.fitBounds(bounds!)
       setMap(map)
+      setMapCenter([map.getCenter().lat(), map.getCenter().lng()])
     },
     [center],
   )
+
+  useEffect(() => {
+    console.log("coordinates (Map): ", coordinates)
+  }, [coordinates])
 
   const onUnmount = useCallback(() => {
     setMap(null)
