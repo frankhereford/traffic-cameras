@@ -32,6 +32,7 @@ export default function Home() {
     }
   }, [data]);
 
+
   useEffect(() => {
     fetch('https://data.austintexas.gov/resource/b4k4-adkb.json?$where=camera_id=%22' + camera + '%22')
       .then(response => response.json())
