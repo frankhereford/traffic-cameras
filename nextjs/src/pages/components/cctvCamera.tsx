@@ -11,6 +11,19 @@ const CctvCamera: React.FC = ({}) => {
   const camera = useIntersectionStore((state) => state.camera)
   const url = `https://cctv.austinmobility.io/image/${camera}.jpg`
 
+  const [imageKey, setImageKey] = useState(Date.now())
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => {
+        setImageKey(Date.now()) // Change key to force re-render
+      },
+      5 * 60 * 1000,
+    ) // 5 minutes
+
+    return () => clearTimeout(timer) // Clear timeout if the component is unmounted
+  }, [imageKey])
+
   const setCctvPendingPoint = useIntersectionStore(
     (state) => state.setCctvPendingPoint,
   )
@@ -66,6 +79,7 @@ const CctvCamera: React.FC = ({}) => {
       {camera ? (
         <div className={styles.relative}>
           <Image
+            key={imageKey}
             priority
             src={url}
             width={1920}
