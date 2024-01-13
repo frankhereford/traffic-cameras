@@ -10,6 +10,7 @@ import {
   CommandItem,
 } from "~/pages/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "~/pages/ui/popover"
+import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 
 interface Camera {
   camera_id: string
@@ -40,6 +41,7 @@ const CameraPicker: React.FC = ({}) => {
   const [value, setValue] = useState("")
   const [selectedCameraLocation, setSelectedCameraLocation] = useState("")
   const [cameraData, setCameraData] = useState<Camera[]>([])
+  const setCamera = useIntersectionStore((state) => state.setCamera)
 
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
@@ -53,7 +55,8 @@ const CameraPicker: React.FC = ({}) => {
 
   useEffect(() => {
     if (value !== "") {
-      console.log("value changed: ", value)
+      setCamera(parseInt(value))
+      //console.log("value changed: ", value)
     }
   }, [value])
 

@@ -1,11 +1,12 @@
 import { create } from "zustand"
 
-type IntersectionState = {
+export type IntersectionState = {
   camera: number | null
+  setCamera: (camera: number) => void
 }
 
-const useIntersectionStore = create<IntersectionState>((set) => ({
-  camera: null, // 533
+export const useIntersectionStore = create<IntersectionState>((set) => ({
+  camera: null,
   setCamera: (camera: number) => {
     console.log(`New camera value: ${camera}`)
     set({ camera })
