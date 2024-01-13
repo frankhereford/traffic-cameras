@@ -43,6 +43,9 @@ const CameraPicker: React.FC = ({}) => {
   const [cameraData, setCameraData] = useState<Camera[]>([])
   const camera = useIntersectionStore((state) => state.camera)
   const setCamera = useIntersectionStore((state) => state.setCamera)
+  const setGlobalCameraData = useIntersectionStore(
+    (state) => state.setCameraData,
+  )
 
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
@@ -60,12 +63,13 @@ const CameraPicker: React.FC = ({}) => {
         (item) => parseInt(item.camera_id) === camera,
       )
       if (cameraObject) {
-        console.log("Found camera object:", cameraObject)
+        // console.log("Found camera object:", cameraObject)
+        setGlobalCameraData(cameraObject)
       } else {
-        console.log("No camera object found")
+        // console.log("No camera object found")
       }
     } else {
-      console.log("cameraData or camera is null")
+      // console.log("cameraData or camera is null")
     }
   }, [cameraData, camera])
 
@@ -75,7 +79,6 @@ const CameraPicker: React.FC = ({}) => {
       shuffleArray(cameraData)
       setCameraData([...cameraData])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   const shuffleArray = (array: Camera[]) => {

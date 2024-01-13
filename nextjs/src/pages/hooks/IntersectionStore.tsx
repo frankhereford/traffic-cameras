@@ -11,12 +11,12 @@ export type IntersectionState = {
 export const useIntersectionStore = create<IntersectionState>((set) => ({
   camera: null,
   setCamera: (camera: number) => {
-    console.log(`New camera value: ${camera}`)
+    // console.log(`New camera value: ${camera}`)
     set({ camera })
   },
   cameraData: null,
   setCameraData: (cameraData: Camera) => {
-    console.log(`New cameraData value: ${JSON.stringify(cameraData)}`)
+    // console.log(`New cameraData value: ${JSON.stringify(cameraData)}`)
     set({ cameraData })
   },
 }))
