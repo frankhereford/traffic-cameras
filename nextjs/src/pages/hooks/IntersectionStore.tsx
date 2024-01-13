@@ -23,17 +23,6 @@ export type IntersectionState = {
 }
 
 export const useIntersectionStore = create<IntersectionState>((set, get) => {
-  const onPendingPointSet = () => {
-    const { cctvPendingPoint, mapPendingPoint } = get()
-    if (cctvPendingPoint && mapPendingPoint) {
-      console.log(
-        "Both cctvPendingPoint and mapPendingPoint are set:",
-        cctvPendingPoint,
-        mapPendingPoint,
-      )
-      // Add any additional logic you want to execute when both points are set
-    }
-  }
   return {
     camera: null,
     setCamera: (camera: number) => {
@@ -47,13 +36,11 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     setCctvPendingPoint: (cctvPendingPoint: Point) => {
       console.log("setCctvPendingPoint", cctvPendingPoint)
       set({ cctvPendingPoint })
-      onPendingPointSet()
     },
     mapPendingPoint: null,
     setMapPendingPoint: (mapPendingPoint: LatLng | null) => {
       console.log("setMapPendingPoint", mapPendingPoint)
       set({ mapPendingPoint })
-      onPendingPointSet()
     },
   }
 })
