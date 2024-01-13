@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect } from "react"
 import Head from "next/head"
 import CameraPicker from "./components/cameraPicker"
