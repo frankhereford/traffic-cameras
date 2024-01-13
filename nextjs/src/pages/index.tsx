@@ -1,13 +1,11 @@
 import React from "react"
 import Head from "next/head"
 import CameraPicker from "./components/cameraPicker"
-import useIntersectionStore from "./hooks/IntersectionStore"
+import CctvCamera from "./components/cctvCamera"
 
 //import { api } from "~/utils/api"
 
 export default function Home() {
-  const camera = useIntersectionStore((state) => state.camera)
-
   return (
     <>
       <Head>
@@ -20,8 +18,10 @@ export default function Home() {
           <CameraPicker />
         </div>
         <div className="flex flex-grow">
-          <div className="h-full w-1/2 border-r"></div>
-          <div className="h-full w-1/2"></div>
+          <div className="h-full w-3/4 border-r">
+            <CctvCamera />
+          </div>
+          <div className="h-full w-1/4"></div>
         </div>
       </main>
     </>
