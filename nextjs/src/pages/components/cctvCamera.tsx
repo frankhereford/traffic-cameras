@@ -7,6 +7,13 @@ const CctvCamera: React.FC = ({}) => {
   const camera = useIntersectionStore((state) => state.camera)
   const url = `https://cctv.austinmobility.io/image/${camera}.jpg`
 
+  const cctvPendingPoint = useIntersectionStore(
+    (state) => state.cctvPendingPoint,
+  )
+  const setCctvPendingPoint = useIntersectionStore(
+    (state) => state.setCctvPendingPoint,
+  )
+
   const [clickPosition, setClickPosition] = useState<{
     x: number
     y: number
@@ -23,8 +30,12 @@ const CctvCamera: React.FC = ({}) => {
     const yRatio = img.naturalHeight / img.height
     const nativeX = Math.floor(x * xRatio)
     const nativeY = Math.floor(y * yRatio)
-    console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`)
+    //console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`)
     const markerSize = 5 // Half of the marker's size
+    setCctvPendingPoint({
+      x: nativeX,
+      y: nativeY,
+    })
     setClickPosition({
       x: nativeX / xRatio - markerSize,
       y: nativeY / yRatio - markerSize,
