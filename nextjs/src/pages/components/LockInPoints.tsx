@@ -1,3 +1,4 @@
+import { set } from "zod"
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { Button } from "~/pages/ui/button"
 
@@ -23,6 +24,7 @@ const LockInPoints: React.FC = ({}) => {
   const resetPoints = () => {
     setCctvPendingPoint(null)
     setMapPendingPoint(null)
+    setCorrelatedPoints([])
   }
 
   const addPoint = () => {
@@ -31,7 +33,8 @@ const LockInPoints: React.FC = ({}) => {
         ...correlatedPoints,
         { cctvPoint: cctvPendingPoint, mapPoint: mapPendingPoint },
       ])
-      resetPoints()
+      setCctvPendingPoint(null)
+      setMapPendingPoint(null)
       console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
     }
   }

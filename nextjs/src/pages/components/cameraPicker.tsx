@@ -46,6 +46,9 @@ const CameraPicker: React.FC = ({}) => {
   const setGlobalCameraData = useIntersectionStore(
     (state) => state.setCameraData,
   )
+  const setCorrelatedPoints = useIntersectionStore(
+    (state) => state.setCorrelatedPoints,
+  )
 
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
@@ -64,6 +67,7 @@ const CameraPicker: React.FC = ({}) => {
       )
       if (cameraObject) {
         // console.log("Found camera object:", cameraObject)
+        setCorrelatedPoints([])
         setGlobalCameraData(cameraObject)
       } else {
         // console.log("No camera object found")
