@@ -7,9 +7,6 @@ const CctvCamera: React.FC = ({}) => {
   const camera = useIntersectionStore((state) => state.camera)
   const url = `https://cctv.austinmobility.io/image/${camera}.jpg`
 
-  const cctvPendingPoint = useIntersectionStore(
-    (state) => state.cctvPendingPoint,
-  )
   const setCctvPendingPoint = useIntersectionStore(
     (state) => state.setCctvPendingPoint,
   )
