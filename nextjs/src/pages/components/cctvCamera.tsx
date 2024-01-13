@@ -24,9 +24,12 @@ const CctvCamera: React.FC = ({}) => {
     const nativeX = Math.floor(x * xRatio)
     const nativeY = Math.floor(y * yRatio)
     console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`)
-    setClickPosition({ x: nativeX, y: nativeY })
+    const markerSize = 5 // Half of the marker's size
+    setClickPosition({
+      x: nativeX / xRatio - markerSize,
+      y: nativeY / yRatio - markerSize,
+    })
   }
-
   return (
     <>
       {camera ? (
