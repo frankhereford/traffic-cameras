@@ -40,7 +40,7 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
       set({ camera })
     },
     cameraData: null,
-    setCameraData: (cameraData: Camera) => {
+    setCameraData: (cameraData: Camera | null) => {
       set({ cameraData })
     },
     cctvPendingPoint: null,
@@ -50,7 +50,7 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
       onPendingPointSet()
     },
     mapPendingPoint: null,
-    setMapPendingPoint: (mapPendingPoint: LatLng) => {
+    setMapPendingPoint: (mapPendingPoint: LatLng | null) => {
       console.log("setMapPendingPoint", mapPendingPoint)
       set({ mapPendingPoint })
       onPendingPointSet()
