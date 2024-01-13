@@ -19,6 +19,15 @@ const Map: React.FC = ({}) => {
     (state) => state.setMapPendingPoint,
   )
 
+  const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
+
+  useEffect(() => {
+    if (mapPendingPoint === null) {
+      console.log("mapPendingPoint is null")
+      setMarkerPosition(null)
+    }
+  }, [mapPendingPoint])
+
   useEffect(() => {
     if (cameraData?.location?.coordinates) {
       const newCenter = new google.maps.LatLng(

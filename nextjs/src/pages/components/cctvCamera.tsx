@@ -1,6 +1,6 @@
 import Image from "next/image"
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import styles from "./CctvCamera.module.css"
 
 const CctvCamera: React.FC = ({}) => {
@@ -10,6 +10,15 @@ const CctvCamera: React.FC = ({}) => {
   const setCctvPendingPoint = useIntersectionStore(
     (state) => state.setCctvPendingPoint,
   )
+  const cctvPendingPoint = useIntersectionStore(
+    (state) => state.cctvPendingPoint,
+  )
+
+  useEffect(() => {
+    if (cctvPendingPoint === null) {
+      setClickPosition(null)
+    }
+  }, [cctvPendingPoint])
 
   const [clickPosition, setClickPosition] = useState<{
     x: number
