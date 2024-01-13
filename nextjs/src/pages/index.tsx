@@ -3,6 +3,7 @@ import React, { useEffect } from "react"
 import Head from "next/head"
 import CameraPicker from "./components/cameraPicker"
 import CctvCamera from "./components/cctvCamera"
+import Map from "./components/map"
 
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 
@@ -35,10 +36,12 @@ export default function Home() {
           <CameraPicker />
         </div>
         <div className="flex flex-grow">
-          <div className="h-full w-2/4 border-r">
+          <div className="h-full w-1/2 border-r">
             <CctvCamera />
           </div>
-          <div className="h-full w-2/4"></div>
+          <div className="h-full w-1/2">
+            <Map />
+          </div>
         </div>
       </main>
     </>
