@@ -13,10 +13,26 @@ const LockInPoints: React.FC = ({}) => {
   const setMapPendingPoint = useIntersectionStore(
     (state) => state.setMapPendingPoint,
   )
+  const correlatedPoints = useIntersectionStore(
+    (state) => state.correlatedPoints,
+  )
+  const setCorrelatedPoints = useIntersectionStore(
+    (state) => state.setCorrelatedPoints,
+  )
 
   const resetPoints = () => {
     setCctvPendingPoint(null)
     setMapPendingPoint(null)
+  }
+
+  const addPoint = () => {
+    if (cctvPendingPoint && mapPendingPoint) {
+      setCorrelatedPoints([
+        ...correlatedPoints,
+        { cctvPoint: cctvPendingPoint, mapPoint: mapPendingPoint },
+      ])
+      resetPoints()
+    }
   }
 
   return (
@@ -24,6 +40,7 @@ const LockInPoints: React.FC = ({}) => {
       <div>CCTV Point: {cctvPendingPoint ? "✅" : "❌"}</div>
       <div>Map Point: {mapPendingPoint ? "✅" : "❌"}</div>
       <Button onClick={resetPoints}>Reset Points</Button>
+      <Button onClick={addPoint}>Add Point</Button>
     </>
   )
 }
