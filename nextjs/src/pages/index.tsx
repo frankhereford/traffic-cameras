@@ -3,9 +3,14 @@ import Head from "next/head"
 import CameraPicker from "./components/cameraPicker"
 import CctvCamera from "./components/cctvCamera"
 
+import useIntersectionStore from "~/pages/hooks/IntersectionStore"
+
 //import { api } from "~/utils/api"
 
 export default function Home() {
+  const setCamera = useIntersectionStore((state) => state.setCamera)
+  const camera = useIntersectionStore((state) => state.camera)
+
   return (
     <>
       <Head>
