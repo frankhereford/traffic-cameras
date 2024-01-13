@@ -2,6 +2,7 @@ import React, { useEffect } from "react"
 import Head from "next/head"
 import CameraPicker from "./components/cameraPicker"
 import CctvCamera from "./components/cctvCamera"
+import LockInPoints from "./components/LockInPoints"
 import Map from "./components/map"
 
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
@@ -33,6 +34,7 @@ export default function Home() {
       <main className="flex h-screen flex-col">
         <div className="flex h-10 w-full items-center justify-center">
           <CameraPicker />
+          <LockInPoints />
         </div>
         <div className="flex flex-grow">
           <div className="h-full w-1/2 border-r">
