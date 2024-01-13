@@ -6,10 +6,7 @@ const Map: React.FC = ({}) => {
   const cameraData = useIntersectionStore((state) => state.cameraData)
 
   const [map, setMap] = useState<google.maps.Map | null>(null)
-  const [center, setCenter] = useState<{
-    lat: number | undefined
-    lng: number | undefined
-  } | null>(null)
+  const [center, setCenter] = useState<google.maps.LatLng | null>(null)
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -18,10 +15,10 @@ const Map: React.FC = ({}) => {
 
   useEffect(() => {
     if (cameraData?.location?.coordinates) {
-      const newCenter = {
-        lat: cameraData.location.coordinates[1],
-        lng: cameraData.location.coordinates[0],
-      }
+      const newCenter = new google.maps.LatLng(
+        cameraData.location.coordinates[1]!,
+        cameraData.location.coordinates[0],
+      )
       setCenter(newCenter)
     }
   }, [map, cameraData])
@@ -38,7 +35,7 @@ const Map: React.FC = ({}) => {
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={center ?? { lat: 30.2672, lng: -97.7431 }} // Use the center from state if it's defined, otherwise use a default value
+      center={center ?? new google.maps.LatLng(30.2672, -97.7431)} // Use the center from state if it's defined, otherwise use a default value
       zoom={20}
       //onLoad={onLoad}
       onUnmount={onUnmount}
