@@ -32,6 +32,7 @@ const LockInPoints: React.FC = ({}) => {
         { cctvPoint: cctvPendingPoint, mapPoint: mapPendingPoint },
       ])
       resetPoints()
+      console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
     }
   }
 
