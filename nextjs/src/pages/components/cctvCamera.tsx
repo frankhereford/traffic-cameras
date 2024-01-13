@@ -13,6 +13,13 @@ const CctvCamera: React.FC = ({}) => {
   const cctvPendingPoint = useIntersectionStore(
     (state) => state.cctvPendingPoint,
   )
+  const correlatedPoints = useIntersectionStore(
+    (state) => state.correlatedPoints,
+  )
+
+  useEffect(() => {
+    console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
+  }, [correlatedPoints])
 
   useEffect(() => {
     if (cctvPendingPoint === null) {
