@@ -37,13 +37,9 @@ const Map: React.FC = ({}) => {
       mapContainerStyle={containerStyle}
       center={center ?? new google.maps.LatLng(30.2672, -97.7431)} // Use the center from state if it's defined, otherwise use a default value
       zoom={20}
-      //onLoad={onLoad}
       onUnmount={onUnmount}
       options={{ tilt: 0, mapTypeId: "satellite" }} // Set tilt to 0 for a top-down view
-    >
-      {/* Child components, such as markers, info windows, etc. */}
-      <></>
-    </GoogleMap>
+    />
   ) : (
     <></>
   )
