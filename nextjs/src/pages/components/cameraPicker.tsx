@@ -12,7 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "~/pages/ui/popover"
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 
-interface Camera {
+export interface Camera {
   camera_id: string
   location_name: string
   camera_status: string
@@ -41,7 +41,11 @@ const CameraPicker: React.FC = ({}) => {
   const [value, setValue] = useState("")
   const [selectedCameraLocation, setSelectedCameraLocation] = useState("")
   const [cameraData, setCameraData] = useState<Camera[]>([])
+  const camera = useIntersectionStore((state) => state.camera)
   const setCamera = useIntersectionStore((state) => state.setCamera)
+  const setGlobalCameraData = useIntersectionStore(
+    (state) => state.setCameraData,
+  )
 
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
@@ -52,6 +56,22 @@ const CameraPicker: React.FC = ({}) => {
       })
       .catch((error) => console.error("Error:", error))
   }, [])
+
+  useEffect(() => {
+    if (cameraData && camera) {
+      const cameraObject = cameraData.find(
+        (item) => parseInt(item.camera_id) === camera,
+      )
+      if (cameraObject) {
+        // console.log("Found camera object:", cameraObject)
+        setGlobalCameraData(cameraObject)
+      } else {
+        // console.log("No camera object found")
+      }
+    } else {
+      // console.log("cameraData or camera is null")
+    }
+  }, [cameraData, camera])
 
   useEffect(() => {
     if (value !== "") {
