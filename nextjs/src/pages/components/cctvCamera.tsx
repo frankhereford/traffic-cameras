@@ -3,7 +3,11 @@ import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { useState, useEffect } from "react"
 import styles from "./CctvCamera.module.css"
 
+const markerSize = 5 // Half of the marker's size
+
 const CctvCamera: React.FC = ({}) => {
+  const [xRatio, setXRatio] = useState(1)
+  const [yRatio, setYRatio] = useState(1)
   const camera = useIntersectionStore((state) => state.camera)
   const url = `https://cctv.austinmobility.io/image/${camera}.jpg`
 
@@ -41,10 +45,12 @@ const CctvCamera: React.FC = ({}) => {
     const y = event.clientY - rect.top
     const xRatio = img.naturalWidth / img.width
     const yRatio = img.naturalHeight / img.height
+    setXRatio(xRatio)
+    setYRatio(yRatio)
     const nativeX = Math.floor(x * xRatio)
     const nativeY = Math.floor(y * yRatio)
     //console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`)
-    const markerSize = 5 // Half of the marker's size
+
     setCctvPendingPoint({
       x: nativeX,
       y: nativeY,
@@ -54,6 +60,7 @@ const CctvCamera: React.FC = ({}) => {
       y: nativeY / yRatio - markerSize,
     })
   }
+
   return (
     <>
       {camera ? (
@@ -75,6 +82,18 @@ const CctvCamera: React.FC = ({}) => {
               }}
             />
           )}
+
+          {correlatedPoints.map((point, index) => (
+            <div
+              key={index}
+              className={styles.marker}
+              style={{
+                left: `${point.cctvPoint.x / xRatio - markerSize}px`,
+                top: `${point.cctvPoint.y / yRatio - markerSize}px`,
+                backgroundColor: "blue",
+              }}
+            />
+          ))}
         </div>
       ) : null}
     </>
