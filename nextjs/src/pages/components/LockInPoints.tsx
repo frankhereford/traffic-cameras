@@ -44,7 +44,12 @@ const LockInPoints: React.FC = ({}) => {
       <div>CCTV Point: {cctvPendingPoint ? "✅" : "❌"}</div>
       <div>Map Point: {mapPendingPoint ? "✅" : "❌"}</div>
       <Button onClick={resetPoints}>Reset Points</Button>
-      <Button onClick={addPoint}>Add Point</Button>
+      <Button
+        onClick={addPoint}
+        disabled={!cctvPendingPoint || !mapPendingPoint}
+      >
+        Add Point
+      </Button>
     </>
   )
 }
