@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "~/utils"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/pages/ui/select"
 import { Button } from "~/pages/ui/button"
 import {
   Command,
@@ -59,12 +52,10 @@ const CameraPicker: React.FC = ({}) => {
   }, [])
 
   useEffect(() => {
-    console.log("value changed: ", value)
+    if (value !== "") {
+      console.log("value changed: ", value)
+    }
   }, [value])
-
-  useEffect(() => {
-    console.log("selectedCameraLocation changed: ", selectedCameraLocation)
-  }, [selectedCameraLocation])
 
   return (
     <>
@@ -78,7 +69,7 @@ const CameraPicker: React.FC = ({}) => {
                 aria-expanded={open}
                 className="w-[600px] justify-between"
               >
-                {selectedCameraLocation || "Select camera..."}
+                {selectedCameraLocation.toUpperCase() || "Select camera..."}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -92,14 +83,12 @@ const CameraPicker: React.FC = ({}) => {
                       key={camera.camera_id}
                       value={camera.location_name}
                       onSelect={(currentValue) => {
-                        console.log(currentValue)
                         const selectedCamera = cameraData.find((camera) => {
                           return (
                             camera.location_name.toLowerCase().trim() ===
                             currentValue.toLowerCase().trim()
                           )
                         })
-                        console.log("selectedCamera: ", selectedCamera)
                         if (selectedCamera) {
                           setValue(selectedCamera.camera_id)
                         }
@@ -122,20 +111,6 @@ const CameraPicker: React.FC = ({}) => {
               </Command>
             </PopoverContent>
           </Popover>
-        </div>
-        <div>
-          <Select>
-            <SelectTrigger className="w-[600px]">
-              <SelectValue placeholder="Theme" />
-            </SelectTrigger>
-            <SelectContent>
-              {cameraData.map((camera) => (
-                <SelectItem key={camera.camera_id} value={camera.camera_id}>
-                  {camera.location_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
     </>
