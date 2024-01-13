@@ -27,6 +27,17 @@ const Map: React.FC = ({}) => {
     setMap(null)
   }, [])
 
+  const handleClick = (e: {
+    latLng: { lat: () => unknown; lng: () => unknown }
+  }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const lat = e.latLng?.lat()
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const lng = e.latLng?.lng()
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    console.log(`Clicked at ${lat}, ${lng}`)
+  }
+
   const containerStyle = {
     width: "100%",
     height: "100%",
@@ -35,10 +46,11 @@ const Map: React.FC = ({}) => {
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={center ?? new google.maps.LatLng(30.2672, -97.7431)} // Use the center from state if it's defined, otherwise use a default value
+      center={center ?? new google.maps.LatLng(30.2672, -97.7431)}
       zoom={20}
       onUnmount={onUnmount}
-      options={{ tilt: 0, mapTypeId: "satellite" }} // Set tilt to 0 for a top-down view
+      options={{ tilt: 0, mapTypeId: "satellite" }}
+      onClick={handleClick}
     />
   ) : (
     <></>
