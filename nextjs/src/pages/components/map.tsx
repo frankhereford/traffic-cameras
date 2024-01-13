@@ -19,6 +19,10 @@ const Map: React.FC = ({}) => {
     (state) => state.setMapPendingPoint,
   )
 
+  const correlatedPoints = useIntersectionStore(
+    (state) => state.correlatedPoints,
+  )
+
   const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
 
   useEffect(() => {
@@ -67,6 +71,17 @@ const Map: React.FC = ({}) => {
       onClick={handleClick}
     >
       {markerPosition && <Marker position={markerPosition} />}
+      {correlatedPoints.map((point, index) => (
+        <Marker
+          key={index}
+          position={
+            new google.maps.LatLng(point.mapPoint.lat, point.mapPoint.lng)
+          }
+          icon={{
+            url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          }}
+        />
+      ))}
     </GoogleMap>
   ) : (
     <></>
