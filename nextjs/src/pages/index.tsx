@@ -1,15 +1,26 @@
-import React from "react"
+import React, { useEffect } from "react"
 import Head from "next/head"
 import CameraPicker from "./components/cameraPicker"
 import CctvCamera from "./components/cctvCamera"
 
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 
-//import { api } from "~/utils/api"
-
 export default function Home() {
   const setCamera = useIntersectionStore((state) => state.setCamera)
   const camera = useIntersectionStore((state) => state.camera)
+
+  // Load the camera from localStorage when the component mounts
+  useEffect(() => {
+    const storedCamera = localStorage.getItem("camera")
+    if (storedCamera) {
+      setCamera(JSON.parse(storedCamera) as number)
+    }
+  }, [])
+
+  // Save the camera to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("camera", JSON.stringify(camera))
+  }, [camera])
 
   return (
     <>

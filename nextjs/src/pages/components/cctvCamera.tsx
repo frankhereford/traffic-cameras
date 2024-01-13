@@ -8,7 +8,13 @@ const CctvCamera: React.FC = ({}) => {
   return (
     <>
       {camera ? (
-        <Image src={url} width={1920} height={1080} alt="CCTV Camera" />
+        <Image
+          priority
+          src={url}
+          width={1920}
+          height={1080}
+          alt="CCTV Camera"
+        />
       ) : null}
     </>
   )
