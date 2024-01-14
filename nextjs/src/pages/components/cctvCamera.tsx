@@ -34,9 +34,9 @@ const CctvCamera: React.FC = ({}) => {
     (state) => state.correlatedPoints,
   )
 
-  useEffect(() => {
-    console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
-  }, [correlatedPoints])
+  // useEffect(() => {
+  //   console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
+  // }, [correlatedPoints])
 
   useEffect(() => {
     if (cctvPendingPoint === null) {
