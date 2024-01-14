@@ -35,6 +35,15 @@ const CctvCamera: React.FC = ({}) => {
   )
   const setCctvImage = useIntersectionStore((state) => state.setCctvImage)
 
+  const recognition = useIntersectionStore((state) => state.recognition)
+
+  useEffect(() => {
+    if (recognition !== null) {
+      // Handle the recognition result here
+      console.log("recognition: ", recognition)
+    }
+  }, [recognition])
+
   useEffect(() => {
     if (cctvPendingPoint === null) {
       setClickPosition(null)
