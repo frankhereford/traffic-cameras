@@ -7,7 +7,6 @@ import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { useState, useEffect } from "react"
 import styles from "./CctvCamera.module.css"
 import BoundingBox from "./BoundingBox"
-import { set } from "zod"
 
 const markerSize = 5 // Half of the marker's size
 
