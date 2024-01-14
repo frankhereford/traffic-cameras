@@ -21,6 +21,8 @@
   "peacock.color": "#044a93",
   "cSpell.words": [
     "lucide",
+    "TRPC",
+    "uuidv",
     "zustand"
   ],
 }
