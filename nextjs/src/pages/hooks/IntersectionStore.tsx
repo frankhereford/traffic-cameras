@@ -41,17 +41,17 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     },
     cctvPendingPoint: null,
     setCctvPendingPoint: (cctvPendingPoint: Point) => {
-      console.log("setCctvPendingPoint", cctvPendingPoint)
+      // console.log("setCctvPendingPoint", cctvPendingPoint)
       set({ cctvPendingPoint })
     },
     mapPendingPoint: null,
     setMapPendingPoint: (mapPendingPoint: LatLng | null) => {
-      console.log("setMapPendingPoint", mapPendingPoint)
+      // console.log("setMapPendingPoint", mapPendingPoint)
       set({ mapPendingPoint })
     },
     correlatedPoints: [],
     setCorrelatedPoints: (correlatedPoints: CorrelatedPoint[]) => {
-      console.log("setCorrelatedPoints", correlatedPoints)
+      // console.log("setCorrelatedPoints", correlatedPoints)
       set({ correlatedPoints })
     },
   }
