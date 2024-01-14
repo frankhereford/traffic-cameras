@@ -29,6 +29,13 @@ const LockInPoints: React.FC = ({}) => {
   const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
 
   useEffect(() => {
+    if (submitWarpRequest.data) {
+      // Handle the result here
+      console.log("result: ", submitWarpRequest.data)
+    }
+  }, [submitWarpRequest.data])
+
+  useEffect(() => {
     if (correlatedPoints.length > 0) {
       console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
       submitWarpRequest.mutate({
