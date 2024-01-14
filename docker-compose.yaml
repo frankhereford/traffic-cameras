@@ -6,4 +6,5 @@ services:
       - "3000:3000"
     volumes:
       - ./nextjs:/application/nextjs
+      - ./thin-plate-spline-transformer:/transformer
       - ./workDir:/tmp

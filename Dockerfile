@@ -8,7 +8,7 @@ RUN apt-get install -y vim aptitude python3-pip magic-wormhole file
 
 RUN mkdir /transformer
 WORKDIR /transformer
-COPY tps /transformer
+COPY thin-plate-spline-transformer /transformer
 RUN pip3 install -r requirements.txt
 
 RUN mkdir /application

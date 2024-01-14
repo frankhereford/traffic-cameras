@@ -53,7 +53,12 @@ export const transformation = createTRPCRouter({
       const imagePath = path.join(tmpDir, "cctvImage.jpg")
       fs.writeFileSync(imagePath, dataBuffer)
       // console.log("Image written to disk at", imagePath)
+      // Convert the points data to a JSON string
+      const pointsData = JSON.stringify(input.points, null, 2)
 
+      // Write the JSON string to a file
+      const pointsPath = path.join(tmpDir, "points.json")
+      fs.writeFileSync(pointsPath, pointsData)
       console.log("done")
 
       return uuid
