@@ -54,7 +54,6 @@ export const transformation = createTRPCRouter({
       fs.writeFileSync(imagePath, dataBuffer)
       // console.log("Image written to disk at", imagePath)
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log("done")
 
       return uuid
