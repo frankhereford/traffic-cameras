@@ -35,33 +35,6 @@ const CctvCamera: React.FC = ({}) => {
   )
   const setCctvImage = useIntersectionStore((state) => state.setCctvImage)
 
-  // useEffect(() => {
-  //   if (camera === null) {
-  //     setCctvImage(null)
-  //     return
-  //   }
-
-  //   const fetchImage = async () => {
-  //     const response = await fetch(url, { mode: "no-cors" })
-  //     const blob = await response.blob()
-  //     console.log("url", url)
-  //     console.log("blob", blob)
-
-  //     const reader = new FileReader()
-  //     reader.onloadend = () => {
-  //       const base64data = reader.result
-  //       console.log("base64data", base64data)
-  //       setCctvImage(base64data as string)
-  //     }
-  //     reader.readAsDataURL(blob)
-  //   }
-
-  //   fetchImage().catch((error) => {
-  //     console.error(error)
-  //   })
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [imageKey, url, setCctvImage])
-
   useEffect(() => {
     if (cctvPendingPoint === null) {
       setClickPosition(null)
