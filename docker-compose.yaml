@@ -8,3 +8,5 @@ services:
       - ./nextjs:/application/nextjs
       - ./thin-plate-spline-transformer:/transformer
       - ./workDir:/tmp
+    env_file:
+      - .env
