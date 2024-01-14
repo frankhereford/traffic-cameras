@@ -33,10 +33,34 @@ const CctvCamera: React.FC = ({}) => {
   const correlatedPoints = useIntersectionStore(
     (state) => state.correlatedPoints,
   )
+  const setCctvImage = useIntersectionStore((state) => state.setCctvImage)
 
   // useEffect(() => {
-  //   console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
-  // }, [correlatedPoints])
+  //   if (camera === null) {
+  //     setCctvImage(null)
+  //     return
+  //   }
+
+  //   const fetchImage = async () => {
+  //     const response = await fetch(url, { mode: "no-cors" })
+  //     const blob = await response.blob()
+  //     console.log("url", url)
+  //     console.log("blob", blob)
+
+  //     const reader = new FileReader()
+  //     reader.onloadend = () => {
+  //       const base64data = reader.result
+  //       console.log("base64data", base64data)
+  //       setCctvImage(base64data as string)
+  //     }
+  //     reader.readAsDataURL(blob)
+  //   }
+
+  //   fetchImage().catch((error) => {
+  //     console.error(error)
+  //   })
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [imageKey, url, setCctvImage])
 
   useEffect(() => {
     if (cctvPendingPoint === null) {
@@ -74,6 +98,22 @@ const CctvCamera: React.FC = ({}) => {
     })
   }
 
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget
+
+    const canvas = document.createElement("canvas")
+    const ctx = canvas.getContext("2d")
+
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+
+    ctx?.drawImage(img, 0, 0)
+
+    const base64data = canvas.toDataURL("image/jpeg")
+    //console.log("base64data", base64data)
+    setCctvImage(base64data)
+  }
+
   return (
     <>
       {camera ? (
@@ -86,6 +126,7 @@ const CctvCamera: React.FC = ({}) => {
             height={1080}
             alt="CCTV Camera"
             onClick={handleClick}
+            onLoad={handleImageLoad}
           />
           {clickPosition && (
             <div

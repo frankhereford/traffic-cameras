@@ -14,6 +14,7 @@ export const transformation = createTRPCRouter({
   submitWarpRequest: publicProcedure
     .input(
       z.object({
+        image: z.string(),
         points: z.array(
           z.object({
             cctvPoint: z.object({
@@ -41,6 +42,18 @@ export const transformation = createTRPCRouter({
       fs.mkdirSync(tmpDir, { recursive: true })
 
       console.log("Temporary directory created.", tmpDir)
+
+      // Remove the base64 image prefix
+      const base64Data = input.image.replace(/^data:image\/jpeg;base64,/, "")
+
+      // Convert the base64 string to a Buffer
+      const dataBuffer = Buffer.from(base64Data, "base64")
+
+      // Write the Buffer to a file
+      const imagePath = path.join(tmpDir, "cctvImage.jpg")
+      fs.writeFileSync(imagePath, dataBuffer)
+
+      console.log("Image written to disk at", imagePath)
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log("done")

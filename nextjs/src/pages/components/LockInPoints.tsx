@@ -24,12 +24,15 @@ const LockInPoints: React.FC = ({}) => {
     (state) => state.setCorrelatedPoints,
   )
 
+  const cctvImage = useIntersectionStore((state) => state.cctvImage)
+
   const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
 
   useEffect(() => {
     if (correlatedPoints.length > 0) {
       console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
       submitWarpRequest.mutate({
+        image: cctvImage!,
         points: correlatedPoints,
       })
     }
