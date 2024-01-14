@@ -27,6 +27,8 @@ export type IntersectionState = {
   setMapPendingPoint: (mapPendingPoint: LatLng) => void
   correlatedPoints: CorrelatedPoint[]
   setCorrelatedPoints: (correlatedPoints: CorrelatedPoint[]) => void
+  cctvImage: string | null
+  setCctvImage: (cctvImage: string | null) => void
 }
 
 export const useIntersectionStore = create<IntersectionState>((set, get) => {
@@ -41,7 +43,7 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     },
     cctvPendingPoint: null,
     setCctvPendingPoint: (cctvPendingPoint: Point) => {
-      // console.log("setCctvPendingPoint", cctvPendingPoint)
+      console.log("setCctvPendingPoint", cctvPendingPoint)
       set({ cctvPendingPoint })
     },
     mapPendingPoint: null,
@@ -53,6 +55,10 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     setCorrelatedPoints: (correlatedPoints: CorrelatedPoint[]) => {
       // console.log("setCorrelatedPoints", correlatedPoints)
       set({ correlatedPoints })
+    },
+    cctvImage: null,
+    setCctvImage: (cctvImage: string | null) => {
+      set({ cctvImage })
     },
   }
 })
