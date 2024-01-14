@@ -1,6 +1,9 @@
 // import { set } from "zod"
+import { useEffect } from "react"
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { Button } from "~/pages/ui/button"
+
+import { api } from "~/utils/api"
 
 const LockInPoints: React.FC = ({}) => {
   const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
@@ -21,6 +24,18 @@ const LockInPoints: React.FC = ({}) => {
     (state) => state.setCorrelatedPoints,
   )
 
+  const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
+
+  useEffect(() => {
+    if (correlatedPoints.length > 0) {
+      console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
+      submitWarpRequest.mutate({
+        points: correlatedPoints,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [correlatedPoints])
+
   const resetPoints = () => {
     setCctvPendingPoint(null)
     setMapPendingPoint(null)
@@ -35,7 +50,7 @@ const LockInPoints: React.FC = ({}) => {
       ])
       setCctvPendingPoint(null)
       setMapPendingPoint(null)
-      console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
+      // console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
     }
   }
 
