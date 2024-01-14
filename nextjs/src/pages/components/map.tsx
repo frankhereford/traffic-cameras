@@ -27,20 +27,20 @@ const Map: React.FC = ({}) => {
 
   useEffect(() => {
     if (mapPendingPoint === null) {
-      console.log("mapPendingPoint is null")
+      // console.log("mapPendingPoint is null")
       setMarkerPosition(null)
     }
   }, [mapPendingPoint])
 
   useEffect(() => {
-    if (cameraData?.location?.coordinates) {
+    if (isLoaded && cameraData?.location?.coordinates) {
       const newCenter = new google.maps.LatLng(
         cameraData.location.coordinates[1]!,
         cameraData.location.coordinates[0],
       )
       setCenter(newCenter)
     }
-  }, [map, cameraData])
+  }, [map, cameraData, isLoaded])
 
   const onUnmount = useCallback(() => {
     setMap(null)
