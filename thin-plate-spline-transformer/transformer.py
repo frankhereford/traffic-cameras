@@ -44,7 +44,7 @@ def main():
     # Fit the surfaces
     tps.fit(cctv_points, map_points)
 
-    test_point = torch.tensor([[865, 472]]).float()
+    test_point = torch.tensor([[1018, 426]]).float()
     transformed_xy = tps.transform(test_point)
     print("transformed_xy", transformed_xy)
 

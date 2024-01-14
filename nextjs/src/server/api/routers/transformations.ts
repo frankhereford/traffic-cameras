@@ -3,6 +3,7 @@ import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
 import { v4 as uuidv4 } from "uuid"
+import { spawn } from "child_process"
 
 import {
   createTRPCRouter,
@@ -59,6 +60,38 @@ export const transformation = createTRPCRouter({
       // Write the JSON string to a file
       const pointsPath = path.join(tmpDir, "points.json")
       fs.writeFileSync(pointsPath, pointsData)
+
+      const labels = new Promise((resolve, reject) => {
+        const pythonProcess = spawn("python3", [
+          "/transformer/image_labeler.py",
+          uuid,
+        ])
+
+        let output = ""
+        pythonProcess.stdout.on("data", (data) => {
+          output += data.toString()
+        })
+
+        pythonProcess.on("close", (code) => {
+          if (code !== 0) {
+            return reject(new Error(`Python process exited with code ${code}`))
+          }
+
+          // console.log("output", output)
+
+          let parsedOutput
+          try {
+            parsedOutput = JSON.parse(output)
+          } catch (err) {
+            return reject(new Error("Failed to parse Python output as JSON"))
+          }
+
+          resolve(parsedOutput)
+        })
+      })
+
+      console.log("labels", await labels)
+
       console.log("done")
 
       return uuid
