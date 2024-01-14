@@ -11,6 +11,57 @@ import {
   publicProcedure,
 } from "~/server/api/trpc"
 
+type BoundingBox = {
+  Width: number
+  Height: number
+  Left: number
+  Top: number
+}
+
+type Instance = {
+  BoundingBox: BoundingBox
+  Confidence: number
+}
+
+type Category = {
+  Name: string
+}
+
+type Parent = {
+  Name: string
+}
+
+type Alias = {
+  Name: string
+}
+
+type Label = {
+  Name: string
+  Confidence: number
+  Instances: Instance[]
+  Parents: Parent[]
+  Aliases: Alias[]
+  Categories: Category[]
+}
+
+type ResponseMetadata = {
+  RequestId: string
+  HTTPStatusCode: number
+  HTTPHeaders: {
+    "x-amzn-requestid": string
+    "content-type": string
+    "content-length": string
+    date: string
+  }
+  RetryAttempts: number
+}
+
+type ImageRecognitionResponse = {
+  Labels: Label[]
+  LabelModelVersion: string
+  ResponseMetadata: ResponseMetadata
+}
+
 export const transformation = createTRPCRouter({
   submitWarpRequest: publicProcedure
     .input(
@@ -69,6 +120,7 @@ export const transformation = createTRPCRouter({
 
         let output = ""
         pythonProcess.stdout.on("data", (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           output += data.toString()
         })
 
@@ -79,22 +131,22 @@ export const transformation = createTRPCRouter({
 
           // console.log("output", output)
 
-          let parsedOutput
+          let recognition_result
           try {
-            parsedOutput = JSON.parse(output)
+            recognition_result = JSON.parse(output) as ImageRecognitionResponse
           } catch (err) {
             return reject(new Error("Failed to parse Python output as JSON"))
           }
 
-          resolve(parsedOutput)
+          resolve(recognition_result)
         })
       })
 
-      console.log("labels", await labels)
+      console.log("recognition_result", await labels)
 
       console.log("done")
 
-      return uuid
+      return labels
     }),
 
   getSecretMessage: protectedProcedure.query(() => {
