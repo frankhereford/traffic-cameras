@@ -30,9 +30,9 @@ export const transformation = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log("input", JSON.stringify(input, null, 2))
+      // console.log("input", JSON.stringify(input, null, 2))
 
-      const baseDir = path.join(os.tmpdir(), "traffic-cameras")
+      const baseDir = path.join(os.tmpdir(), "transformations")
       if (!fs.existsSync(baseDir)) {
         fs.mkdirSync(baseDir)
       }
@@ -52,8 +52,7 @@ export const transformation = createTRPCRouter({
       // Write the Buffer to a file
       const imagePath = path.join(tmpDir, "cctvImage.jpg")
       fs.writeFileSync(imagePath, dataBuffer)
-
-      console.log("Image written to disk at", imagePath)
+      // console.log("Image written to disk at", imagePath)
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log("done")
