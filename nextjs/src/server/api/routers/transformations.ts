@@ -7,28 +7,28 @@ import {
 } from "~/server/api/trpc"
 
 export const transformation = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      }
-    }),
-
-  readPoints: publicProcedure
-    .input(z.object({ name: z.string().min(1) }))
+  submitWarpRequest: publicProcedure
+    .input(
+      z.object({
+        points: z.array(
+          z.object({
+            cctvPoint: z.object({
+              x: z.number(),
+              y: z.number(),
+            }),
+            mapPoint: z.object({
+              lat: z.number(),
+              lng: z.number(),
+            }),
+          }),
+        ),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      console.log("getting mutated")
-      console.log("input", input)
-      console.log("ctx", ctx)
-      // simulate a slow db call
-      //   await new Promise((resolve) => setTimeout(resolve, 1000))
-      //   return ctx.db.post.create({
-      //     data: {
-      //       name: input.name,
-      //       createdBy: { connect: { id: ctx.session.user.id } },
-      //     },
-      //   })
+      console.log("input", JSON.stringify(input, null, 2))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      console.log("done")
+      return input.points.length
     }),
 
   getSecretMessage: protectedProcedure.query(() => {
