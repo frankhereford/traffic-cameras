@@ -24,6 +24,13 @@ const Map: React.FC = ({}) => {
   )
 
   const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
+  const warpedLabels = useIntersectionStore((state) => state.warpedLabels)
+
+  useEffect(() => {
+    if (warpedLabels !== null) {
+      console.log("warpedLabels", JSON.stringify(warpedLabels, null, 2))
+    }
+  }, [warpedLabels])
 
   useEffect(() => {
     if (mapPendingPoint === null) {
@@ -79,6 +86,15 @@ const Map: React.FC = ({}) => {
           }
           icon={{
             url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          }}
+        />
+      ))}
+      {warpedLabels?.map((label, index) => (
+        <Marker
+          key={index}
+          position={new google.maps.LatLng(label.lat, label.lng)}
+          icon={{
+            url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
           }}
         />
       ))}

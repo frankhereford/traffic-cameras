@@ -31,11 +31,6 @@ const LockInPoints: React.FC = ({}) => {
 
   useEffect(() => {
     if (warpCoordinates.data) {
-      // Handle the result here
-      console.log(
-        "warpCoordinates",
-        JSON.stringify(warpCoordinates.data, null, 2),
-      )
       setWarpedLabels(warpCoordinates.data)
     }
   }, [warpCoordinates.data])
