@@ -63,7 +63,7 @@ type ImageRecognitionResponse = {
 }
 
 export const transformation = createTRPCRouter({
-  submitWarpRequest: publicProcedure
+  warpCoordinates: publicProcedure
     .input(
       z.object({
         points: z.array(
@@ -76,6 +76,12 @@ export const transformation = createTRPCRouter({
               lat: z.number(),
               lng: z.number(),
             }),
+          }),
+        ),
+        labels: z.array(
+          z.object({
+            x: z.number(),
+            y: z.number(),
           }),
         ),
       }),
@@ -95,7 +101,7 @@ export const transformation = createTRPCRouter({
       console.log("Temporary directory created.", tmpDir)
 
       // Convert the points data to a JSON string
-      const pointsData = JSON.stringify(input.points, null, 2)
+      const pointsData = JSON.stringify(input, null, 2)
 
       // Write the JSON string to a file
       const pointsPath = path.join(tmpDir, "points.json")
