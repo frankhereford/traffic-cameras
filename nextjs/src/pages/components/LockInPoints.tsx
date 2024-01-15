@@ -1,5 +1,5 @@
 // import { set } from "zod"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { Button } from "~/pages/ui/button"
 
@@ -24,25 +24,38 @@ const LockInPoints: React.FC = ({}) => {
     (state) => state.setCorrelatedPoints,
   )
 
+  const recognition = useIntersectionStore((state) => state.recognition)
+
   const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
 
-  // useEffect(() => {
-  //   if (submitWarpRequest.data) {
-  //     // Handle the result here
-  //     setRecognition(submitWarpRequest.data)
-  //   }
-  // }, [submitWarpRequest.data])
+  useEffect(() => {
+    if (submitWarpRequest.data) {
+      // Handle the result here
+      console.log("submitWarpRequest", submitWarpRequest.data)
+    }
+  }, [submitWarpRequest.data])
 
   useEffect(() => {
-    if (correlatedPoints.length > 0) {
+    if (correlatedPoints.length > 4 && recognition) {
+      console.log("asking for answers")
       console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
-      submitWarpRequest.mutate({
-        //image: cctvImage!,
-        points: correlatedPoints,
-      })
+      console.log("recognition", recognition)
+      const distilledRecognition = recognition.Labels.filter(
+        (label) => label.Instances.length > 0,
+      ).map((label) => ({
+        Name: label.Name,
+        Confidence: label.Confidence,
+        Instances: label.Instances, // Include the Instances
+      }))
+      console.log("distilledRecognition: ")
+      console.log(JSON.stringify(distilledRecognition, null, 2))
+
+      // submitWarpRequest.mutate({
+      //   points: correlatedPoints,
+      // })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [correlatedPoints])
+  }, [correlatedPoints, recognition])
 
   const resetPoints = () => {
     setCctvPendingPoint(null)

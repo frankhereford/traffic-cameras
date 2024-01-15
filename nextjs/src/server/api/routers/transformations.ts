@@ -101,6 +101,38 @@ export const transformation = createTRPCRouter({
       const pointsPath = path.join(tmpDir, "points.json")
       fs.writeFileSync(pointsPath, pointsData)
 
+      console.log("python3 /transformer/transformer.py", uuid)
+
+      const points = new Promise((resolve, reject) => {
+        const pythonProcess = spawn("python3", [
+          "/transformer/transformer.py",
+          uuid,
+        ])
+
+        let output = ""
+        pythonProcess.stdout.on("data", (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          output += data.toString()
+        })
+
+        pythonProcess.on("close", (code) => {
+          if (code !== 0) {
+            return reject(new Error(`Python process exited with code ${code}`))
+          }
+
+          console.log("transform output", output)
+
+          let transform_result
+          try {
+            transform_result = JSON.parse(output) as ImageRecognitionResponse
+          } catch (err) {
+            return reject(new Error("Failed to parse Python output as JSON"))
+          }
+
+          resolve(transform_result)
+        })
+      })
+
       console.log("done")
 
       return pointsData

@@ -96,7 +96,7 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     },
     cctvPendingPoint: null,
     setCctvPendingPoint: (cctvPendingPoint: Point) => {
-      console.log("setCctvPendingPoint", cctvPendingPoint)
+      // console.log("setCctvPendingPoint", cctvPendingPoint)
       set({ cctvPendingPoint })
     },
     mapPendingPoint: null,
