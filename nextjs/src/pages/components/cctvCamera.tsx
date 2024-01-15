@@ -8,6 +8,8 @@ import { useState, useEffect } from "react"
 import styles from "./CctvCamera.module.css"
 import BoundingBox from "./BoundingBox"
 
+import { api } from "~/utils/api"
+
 const markerSize = 5 // Half of the marker's size
 
 function reduceLabels(data: {
@@ -30,6 +32,11 @@ const CctvCamera: React.FC = ({}) => {
 
   const [imageKey, setImageKey] = useState(Date.now())
   const [boundingBoxes, setBoundingBoxes] = useState([])
+
+  const getLabels = api.transformation.getLabels.useMutation({})
+
+  const cctvImage = useIntersectionStore((state) => state.cctvImage)
+  const setRecognition = useIntersectionStore((state) => state.setRecognition)
 
   useEffect(() => {
     const timer = setTimeout(
@@ -81,6 +88,23 @@ const CctvCamera: React.FC = ({}) => {
       setBoundingBoxes(boundingBoxes)
     }
   }, [distilledRecognition, xRatio, yRatio])
+
+  useEffect(() => {
+    if (getLabels.data) {
+      // Handle the result here
+      setRecognition(getLabels.data)
+    }
+  }, [getLabels.data])
+
+  useEffect(() => {
+    if (cctvImage !== null) {
+      // Handle the non-null cctvImage here
+      console.log("CCTV Image:", cctvImage)
+      getLabels.mutate({
+        image: cctvImage,
+      })
+    }
+  }, [cctvImage])
 
   useEffect(() => {
     if (recognition !== null) {
