@@ -26,33 +26,42 @@ const LockInPoints: React.FC = ({}) => {
 
   const recognition = useIntersectionStore((state) => state.recognition)
 
-  const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
+  const warpCoordinates = api.transformation.warpCoordinates.useMutation({})
 
   useEffect(() => {
-    if (submitWarpRequest.data) {
+    if (warpCoordinates.data) {
       // Handle the result here
-      console.log("submitWarpRequest", submitWarpRequest.data)
+      console.log("warpCoordinates", warpCoordinates.data)
     }
-  }, [submitWarpRequest.data])
+  }, [warpCoordinates.data])
 
   useEffect(() => {
     if (correlatedPoints.length > 4 && recognition) {
-      console.log("asking for answers")
-      console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
-      console.log("recognition", recognition)
+      // console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
+      // console.log("recognition", recognition)
       const distilledRecognition = recognition.Labels.filter(
         (label) => label.Instances.length > 0,
-      ).map((label) => ({
-        Name: label.Name,
-        Confidence: label.Confidence,
-        Instances: label.Instances, // Include the Instances
-      }))
+      ).flatMap((label) =>
+        label.Instances.map((instance) => {
+          const { BoundingBox } = instance
+          const imageWidth = 1920
+          const imageHeight = 1080
+
+          // Calculate the center of the bounding box
+          const x = (BoundingBox.Left + BoundingBox.Width / 2) * imageWidth
+          const y = (BoundingBox.Top + BoundingBox.Height / 2) * imageHeight
+
+          return { x, y }
+        }),
+      )
+
       console.log("distilledRecognition: ")
       console.log(JSON.stringify(distilledRecognition, null, 2))
 
-      // submitWarpRequest.mutate({
-      //   points: correlatedPoints,
-      // })
+      warpCoordinates.mutate({
+        points: correlatedPoints,
+        labels: distilledRecognition,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [correlatedPoints, recognition])
