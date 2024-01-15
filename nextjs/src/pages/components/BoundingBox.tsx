@@ -36,7 +36,7 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({ box, image, label }) => {
         color: "white",
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         padding: "2px",
-        fontSize: "8px", // Adjust this value to change the font size
+        fontSize: "10px", // Adjust this value to change the font size
       }}
     >
       {label}
