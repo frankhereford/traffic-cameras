@@ -159,7 +159,7 @@ const CctvCamera: React.FC = ({}) => {
           <Image
             key={imageKey}
             priority
-            src={url}
+            src={`${url}?${new Date().getTime()}`}
             width={1920}
             height={1080}
             alt="CCTV Camera"
