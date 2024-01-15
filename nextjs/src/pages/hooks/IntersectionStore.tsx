@@ -1,6 +1,11 @@
 import { create } from "zustand"
 import type { Camera } from "~/pages/components/cameraPicker"
 
+export type WarpedLabel = {
+  lat: number
+  lng: number
+}
+
 export type Point = {
   x: number
   y: number
@@ -82,6 +87,8 @@ export type IntersectionState = {
   setCctvImage: (cctvImage: string | null) => void
   recognition: ImageRecognitionResponse | null
   setRecognition: (response: ImageRecognitionResponse | null) => void
+  warpedLabels: WarpedLabel[] | null
+  setWarpedLabels: (warpedLabels: WarpedLabel[] | null) => void
 }
 
 export const useIntersectionStore = create<IntersectionState>((set, get) => {
@@ -116,6 +123,10 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     recognition: null,
     setRecognition: (response: ImageRecognitionResponse | null) => {
       set({ recognition: response })
+    },
+    warpedLabels: null,
+    setWarpedLabels: (warpedLabels: WarpedLabel[] | null) => {
+      set({ warpedLabels })
     },
   }
 })

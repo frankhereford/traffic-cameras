@@ -1,5 +1,5 @@
 // import { set } from "zod"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { Button } from "~/pages/ui/button"
 
@@ -23,26 +23,52 @@ const LockInPoints: React.FC = ({}) => {
   const setCorrelatedPoints = useIntersectionStore(
     (state) => state.setCorrelatedPoints,
   )
+  const setWarpedLabels = useIntersectionStore((state) => state.setWarpedLabels)
 
-  const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
+  const recognition = useIntersectionStore((state) => state.recognition)
 
-  // useEffect(() => {
-  //   if (submitWarpRequest.data) {
-  //     // Handle the result here
-  //     setRecognition(submitWarpRequest.data)
-  //   }
-  // }, [submitWarpRequest.data])
+  const warpCoordinates = api.transformation.warpCoordinates.useMutation({})
 
   useEffect(() => {
-    if (correlatedPoints.length > 0) {
-      console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
-      submitWarpRequest.mutate({
-        //image: cctvImage!,
-        points: correlatedPoints,
-      })
+    if (warpCoordinates.data) {
+      setWarpedLabels(warpCoordinates.data)
+    }
+  }, [warpCoordinates.data])
+
+  useEffect(() => {
+    if (correlatedPoints.length > 4 && recognition) {
+      // console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
+
+      console.log("recognition: ", JSON.stringify(recognition, null, 2))
+
+      const distilledRecognition = recognition.Labels.filter(
+        (label) => label.Name === "Car" && label.Instances.length > 0,
+      ).flatMap((label) =>
+        label.Instances.map((instance) => {
+          const { BoundingBox } = instance
+          const imageWidth = 1920
+          const imageHeight = 1080
+
+          // Calculate the middle of the x interval
+          const x = (BoundingBox.Left + BoundingBox.Width / 2) * imageWidth
+          // Calculate the minimum of the y interval
+          const y = (BoundingBox.Top + BoundingBox.Height) * imageHeight
+          return { x, y }
+        }),
+      )
+
+      console.log("distilledRecognition: ")
+      console.log(JSON.stringify(distilledRecognition, null, 2))
+
+      if (distilledRecognition.length > 0) {
+        warpCoordinates.mutate({
+          points: correlatedPoints,
+          labels: distilledRecognition,
+        })
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [correlatedPoints])
+  }, [correlatedPoints, recognition])
 
   const resetPoints = () => {
     setCctvPendingPoint(null)

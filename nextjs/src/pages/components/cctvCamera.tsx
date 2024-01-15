@@ -12,17 +12,6 @@ import { api } from "~/utils/api"
 
 const markerSize = 5 // Half of the marker's size
 
-function reduceLabels(data: {
-  Labels: Label[]
-}): { Name: string; Confidence: number }[] {
-  return data.Labels.filter((label) => label.Instances.length > 0).map(
-    (label) => ({
-      Name: label.Name,
-      Confidence: label.Confidence,
-    }),
-  )
-}
-
 const CctvCamera: React.FC = ({}) => {
   const [xRatio, setXRatio] = useState(1)
   const [yRatio, setYRatio] = useState(1)
@@ -84,7 +73,7 @@ const CctvCamera: React.FC = ({}) => {
           />
         )),
       )
-      console.log(boundingBoxes)
+      // console.log(boundingBoxes)
       setBoundingBoxes(boundingBoxes)
     }
   }, [distilledRecognition, xRatio, yRatio])
@@ -99,7 +88,7 @@ const CctvCamera: React.FC = ({}) => {
   useEffect(() => {
     if (cctvImage !== null) {
       // Handle the non-null cctvImage here
-      console.log("CCTV Image:", cctvImage)
+      // console.log("CCTV Image:", cctvImage)
       getLabels.mutate({
         image: cctvImage,
       })
@@ -109,7 +98,7 @@ const CctvCamera: React.FC = ({}) => {
   useEffect(() => {
     if (recognition !== null) {
       // Handle the recognition result here
-      console.log("Recognition:", JSON.stringify(recognition, null, 2))
+      // console.log("Recognition:", JSON.stringify(recognition, null, 2))
 
       const distilledRecognition = recognition.Labels.filter(
         (label) => label.Instances.length > 0,
@@ -118,8 +107,8 @@ const CctvCamera: React.FC = ({}) => {
         Confidence: label.Confidence,
         Instances: label.Instances, // Include the Instances
       }))
-      console.log("distilledRecognition: ")
-      console.log(JSON.stringify(distilledRecognition, null, 2))
+      // console.log("distilledRecognition: ")
+      // console.log(JSON.stringify(distilledRecognition, null, 2))
       setDistilledRecognition(distilledRecognition)
     }
   }, [recognition])

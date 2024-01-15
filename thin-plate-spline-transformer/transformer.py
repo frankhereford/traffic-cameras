@@ -14,10 +14,10 @@ def read_data(file_path):
 
 def extract_points(data):
     cctv_points = torch.tensor(
-        [[d["cctvPoint"]["x"], d["cctvPoint"]["y"]] for d in data]
+        [[d["cctvPoint"]["x"], d["cctvPoint"]["y"]] for d in data["points"]]
     )
     map_points = torch.tensor(
-        [[d["mapPoint"]["lat"], d["mapPoint"]["lng"]] for d in data]
+        [[d["mapPoint"]["lat"], d["mapPoint"]["lng"]] for d in data["points"]]
     )
     return cctv_points, map_points
 
@@ -44,9 +44,11 @@ def main():
     # Fit the surfaces
     tps.fit(cctv_points, map_points)
 
-    test_point = torch.tensor([[1018, 426]]).float()
-    transformed_xy = tps.transform(test_point)
-    print("transformed_xy", transformed_xy)
+    test_points = torch.tensor([[d["x"], d["y"]] for d in data["labels"]]).float()
+    transformed_xy = tps.transform(test_points)
+    transformed_xy_list = transformed_xy.tolist()
+    transformed_points = [{"lat": xy[0], "lng": xy[1]} for xy in transformed_xy_list]
+    print(json.dumps(transformed_points, indent=2))
 
 
 if __name__ == "__main__":
