@@ -16,6 +16,57 @@ export type CorrelatedPoint = {
   mapPoint: LatLng
 }
 
+type BoundingBox = {
+  Width: number
+  Height: number
+  Left: number
+  Top: number
+}
+
+type Instance = {
+  BoundingBox: BoundingBox
+  Confidence: number
+}
+
+type Category = {
+  Name: string
+}
+
+type Parent = {
+  Name: string
+}
+
+type Alias = {
+  Name: string
+}
+
+type Label = {
+  Name: string
+  Confidence: number
+  Instances: Instance[]
+  Parents: Parent[]
+  Aliases: Alias[]
+  Categories: Category[]
+}
+
+type ResponseMetadata = {
+  RequestId: string
+  HTTPStatusCode: number
+  HTTPHeaders: {
+    "x-amzn-requestid": string
+    "content-type": string
+    "content-length": string
+    date: string
+  }
+  RetryAttempts: number
+}
+
+type ImageRecognitionResponse = {
+  Labels: Label[]
+  LabelModelVersion: string
+  ResponseMetadata: ResponseMetadata
+}
+
 export type IntersectionState = {
   camera: number | null
   setCamera: (camera: number) => void
@@ -29,6 +80,8 @@ export type IntersectionState = {
   setCorrelatedPoints: (correlatedPoints: CorrelatedPoint[]) => void
   cctvImage: string | null
   setCctvImage: (cctvImage: string | null) => void
+  recognition: ImageRecognitionResponse | null
+  setRecognition: (response: ImageRecognitionResponse | null) => void
 }
 
 export const useIntersectionStore = create<IntersectionState>((set, get) => {
@@ -59,6 +112,10 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     cctvImage: null,
     setCctvImage: (cctvImage: string | null) => {
       set({ cctvImage })
+    },
+    recognition: null,
+    setRecognition: (response: ImageRecognitionResponse | null) => {
+      set({ recognition: response })
     },
   }
 })

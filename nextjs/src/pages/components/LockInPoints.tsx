@@ -26,12 +26,14 @@ const LockInPoints: React.FC = ({}) => {
 
   const cctvImage = useIntersectionStore((state) => state.cctvImage)
 
+  const setRecognition = useIntersectionStore((state) => state.setRecognition)
+
   const submitWarpRequest = api.transformation.submitWarpRequest.useMutation({})
 
   useEffect(() => {
     if (submitWarpRequest.data) {
       // Handle the result here
-      console.log("result: ", submitWarpRequest.data)
+      setRecognition(submitWarpRequest.data)
     }
   }, [submitWarpRequest.data])
 
