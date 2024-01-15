@@ -38,19 +38,21 @@ const LockInPoints: React.FC = ({}) => {
   useEffect(() => {
     if (correlatedPoints.length > 4 && recognition) {
       // console.log("correlatedPoints", JSON.stringify(correlatedPoints, null, 2))
-      // console.log("recognition", recognition)
+
+      console.log("recognition: ", JSON.stringify(recognition, null, 2))
+
       const distilledRecognition = recognition.Labels.filter(
-        (label) => label.Instances.length > 0,
+        (label) => label.Name === "Car" && label.Instances.length > 0,
       ).flatMap((label) =>
         label.Instances.map((instance) => {
           const { BoundingBox } = instance
           const imageWidth = 1920
           const imageHeight = 1080
 
-          // Calculate the center of the bounding box
+          // Calculate the middle of the x interval
           const x = (BoundingBox.Left + BoundingBox.Width / 2) * imageWidth
-          const y = (BoundingBox.Top + BoundingBox.Height / 2) * imageHeight
-
+          // Calculate the minimum of the y interval
+          const y = (BoundingBox.Top + BoundingBox.Height) * imageHeight
           return { x, y }
         }),
       )

@@ -80,6 +80,7 @@ export const transformation = createTRPCRouter({
         ),
         labels: z.array(
           z.object({
+            // name: z.string(),
             x: z.number(),
             y: z.number(),
           }),
