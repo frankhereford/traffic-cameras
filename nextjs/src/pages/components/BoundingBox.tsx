@@ -32,11 +32,11 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({ box, image, label }) => {
         top: `${scaledBox.top}px`,
         width: `${scaledBox.width}px`,
         height: `${scaledBox.height}px`,
-        border: "2px solid red",
+        border: `2px solid ${label === "Car" ? "#0f0" : "grey"}`,
         color: "white",
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         padding: "2px",
-        fontSize: "10px", // Adjust this value to change the font size
+        fontSize: "8px", // Adjust this value to change the font size
       }}
     >
       {label}
