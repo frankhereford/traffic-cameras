@@ -23,6 +23,7 @@ const LockInPoints: React.FC = ({}) => {
   const setCorrelatedPoints = useIntersectionStore(
     (state) => state.setCorrelatedPoints,
   )
+  const setWarpedLabels = useIntersectionStore((state) => state.setWarpedLabels)
 
   const recognition = useIntersectionStore((state) => state.recognition)
 
@@ -31,7 +32,11 @@ const LockInPoints: React.FC = ({}) => {
   useEffect(() => {
     if (warpCoordinates.data) {
       // Handle the result here
-      console.log("warpCoordinates", warpCoordinates.data)
+      console.log(
+        "warpCoordinates",
+        JSON.stringify(warpCoordinates.data, null, 2),
+      )
+      setWarpedLabels(warpCoordinates.data)
     }
   }, [warpCoordinates.data])
 
@@ -58,10 +63,12 @@ const LockInPoints: React.FC = ({}) => {
       console.log("distilledRecognition: ")
       console.log(JSON.stringify(distilledRecognition, null, 2))
 
-      warpCoordinates.mutate({
-        points: correlatedPoints,
-        labels: distilledRecognition,
-      })
+      if (distilledRecognition.length > 0) {
+        warpCoordinates.mutate({
+          points: correlatedPoints,
+          labels: distilledRecognition,
+        })
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [correlatedPoints, recognition])

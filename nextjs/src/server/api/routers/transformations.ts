@@ -126,22 +126,23 @@ export const transformation = createTRPCRouter({
             return reject(new Error(`Python process exited with code ${code}`))
           }
 
-          console.log("transform output", output)
-
           let transform_result
           try {
+            // ! FIXME this is so wrong in type
             transform_result = JSON.parse(output) as ImageRecognitionResponse
           } catch (err) {
             return reject(new Error("Failed to parse Python output as JSON"))
           }
 
+          // console.log("transform output", transform_result)
+
           resolve(transform_result)
         })
       })
 
-      console.log("done")
+      // console.log("done")
 
-      return pointsData
+      return await points
     }),
 
   getLabels: publicProcedure
