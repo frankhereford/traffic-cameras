@@ -117,6 +117,18 @@ const CctvCamera: React.FC = ({}) => {
     y: number
   } | null>(null)
 
+  useEffect(() => {
+    if (
+      cctvPendingPoint &&
+      cctvPendingPoint.x !== 0 &&
+      cctvPendingPoint.y !== 0
+    ) {
+      console.log(
+        `Clicked at native coordinates: ${cctvPendingPoint.x}, ${cctvPendingPoint.y}`,
+      )
+    }
+  }, [cctvPendingPoint])
+
   const handleClick = (
     event: React.MouseEvent<HTMLImageElement, MouseEvent>,
   ) => {
