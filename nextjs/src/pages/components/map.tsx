@@ -9,6 +9,9 @@ const Map: React.FC = ({}) => {
   const [center, setCenter] = useState<google.maps.LatLng | null>(null)
   const [markerPosition, setMarkerPosition] =
     useState<google.maps.LatLng | null>(null)
+  const [peekPosition, setPeekPosition] = useState<google.maps.LatLng | null>(
+    null,
+  )
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -25,12 +28,24 @@ const Map: React.FC = ({}) => {
 
   const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
   const warpedLabels = useIntersectionStore((state) => state.warpedLabels)
+  const mapPeekPoint = useIntersectionStore((state) => state.mapPeekPoint)
 
   useEffect(() => {
     if (warpedLabels !== null) {
       console.log("warpedLabels", JSON.stringify(warpedLabels, null, 2))
     }
   }, [warpedLabels])
+
+  useEffect(() => {
+    if (mapPeekPoint !== null) {
+      console.log("mapPeekPoint", JSON.stringify(mapPeekPoint, null, 2))
+      const peekLatLng = new google.maps.LatLng(
+        mapPeekPoint.lat,
+        mapPeekPoint.lng,
+      )
+      setPeekPosition(peekLatLng)
+    }
+  }, [mapPeekPoint])
 
   useEffect(() => {
     if (mapPendingPoint === null) {
@@ -98,6 +113,14 @@ const Map: React.FC = ({}) => {
           }}
         />
       ))}
+      {peekPosition && (
+        <Marker
+          position={peekPosition}
+          icon={{
+            url: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
+          }}
+        />
+      )}
     </GoogleMap>
   ) : (
     <></>

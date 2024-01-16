@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { create } from "zustand"
 import type { Camera } from "~/pages/components/cameraPicker"
 
@@ -89,6 +90,8 @@ export type IntersectionState = {
   setRecognition: (response: ImageRecognitionResponse | null) => void
   warpedLabels: WarpedLabel[] | null
   setWarpedLabels: (warpedLabels: WarpedLabel[] | null) => void
+  mapPeekPoint: LatLng | null
+  setMapPeekPoint: (mapPeekPoint: LatLng) => void
 }
 
 export const useIntersectionStore = create<IntersectionState>((set, get) => {
@@ -127,6 +130,11 @@ export const useIntersectionStore = create<IntersectionState>((set, get) => {
     warpedLabels: null,
     setWarpedLabels: (warpedLabels: WarpedLabel[] | null) => {
       set({ warpedLabels })
+    },
+    mapPeekPoint: null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setMapPeekPoint: (mapPeekPoint: any) => {
+      set({ mapPeekPoint })
     },
   }
 })

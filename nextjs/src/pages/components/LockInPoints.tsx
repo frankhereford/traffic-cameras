@@ -5,6 +5,11 @@ import { Button } from "~/pages/ui/button"
 
 import { api } from "~/utils/api"
 
+type Coordinate = {
+  lat: number
+  lng: number
+}
+
 const LockInPoints: React.FC = ({}) => {
   const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
   const cctvPendingPoint = useIntersectionStore(
@@ -28,12 +33,24 @@ const LockInPoints: React.FC = ({}) => {
   const recognition = useIntersectionStore((state) => state.recognition)
 
   const warpCoordinates = api.transformation.warpCoordinates.useMutation({})
+  const warpPendingCoordinates = api.transformation.warpCoordinates.useMutation(
+    {},
+  )
+  const setMapPeekPoint = useIntersectionStore((state) => state.setMapPeekPoint)
 
   useEffect(() => {
     if (warpCoordinates.data) {
       setWarpedLabels(warpCoordinates.data)
     }
   }, [warpCoordinates.data])
+
+  useEffect(() => {
+    if (warpPendingCoordinates.data) {
+      console.log("found peek point: ", warpPendingCoordinates.data)
+      setMapPeekPoint(warpPendingCoordinates.data[0])
+      //setWarpedLabels(warpCoordinates.data)
+    }
+  }, [warpPendingCoordinates.data])
 
   useEffect(() => {
     if (correlatedPoints.length > 4 && recognition) {
@@ -69,6 +86,29 @@ const LockInPoints: React.FC = ({}) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [correlatedPoints, recognition])
+
+  useEffect(() => {
+    if (
+      correlatedPoints.length > 4 &&
+      cctvPendingPoint &&
+      cctvPendingPoint.x !== 0 &&
+      cctvPendingPoint.y !== 0
+    ) {
+      console.log(
+        `Clicked at native coordinates: ${cctvPendingPoint.x}, ${cctvPendingPoint.y}`,
+      )
+      const cctvPendingPointArray: Coordinate[] = [
+        {
+          x: cctvPendingPoint.x,
+          y: cctvPendingPoint.y,
+        },
+      ]
+      warpPendingCoordinates.mutate({
+        points: correlatedPoints,
+        labels: cctvPendingPointArray as unknown as { x: number; y: number }[],
+      })
+    }
+  }, [cctvPendingPoint, correlatedPoints])
 
   const resetPoints = () => {
     setCctvPendingPoint(null)

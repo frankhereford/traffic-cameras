@@ -7,6 +7,7 @@ import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { useState, useEffect } from "react"
 import styles from "./CctvCamera.module.css"
 import BoundingBox from "./BoundingBox"
+import { debounce } from "lodash"
 
 import { api } from "~/utils/api"
 
@@ -80,15 +81,12 @@ const CctvCamera: React.FC = ({}) => {
 
   useEffect(() => {
     if (getLabels.data) {
-      // Handle the result here
       setRecognition(getLabels.data)
     }
   }, [getLabels.data])
 
   useEffect(() => {
     if (cctvImage !== null) {
-      // Handle the non-null cctvImage here
-      // console.log("CCTV Image:", cctvImage)
       getLabels.mutate({
         image: cctvImage,
       })
@@ -97,9 +95,6 @@ const CctvCamera: React.FC = ({}) => {
 
   useEffect(() => {
     if (recognition !== null) {
-      // Handle the recognition result here
-      // console.log("Recognition:", JSON.stringify(recognition, null, 2))
-
       const distilledRecognition = recognition.Labels.filter(
         (label) => label.Instances.length > 0,
       ).map((label) => ({
@@ -107,8 +102,6 @@ const CctvCamera: React.FC = ({}) => {
         Confidence: label.Confidence,
         Instances: label.Instances, // Include the Instances
       }))
-      // console.log("distilledRecognition: ")
-      // console.log(JSON.stringify(distilledRecognition, null, 2))
       setDistilledRecognition(distilledRecognition)
     }
   }, [recognition])
@@ -138,7 +131,6 @@ const CctvCamera: React.FC = ({}) => {
     const nativeX = Math.floor(x * xRatio)
     const nativeY = Math.floor(y * yRatio)
     //console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`)
-
     setCctvPendingPoint({
       x: nativeX,
       y: nativeY,
