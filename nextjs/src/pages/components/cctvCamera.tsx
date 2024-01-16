@@ -80,15 +80,12 @@ const CctvCamera: React.FC = ({}) => {
 
   useEffect(() => {
     if (getLabels.data) {
-      // Handle the result here
       setRecognition(getLabels.data)
     }
   }, [getLabels.data])
 
   useEffect(() => {
     if (cctvImage !== null) {
-      // Handle the non-null cctvImage here
-      // console.log("CCTV Image:", cctvImage)
       getLabels.mutate({
         image: cctvImage,
       })
@@ -97,9 +94,6 @@ const CctvCamera: React.FC = ({}) => {
 
   useEffect(() => {
     if (recognition !== null) {
-      // Handle the recognition result here
-      // console.log("Recognition:", JSON.stringify(recognition, null, 2))
-
       const distilledRecognition = recognition.Labels.filter(
         (label) => label.Instances.length > 0,
       ).map((label) => ({
@@ -107,8 +101,6 @@ const CctvCamera: React.FC = ({}) => {
         Confidence: label.Confidence,
         Instances: label.Instances, // Include the Instances
       }))
-      // console.log("distilledRecognition: ")
-      // console.log(JSON.stringify(distilledRecognition, null, 2))
       setDistilledRecognition(distilledRecognition)
     }
   }, [recognition])
@@ -149,6 +141,20 @@ const CctvCamera: React.FC = ({}) => {
     })
   }
 
+  const handleMouseMove = (
+    event: React.MouseEvent<HTMLImageElement, MouseEvent>,
+  ) => {
+    const img = event.currentTarget
+    const rect = img.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    const xRatio = img.naturalWidth / img.width
+    const yRatio = img.naturalHeight / img.height
+    const nativeX = Math.floor(x * xRatio)
+    const nativeY = Math.floor(y * yRatio)
+    console.log(`Mouse over at native coordinates: ${nativeX}, ${nativeY}`)
+  }
+
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const img = event.currentTarget
 
@@ -177,6 +183,7 @@ const CctvCamera: React.FC = ({}) => {
             height={1080}
             alt="CCTV Camera"
             onClick={handleClick}
+            onMouseMove={handleMouseMove}
             onLoad={handleImageLoad}
           />
           {clickPosition && (
