@@ -7,6 +7,7 @@ import useIntersectionStore from "~/pages/hooks/IntersectionStore"
 import { useState, useEffect } from "react"
 import styles from "./CctvCamera.module.css"
 import BoundingBox from "./BoundingBox"
+import { debounce } from "lodash"
 
 import { api } from "~/utils/api"
 
@@ -130,7 +131,6 @@ const CctvCamera: React.FC = ({}) => {
     const nativeX = Math.floor(x * xRatio)
     const nativeY = Math.floor(y * yRatio)
     //console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`)
-
     setCctvPendingPoint({
       x: nativeX,
       y: nativeY,
@@ -139,20 +139,6 @@ const CctvCamera: React.FC = ({}) => {
       x: nativeX / xRatio - markerSize,
       y: nativeY / yRatio - markerSize,
     })
-  }
-
-  const handleMouseMove = (
-    event: React.MouseEvent<HTMLImageElement, MouseEvent>,
-  ) => {
-    const img = event.currentTarget
-    const rect = img.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    const xRatio = img.naturalWidth / img.width
-    const yRatio = img.naturalHeight / img.height
-    const nativeX = Math.floor(x * xRatio)
-    const nativeY = Math.floor(y * yRatio)
-    console.log(`Mouse over at native coordinates: ${nativeX}, ${nativeY}`)
   }
 
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -183,7 +169,6 @@ const CctvCamera: React.FC = ({}) => {
             height={1080}
             alt="CCTV Camera"
             onClick={handleClick}
-            onMouseMove={handleMouseMove}
             onLoad={handleImageLoad}
           />
           {clickPosition && (
