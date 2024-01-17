@@ -88,6 +88,7 @@ const Map: React.FC = ({}) => {
       mapContainerStyle={containerStyle}
       center={center ?? new google.maps.LatLng(30.2672, -97.7431)}
       zoom={20}
+      maxZoom={22}
       onUnmount={onUnmount}
       options={{ tilt: 0, mapTypeId: "satellite" }}
       onClick={handleClick}
