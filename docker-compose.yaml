@@ -1,6 +1,6 @@
 version: "3"
 services:
-  db:
+  postgis:
     image: postgis/postgis
     environment:
       POSTGRES_PASSWORD: password
@@ -17,7 +17,7 @@ services:
     ports:
       - 3000:3000
     depends_on:
-      - db
+      - postgis
 
   flask:
     build:
@@ -28,7 +28,7 @@ services:
     ports:
       - 5000:5000
     depends_on:
-      - db
+      - postgis
 
   haproxy:
     image: haproxy:2.3
@@ -37,8 +37,8 @@ services:
     ports:
       - 80:80
     depends_on:
-      - node
-      - python
+      - nextjs
+      - flask
 
 volumes:
   db_data:
