@@ -1,0 +1,43 @@
+version: '3'
+services:
+  db:
+    image: postgis/postgis
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  node:
+    build:
+      context: ./node
+      dockerfile: Dockerfile-node
+    volumes:
+      - ./node:/app
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+
+  python:
+    build:
+      context: ./python
+      dockerfile: Dockerfile-python
+    volumes:
+      - ./python:/app
+    ports:
+      - 5000:5000
+    depends_on:
+      - db
+
+  haproxy:
+    image: haproxy:2.3
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - 80:80
+    depends_on:
+      - node
+      - python
+
+volumes:
+  db_data:
