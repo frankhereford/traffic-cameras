@@ -8,12 +8,12 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
-  node:
+  nextjs:
     build:
-      context: ./node
-      dockerfile: Dockerfile-node
+      context: ./nextjs
+      dockerfile: Dockerfile
     volumes:
-      - ./node:/app
+      - ./nextjs:/app
     ports:
       - 3000:3000
     depends_on:
