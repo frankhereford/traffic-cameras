@@ -19,12 +19,12 @@ services:
     depends_on:
       - db
 
-  python:
+  flask:
     build:
-      context: ./python
-      dockerfile: Dockerfile-python
+      context: ./flask
+      dockerfile: Dockerfile
     volumes:
-      - ./python:/app
+      - ./flask:/app
     ports:
       - 5000:5000
     depends_on:
