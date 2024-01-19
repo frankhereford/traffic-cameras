@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import Camera from "./camera";
 
 export interface Camera {
   camera_id: string;
@@ -46,14 +45,16 @@ function CameraPicker() {
               label: item.location_name,
             };
           })
-          .reduce((unique, o) => {
+          .reduce((unique: SimplifiedCamera[], o: SimplifiedCamera) => {
             if (!unique.some((obj) => obj.id === o.id)) {
               unique.push(o);
             }
             return unique;
           }, [])
-          .reduce((unique, o) => {
-            if (!unique.some((obj) => obj.label === o.label)) {
+          .reduce((unique: SimplifiedCamera[], o: SimplifiedCamera) => {
+            if (
+              !unique.some((obj: SimplifiedCamera) => obj.label === o.label)
+            ) {
               unique.push(o);
             }
             return unique;
@@ -75,7 +76,7 @@ function CameraPicker() {
           );
         }}
         sx={{ width: 200 }}
-        size="small"
+        className="mb-2"
         renderInput={(params) => <TextField {...params} label="Camera" />}
       />
     </>
