@@ -39,13 +39,25 @@ function CameraPicker() {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
       .then((response) => response.json())
       .then((cameraData: Camera[]) => {
-        const autoCompleteData = cameraData.map((item) => {
-          return {
-            id: parseInt(item.camera_id),
-            label: item.location_name,
-          };
-        });
-
+        const autoCompleteData = cameraData
+          .map((item) => {
+            return {
+              id: parseInt(item.camera_id),
+              label: item.location_name,
+            };
+          })
+          .reduce((unique, o) => {
+            if (!unique.some((obj) => obj.id === o.id)) {
+              unique.push(o);
+            }
+            return unique;
+          }, [])
+          .reduce((unique, o) => {
+            if (!unique.some((obj) => obj.label === o.label)) {
+              unique.push(o);
+            }
+            return unique;
+          }, []);
         setCameraData(autoCompleteData);
       })
       .catch((error) => console.error("Error:", error));
@@ -57,7 +69,13 @@ function CameraPicker() {
         disablePortal
         id="combo-box-demo"
         options={cameraData}
-        sx={{ width: 300 }}
+        filterOptions={(options, state) => {
+          return options.filter((option) =>
+            option.label.toLowerCase().includes(state.inputValue.toLowerCase()),
+          );
+        }}
+        sx={{ width: 200 }}
+        size="small"
         renderInput={(params) => <TextField {...params} label="Camera" />}
       />
     </>
