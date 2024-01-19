@@ -20,10 +20,13 @@
   },
   "peacock.color": "#044a93",
   "cSpell.words": [
+    "applicationstore",
     "camerapicker",
+    "dualpane",
     "Georeferenced",
     "lucide",
     "printoptions",
+    "toolpanel",
     "TRPC",
     "uuidv",
     "zustand"
