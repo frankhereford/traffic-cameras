@@ -2,6 +2,8 @@ import { useSession } from "next-auth/react";
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 import Auth from "./auth";
+import Draggable, { DraggableCore } from "react-draggable";
+import ToolPanel from "./toolpanel";
 
 export default function DualPane() {
   const { data: sessionData } = useSession();
@@ -11,6 +13,7 @@ export default function DualPane() {
   return (
     <>
       <div style={{ height: "100vh", width: "100vw" }}>
+        <ToolPanel />
         <Allotment defaultSizes={[100, 100]}>
           <div
             className="bg-indigo-500"
