@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import useApplicationStore from "~/pages/hooks/applicationstore";
+import CryptoJS from "crypto-js";
 
 function Camera() {
   const camera = useApplicationStore((state) => state.camera);
@@ -19,6 +20,25 @@ function Camera() {
 
   const url = `https://cctv.austinmobility.io/image/${camera}.jpg`;
 
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    ctx?.drawImage(img, 0, 0);
+
+    const base64data = canvas.toDataURL("image/jpeg");
+    console.log("base64data", base64data);
+    const hash = CryptoJS.SHA256(base64data);
+    const hex = hash.toString(CryptoJS.enc.Hex);
+    console.log("hex", hex);
+    // 6b7288a33808e35f205f33f8fdff8c7df822b0cf5595c99d86a7b9b6ca4238f9 unavailable image
+  };
+
   return (
     <>
       {camera && (
@@ -30,7 +50,7 @@ function Camera() {
           height={1080}
           alt="CCTV Camera"
           // onClick={handleClick}
-          // onLoad={handleImageLoad}
+          onLoad={handleImageLoad}
         />
       )}
     </>
