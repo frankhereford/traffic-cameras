@@ -34,10 +34,10 @@ interface SimplifiedCamera {
 
 function CameraPicker() {
   const [cameraData, setCameraData] = useState<SimplifiedCamera[]>([]);
-  // const camera = useApplicationStore((state) => state.camera);
+  const camera = useApplicationStore((state) => state.camera);
   const setCamera = useApplicationStore((state) => state.setCamera);
 
-  // get cameraData from open data portal
+  // get cameraData from open data portal and default camera from local storage
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
       .then((response) => response.json())
@@ -66,27 +66,49 @@ function CameraPicker() {
         setCameraData(autoCompleteData);
       })
       .catch((error) => console.error("Error:", error));
+
+    // get cameraId from local storage
+    const cameraId = parseInt(
+      localStorage.getItem("cameraId") as unknown as string,
+    );
+    if (cameraId) {
+      setCamera(cameraId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // store the selected camera in local storage
+  useEffect(() => {
+    console.log("camera", camera);
+    if (camera) {
+      localStorage.setItem("cameraId", camera.toString());
+    }
+  }, [camera]);
 
   return (
     <>
-      <Autocomplete
-        disablePortal
-        options={cameraData}
-        filterOptions={(options, state) => {
-          return options.filter((option) =>
-            option.label.toLowerCase().includes(state.inputValue.toLowerCase()),
-          );
-        }}
-        sx={{ width: 200 }}
-        className="mb-2"
-        renderInput={(params) => <TextField {...params} label="Camera" />}
-        onChange={(event, newValue) => {
-          if (newValue?.id) {
-            setCamera(newValue.id);
-          }
-        }}
-      />
+      {cameraData.length > 0 && (
+        <Autocomplete
+          disablePortal
+          options={cameraData}
+          filterOptions={(options, state) => {
+            return options.filter((option) =>
+              option.label
+                .toLowerCase()
+                .includes(state.inputValue.toLowerCase()),
+            );
+          }}
+          value={cameraData.find((item) => item.id === camera)}
+          sx={{ width: 200 }}
+          className="mb-2"
+          renderInput={(params) => <TextField {...params} label="Camera" />}
+          onChange={(event, newValue) => {
+            if (newValue?.id) {
+              setCamera(newValue.id);
+            }
+          }}
+        />
+      )}
     </>
   );
 }
