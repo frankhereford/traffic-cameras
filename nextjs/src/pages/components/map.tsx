@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
+import useApplicationStore from "~/pages/hooks/applicationstore";
 
 const containerStyle = {
   width: "100%",
@@ -14,6 +15,15 @@ function Map() {
 
   const [map, setMap] = React.useState(null);
   const [center, setCenter] = useState<google.maps.LatLng | null>(null);
+
+  const cameraData = useApplicationStore((state) => state.cameraData);
+
+  useEffect(() => {
+    if (cameraData?.location?.coordinates) {
+      const [longitude, latitude] = cameraData.location.coordinates;
+      setCenter(new google.maps.LatLng(latitude!, longitude));
+    }
+  }, [cameraData]);
 
   const onUnmount = React.useCallback(function callback() {
     setMap(null);
