@@ -79,7 +79,6 @@ function CameraPicker() {
 
   // store the selected camera in local storage
   useEffect(() => {
-    console.log("camera", camera);
     if (camera) {
       localStorage.setItem("cameraId", camera.toString());
     }
@@ -98,7 +97,7 @@ function CameraPicker() {
                 .includes(state.inputValue.toLowerCase()),
             );
           }}
-          value={cameraData.find((item) => item.id === camera)}
+          value={camera ? cameraData.find((item) => item.id === camera) : null}
           sx={{ width: 200 }}
           className="mb-2"
           renderInput={(params) => <TextField {...params} label="Camera" />}
