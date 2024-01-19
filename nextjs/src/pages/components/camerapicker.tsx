@@ -33,14 +33,22 @@ interface SimplifiedCamera {
 }
 
 function CameraPicker() {
+  const [socrataDataSet, setSocrataDataSet] = useState<Camera[]>([]);
   const [cameraData, setCameraData] = useState<SimplifiedCamera[]>([]);
   const camera = useApplicationStore((state) => state.camera);
   const setCamera = useApplicationStore((state) => state.setCamera);
+  const setCameraDetailsData = useApplicationStore(
+    (state) => state.setCameraData,
+  );
 
   // get cameraData from open data portal and default camera from local storage
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
       .then((response) => response.json())
+      .then((cameraData: Camera[]) => {
+        setSocrataDataSet(cameraData);
+        return cameraData;
+      })
       .then((cameraData: Camera[]) => {
         const autoCompleteData = cameraData
           .map((item) => {
@@ -77,12 +85,21 @@ function CameraPicker() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // store the selected camera in local storage
   useEffect(() => {
+    // store the selected camera in local storage
     if (camera) {
       localStorage.setItem("cameraId", camera.toString());
     }
-  }, [camera]);
+
+    if (socrataDataSet) {
+      const details = socrataDataSet.find(
+        (item) => parseInt(item.camera_id) === camera,
+      )!;
+      if (details) {
+        setCameraDetailsData(details);
+      }
+    }
+  }, [camera, socrataDataSet]);
 
   return (
     <>
