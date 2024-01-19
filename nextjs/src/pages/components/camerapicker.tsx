@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
+import useApplicationStore from "~/pages/hooks/applicationstore";
 
 export interface Camera {
   camera_id: string;
@@ -33,7 +34,10 @@ interface SimplifiedCamera {
 
 function CameraPicker() {
   const [cameraData, setCameraData] = useState<SimplifiedCamera[]>([]);
+  // const camera = useApplicationStore((state) => state.camera);
+  const setCamera = useApplicationStore((state) => state.setCamera);
 
+  // get cameraData from open data portal
   useEffect(() => {
     fetch("https://data.austintexas.gov/resource/b4k4-adkb.json")
       .then((response) => response.json())
@@ -68,7 +72,6 @@ function CameraPicker() {
     <>
       <Autocomplete
         disablePortal
-        id="combo-box-demo"
         options={cameraData}
         filterOptions={(options, state) => {
           return options.filter((option) =>
@@ -78,6 +81,12 @@ function CameraPicker() {
         sx={{ width: 200 }}
         className="mb-2"
         renderInput={(params) => <TextField {...params} label="Camera" />}
+        onChange={(event, newValue) => {
+          console.log(newValue);
+          if (newValue?.id) {
+            setCamera(newValue.id);
+          }
+        }}
       />
     </>
   );

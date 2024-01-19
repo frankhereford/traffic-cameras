@@ -10,7 +10,6 @@ export const useApplicationStore = create<ApplicationState>((set, get) => {
   return {
     camera: null,
     setCamera: (camera: number) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       set({ camera });
     },
   };
