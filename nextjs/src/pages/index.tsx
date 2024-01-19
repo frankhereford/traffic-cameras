@@ -6,8 +6,6 @@ import DualPane from "./components/dualpane";
 export default function Home() {
   const { data: sessionData } = useSession();
 
-  console.log(sessionData);
-
   return (
     <>
       <Head>
