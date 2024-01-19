@@ -9,7 +9,7 @@ function Auth() {
         {sessionData && <span>Logged in as {sessionData.user?.name}</span>}
       </p> */}
       <button
-        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-700"
+        className="btn btn-xs"
         onClick={sessionData ? () => void signOut() : () => void signIn()}
       >
         {sessionData ? "Sign out" : "Sign in"}

@@ -21,14 +21,10 @@ export default function DualPane() {
               background: "radial-gradient(at right top, #281450, #3A4957)",
             }}
           >
-            <div style={{ height: "100vh" }}>
-              <Auth />
-            </div>
+            <div style={{ height: "100vh" }}></div>
           </div>
           <div className="bg-slate-500">
-            <div style={{ height: "100vh" }}>
-              <Auth />
-            </div>
+            <div style={{ height: "100vh" }}></div>
           </div>
         </Allotment>
       </div>
