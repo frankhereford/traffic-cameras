@@ -15,7 +15,7 @@ function Map() {
   const [map, setMap] = React.useState(null);
   const [center, setCenter] = useState<google.maps.LatLng | null>(null);
 
-  const onUnmount = React.useCallback(function callback(map) {
+  const onUnmount = React.useCallback(function callback() {
     setMap(null);
   }, []);
 

@@ -9,7 +9,7 @@ function Auth() {
         {sessionData && <span>Logged in as {sessionData.user?.name}</span>}
       </p> */}
       <button
-        className="btn btn-xs"
+        className="btn btn-xs btn-neutral"
         onClick={sessionData ? () => void signOut() : () => void signIn()}
       >
         {sessionData ? "Sign out" : "Sign in"}
