@@ -1,14 +1,14 @@
 import Auth from "./auth";
 import CameraPicker from "./camerapicker";
-import Draggable, { DraggableCore } from "react-draggable";
+import Draggable from "react-draggable";
 
 export default function ToolPanel() {
   return (
     <>
       <Draggable>
-        <div className="top-25 right-25 absolute z-50 w-36 rounded-lg bg-slate-200 pb-6 pt-6">
-          <Auth />
+        <div className="top-25 right-25 absolute z-50 w-[240px] rounded-lg bg-slate-200 pb-6 pl-[20px] pt-6">
           <CameraPicker />
+          <Auth />
         </div>
       </Draggable>
     </>
