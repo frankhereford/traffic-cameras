@@ -7,7 +7,16 @@ await import("./src/env.js");
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: false,
-
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cctv.austinmobility.io",
+        port: "",
+        pathname: "**",
+      },
+    ],
+  },
   /**
    * If you are using `appDir` then you must comment the below `i18n` config out.
    *
