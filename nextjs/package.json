@@ -29,6 +29,7 @@
     "@trpc/server": "^10.43.6",
     "allotment": "^1.20.0",
     "install": "^0.13.0",
+    "match-sorter": "^6.3.3",
     "next": "^14.0.4",
     "next-auth": "^4.24.5",
     "npm": "^10.3.0",
