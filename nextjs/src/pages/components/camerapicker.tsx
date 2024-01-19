@@ -82,11 +82,10 @@ function CameraPicker() {
     if (cameraId) {
       setCamera(cameraId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setCamera]);
 
+  // store the selected camera in local storage & set camera details data
   useEffect(() => {
-    // store the selected camera in local storage
     if (camera) {
       localStorage.setItem("cameraId", camera.toString());
     }
@@ -99,7 +98,7 @@ function CameraPicker() {
         setCameraDetailsData(details);
       }
     }
-  }, [camera, socrataDataSet]);
+  }, [camera, socrataDataSet, setCameraDetailsData]);
 
   return (
     <>
