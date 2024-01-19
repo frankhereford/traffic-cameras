@@ -82,7 +82,6 @@ function CameraPicker() {
         className="mb-2"
         renderInput={(params) => <TextField {...params} label="Camera" />}
         onChange={(event, newValue) => {
-          console.log(newValue);
           if (newValue?.id) {
             setCamera(newValue.id);
           }

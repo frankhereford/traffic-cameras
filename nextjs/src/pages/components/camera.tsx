@@ -6,16 +6,18 @@ function Camera() {
   const url = `https://cctv.austinmobility.io/image/${camera}.jpg`;
   return (
     <>
-      <Image
-        key={camera}
-        priority
-        src={`${url}?${new Date().getTime()}`}
-        width={1920}
-        height={1080}
-        alt="CCTV Camera"
-        // onClick={handleClick}
-        // onLoad={handleImageLoad}
-      />
+      {camera && (
+        <Image
+          key={camera}
+          priority
+          src={`${url}?${new Date().getTime()}`}
+          width={1920}
+          height={1080}
+          alt="CCTV Camera"
+          // onClick={handleClick}
+          // onLoad={handleImageLoad}
+        />
+      )}
     </>
   );
 }
