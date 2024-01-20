@@ -7,8 +7,10 @@ import { api } from "~/utils/api";
 function Camera() {
   const camera = useApplicationStore((state) => state.camera);
   const [imageKey, setImageKey] = useState(Date.now());
+
   const [cameraHex, setCameraHex] = useState<string | null>(null);
   const [cameraResponse, setCameraResponse] = useState<number | null>(null);
+
   const setStatus = api.camera.setStatus.useMutation({});
 
   useEffect(() => {
@@ -56,7 +58,6 @@ function Camera() {
 
   useEffect(() => {
     if (cameraHex) {
-      // console.log("cameraHex changed:", cameraHex);
       if (
         cameraHex ===
         "6b7288a33808e35f205f33f8fdff8c7df822b0cf5595c99d86a7b9b6ca4238f9"
@@ -79,7 +80,6 @@ function Camera() {
   useEffect(() => {
     if (cameraResponse === 404) {
       console.log("cameraResponse changed:", cameraResponse);
-
       setStatus.mutate({
         cameraId: camera!,
         status: "404",
@@ -88,7 +88,6 @@ function Camera() {
   }, [cameraResponse]);
 
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    console.log("handleImageError", event);
     setCameraResponse(404);
   };
 
