@@ -27,7 +27,8 @@ export const cameraRouter = createTRPCRouter({
           },
         });
       }
-      console.log("cameraId: ", camera.cameraId);
+
+      // console.log("cameraId: ", camera.cameraId);
 
       let status = await ctx.db.status.findFirst({
         where: {
@@ -44,9 +45,7 @@ export const cameraRouter = createTRPCRouter({
         });
       }
 
-      if (status) {
-        console.log("status: ", status);
-      }
+      // console.log("status: ", status);
 
       camera = await ctx.db.camera.update({
         where: {
