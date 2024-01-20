@@ -8,15 +8,25 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Camera {
+model Instance {
     id        String   @id @default(cuid())
-    cameraId  Int
-    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId    String
-    status    Status?  @relation(fields: [statusId], references: [id])
-    statusId  String?
+    cameraId  String
+    hex       String?
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    camera    Camera   @relation(fields: [cameraId], references: [id])
+}
+
+model Camera {
+    id        String     @id @default(cuid())
+    cameraId  Int
+    user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    status    Status?    @relation(fields: [statusId], references: [id])
+    instances Instance[]
+    userId    String
+    statusId  String?
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
 
     @@unique([cameraId, userId])
 }
