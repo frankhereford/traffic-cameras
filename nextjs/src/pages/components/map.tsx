@@ -15,7 +15,6 @@ function Map() {
 
   const [map, setMap] = React.useState(null);
   const [center, setCenter] = useState<google.maps.LatLng | null>(null);
-
   const cameraData = useApplicationStore((state) => state.cameraData);
 
   useEffect(() => {

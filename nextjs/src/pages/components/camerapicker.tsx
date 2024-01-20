@@ -114,7 +114,7 @@ function CameraPicker() {
             );
           }}
           value={camera ? cameraData.find((item) => item.id === camera) : null}
-          sx={{ width: 200 }}
+          sx={{ width: 440 }}
           className="mb-2"
           renderInput={(params) => <TextField {...params} label="Camera" />}
           onChange={(event, newValue) => {
