@@ -19,11 +19,11 @@ function Map() {
   const cameraData = useApplicationStore((state) => state.cameraData);
 
   useEffect(() => {
-    if (cameraData?.location?.coordinates) {
+    if (isLoaded && cameraData?.location?.coordinates) {
       const [longitude, latitude] = cameraData.location.coordinates;
       setCenter(new google.maps.LatLng(latitude!, longitude));
     }
-  }, [cameraData]);
+  }, [cameraData, isLoaded]);
 
   const onUnmount = React.useCallback(function callback() {
     setMap(null);

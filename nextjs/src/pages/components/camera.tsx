@@ -44,7 +44,6 @@ function Camera() {
   useEffect(() => {
     if (cameraHex) {
       // console.log("cameraHex changed:", cameraHex);
-
       if (
         cameraHex ===
         "6b7288a33808e35f205f33f8fdff8c7df822b0cf5595c99d86a7b9b6ca4238f9"
@@ -52,11 +51,13 @@ function Camera() {
         setStatus.mutate({
           cameraId: camera!,
           status: "unavailable",
+          hex: cameraHex,
         });
       } else {
         setStatus.mutate({
           cameraId: camera!,
           status: "ok",
+          hex: cameraHex,
         });
       }
     }
@@ -74,7 +75,7 @@ function Camera() {
   }, [cameraResponse]);
 
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    console.log("handleImageError", event);
+    // console.log("handleImageError", event);
     setCameraResponse(404);
   };
 
