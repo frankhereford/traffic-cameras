@@ -69,10 +69,11 @@ export const cameraRouter = createTRPCRouter({
         },
         include: {
           status: true,
+          instances: true,
         },
       });
 
-      return instance;
+      return camera;
     }),
   //get: protectedProcedure.input(z.object({})).query(({ ctx, input }) => {
   //}),
