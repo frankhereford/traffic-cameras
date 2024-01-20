@@ -36,7 +36,7 @@ function Camera() {
     ctx?.drawImage(img, 0, 0);
 
     const base64data = canvas.toDataURL("image/jpeg");
-    console.log("base64data", base64data);
+    // console.log("base64data", base64data);
     const hash = CryptoJS.SHA256(base64data);
     const hex = hash.toString(CryptoJS.enc.Hex);
     // console.log("hex", hex);
