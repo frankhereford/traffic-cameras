@@ -8,6 +8,28 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+model Camera {
+    id        String   @id @default(cuid())
+    cameraId  Int
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId    String
+    status    Status?  @relation(fields: [statusId], references: [id])
+    statusId  String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([cameraId, userId])
+}
+
+model Status {
+    id        String   @id @default(cuid())
+    Cameras   Camera[]
+    name      String
+    slug      String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
 // Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
@@ -43,6 +65,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+    Camera        Camera[]
 }
 
 model VerificationToken {
