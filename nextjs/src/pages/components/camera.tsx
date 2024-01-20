@@ -2,10 +2,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import useApplicationStore from "~/pages/hooks/applicationstore";
 import CryptoJS from "crypto-js";
+import { api } from "~/utils/api";
 
 function Camera() {
   const camera = useApplicationStore((state) => state.camera);
   const [imageKey, setImageKey] = useState(Date.now());
+  const [cameraHex, setCameraHex] = useState<string | null>(null);
+  const [cameraResponse, setCameraResponse] = useState<number | null>(null);
+  const setStatus = api.camera.setStatus.useMutation({});
 
   useEffect(() => {
     const timer = setTimeout(
@@ -35,8 +39,46 @@ function Camera() {
     console.log("base64data", base64data);
     const hash = CryptoJS.SHA256(base64data);
     const hex = hash.toString(CryptoJS.enc.Hex);
-    console.log("hex", hex);
+    // console.log("hex", hex);
+    setCameraHex(hex);
     // 6b7288a33808e35f205f33f8fdff8c7df822b0cf5595c99d86a7b9b6ca4238f9 unavailable image
+  };
+
+  useEffect(() => {
+    if (cameraHex) {
+      console.log("cameraHex changed:", cameraHex);
+
+      if (
+        cameraHex ===
+        "6b7288a33808e35f205f33f8fdff8c7df822b0cf5595c99d86a7b9b6ca4238f9"
+      ) {
+        setStatus.mutate({
+          cameraId: camera!,
+          status: "unavailable",
+        });
+      } else {
+        setStatus.mutate({
+          cameraId: camera!,
+          status: "ok",
+        });
+      }
+    }
+  }, [cameraHex]);
+
+  useEffect(() => {
+    if (cameraResponse === 404) {
+      console.log("cameraResponse changed:", cameraResponse);
+
+      setStatus.mutate({
+        cameraId: camera!,
+        status: "404",
+      });
+    }
+  }, [cameraResponse]);
+
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    console.log("handleImageError", event);
+    setCameraResponse(404);
   };
 
   return (
@@ -51,6 +93,7 @@ function Camera() {
           alt="CCTV Camera"
           // onClick={handleClick}
           onLoad={handleImageLoad}
+          onError={handleImageError}
         />
       )}
     </>
