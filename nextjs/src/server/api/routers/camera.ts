@@ -10,7 +10,7 @@ export const cameraRouter = createTRPCRouter({
   setStatus: protectedProcedure
     .input(z.object({ cameraId: z.number(), status: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      console.log("input", input);
+      // console.log("input", input);
 
       let camera = await ctx.db.camera.findFirst({
         where: {
@@ -28,8 +28,6 @@ export const cameraRouter = createTRPCRouter({
         });
       }
 
-      // console.log("cameraId: ", camera.cameraId);
-
       let status = await ctx.db.status.findFirst({
         where: {
           slug: input.status,
@@ -44,8 +42,6 @@ export const cameraRouter = createTRPCRouter({
           },
         });
       }
-
-      // console.log("status: ", status);
 
       camera = await ctx.db.camera.update({
         where: {

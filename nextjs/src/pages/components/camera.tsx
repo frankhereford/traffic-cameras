@@ -36,17 +36,14 @@ function Camera() {
     ctx?.drawImage(img, 0, 0);
 
     const base64data = canvas.toDataURL("image/jpeg");
-    // console.log("base64data", base64data);
     const hash = CryptoJS.SHA256(base64data);
     const hex = hash.toString(CryptoJS.enc.Hex);
-    // console.log("hex", hex);
     setCameraHex(hex);
-    // 6b7288a33808e35f205f33f8fdff8c7df822b0cf5595c99d86a7b9b6ca4238f9 unavailable image
   };
 
   useEffect(() => {
     if (cameraHex) {
-      console.log("cameraHex changed:", cameraHex);
+      // console.log("cameraHex changed:", cameraHex);
 
       if (
         cameraHex ===
