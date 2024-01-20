@@ -12,6 +12,19 @@ function Camera() {
   const setStatus = api.camera.setStatus.useMutation({});
 
   useEffect(() => {
+    if (setStatus.status === "success") {
+      // The mutation has finished successfully
+      console.log("setStatus mutation finished successfully");
+      console.log(setStatus.data);
+      // Add your code here
+    } else if (setStatus.status === "error") {
+      // The mutation has finished with an error
+      console.log("setStatus mutation finished with an error");
+      // Add your code here
+    }
+  }, [setStatus.status]);
+
+  useEffect(() => {
     const timer = setTimeout(
       () => {
         setImageKey(Date.now()); // Change key to force re-render
@@ -75,7 +88,7 @@ function Camera() {
   }, [cameraResponse]);
 
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    // console.log("handleImageError", event);
+    console.log("handleImageError", event);
     setCameraResponse(404);
   };
 
