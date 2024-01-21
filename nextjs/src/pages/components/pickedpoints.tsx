@@ -20,9 +20,9 @@ export default function PickedPoints() {
   );
   const theme = useTheme();
 
-  useEffect(() => {
-    console.log(pendingMapPoint);
-  }, [pendingMapPoint]);
+  // useEffect(() => {
+  // console.log(pendingMapPoint);
+  // }, [pendingMapPoint]);
 
   const setCorrelatedPoint = api.correlatedPoints.setPointPair.useMutation({});
 

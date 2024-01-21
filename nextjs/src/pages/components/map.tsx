@@ -5,7 +5,7 @@ import MapPendingMarker from "./mappendingmaker";
 import MapCameraLocations from "./mapcameralocations";
 import MapCorrelatedPoints from "./mapcorrelatedpoints";
 import { api } from "~/utils/api";
-import { Point } from "./mapcorrelatedpoints";
+import type { Point } from "./mapcorrelatedpoints";
 
 const containerStyle = {
   width: "100%",

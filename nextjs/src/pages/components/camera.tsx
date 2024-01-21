@@ -4,10 +4,20 @@ import useApplicationStore from "~/pages/hooks/applicationstore";
 import CryptoJS from "crypto-js";
 import { api } from "~/utils/api";
 import CameraPendingPoint from "./camerapendingpoint";
-
+import CameraCorrelatedPoints from "./cameracorrelatedpoints";
 export interface CameraPoint {
   x: number;
   y: number;
+}
+export interface CorrelatedPoint {
+  id: string;
+  cameraX: number;
+  cameraY: number;
+  mapLatitude: number;
+  mapLongitude: number;
+  cameraId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 function Camera() {
@@ -97,6 +107,19 @@ function Camera() {
     }
   }, [cameraResponse]);
 
+  const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
+    {
+      cameraId: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  );
+
+  useEffect(() => {
+    correlatedPoints.refetch().catch(console.error);
+  }, [camera]);
+
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     setCameraResponse(404);
   };
@@ -138,6 +161,9 @@ function Camera() {
             onError={handleImageError}
           />
           <CameraPendingPoint />
+          <CameraCorrelatedPoints
+            points={correlatedPoints.data as CorrelatedPoint[]}
+          />
         </>
       )}
     </>

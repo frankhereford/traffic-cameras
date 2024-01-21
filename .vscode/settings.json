@@ -21,6 +21,7 @@
   "peacock.color": "#044a93",
   "cSpell.words": [
     "applicationstore",
+    "cameracorrelatedpoints",
     "cameramarkers",
     "camerapicker",
     "correlatedpoint",
@@ -30,6 +31,7 @@
     "mapcameralocations",
     "mapcorrelatedpoints",
     "mappendingmaker",
+    "pointpairmarker",
     "printoptions",
     "socrata",
     "toolpanel",
