@@ -23,6 +23,7 @@
     "applicationstore",
     "cameracorrelatedpoints",
     "cameramarkers",
+    "camerapendingpoint",
     "camerapicker",
     "correlatedpoint",
     "dualpane",
