@@ -46,6 +46,9 @@ function CameraPicker() {
   const setPendingMapPoint = useApplicationStore(
     (state) => state.setPendingMapPoint,
   );
+  const setAllCameraData = useApplicationStore(
+    (state) => state.setAllCameraData,
+  );
 
   // get cameraData from open data portal and default camera from local storage
   useEffect(() => {
@@ -53,6 +56,7 @@ function CameraPicker() {
       .then((response) => response.json())
       .then((cameraData: Camera[]) => {
         setSocrataDataSet(cameraData);
+        setAllCameraData(cameraData);
         return cameraData;
       })
       .then((cameraData: Camera[]) => {

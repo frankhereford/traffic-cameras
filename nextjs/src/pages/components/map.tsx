@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 import useApplicationStore from "~/pages/hooks/applicationstore";
 import MapPendingMarker from "./mappendingmaker";
-import { set } from "zod";
+import MapCameraLocations from "./mapcameralocations";
 
 const containerStyle = {
   width: "100%",
@@ -50,6 +50,7 @@ function Map() {
       onClick={handleClick}
     >
       <MapPendingMarker />
+      <MapCameraLocations />
     </GoogleMap>
   ) : (
     <></>

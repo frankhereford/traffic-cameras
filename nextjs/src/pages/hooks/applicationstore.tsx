@@ -9,6 +9,9 @@ export type ApplicationState = {
   cameraData: Camera | null; // the full record for the camera found in socrata data set
   setCameraData: (cameraData: Camera) => void;
 
+  allCameraData: Camera[] | null; // the full record for the camera found in socrata data set
+  setAllCameraData: (camerasData: Camera[]) => void;
+
   pendingCameraPoint: CameraPoint | null; // X,Y coordinates of the camera point being added
   setPendingCameraPoint: (cameraPoint: CameraPoint | null) => void;
 
@@ -30,6 +33,11 @@ export const useApplicationStore = create<ApplicationState>((set, get) => {
     cameraData: null,
     setCameraData: (cameraData: Camera | null) => {
       set({ cameraData });
+    },
+
+    allCameraData: null,
+    setAllCameraData: (camerasData: Camera[]) => {
+      set({ allCameraData: camerasData });
     },
 
     pendingCameraPoint: null,

@@ -26,8 +26,8 @@ function Camera() {
   useEffect(() => {
     if (setStatus.status === "success") {
       // The mutation has finished successfully
-      console.log("setStatus mutation finished successfully");
-      console.log(setStatus.data);
+      // console.log("setStatus mutation finished successfully");
+      // console.log(setStatus.data);
     } else if (setStatus.status === "error") {
       // The mutation has finished with an error
       console.log("setStatus mutation finished with an error");

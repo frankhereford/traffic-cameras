@@ -75,6 +75,12 @@ export const cameraRouter = createTRPCRouter({
 
       return camera;
     }),
-  //get: protectedProcedure.input(z.object({})).query(({ ctx, input }) => {
-  //}),
+  getCameras: protectedProcedure.input(z.object({})).query(async ({ ctx }) => {
+    const cameras = await ctx.db.camera.findMany({
+      include: {
+        status: true,
+      },
+    });
+    return cameras;
+  }),
 });
