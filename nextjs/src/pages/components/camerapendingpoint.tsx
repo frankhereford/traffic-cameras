@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import useApplicationStore from "../hooks/applicationstore";
 import styles from "./cameramarkers.module.css";
 
@@ -43,7 +43,7 @@ export default function CameraPendingPoint() {
   }, [pendingCameraPoint, paneWidths]);
   return (
     <>
-      {cameraPoint && (
+      {pendingCameraPoint && cameraPoint && (
         <div
           className={styles.marker}
           style={{

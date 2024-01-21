@@ -10,7 +10,7 @@ export type ApplicationState = {
   setCameraData: (cameraData: Camera) => void;
 
   pendingCameraPoint: CameraPoint | null; // X,Y coordinates of the camera point being added
-  setPendingCameraPoint: (cameraPoint: CameraPoint) => void;
+  setPendingCameraPoint: (cameraPoint: CameraPoint | null) => void;
 
   paneWidths: number[] | null; // the widths of the panes
   setPaneWidths: (paneWidths: number[]) => void;
@@ -30,7 +30,8 @@ export const useApplicationStore = create<ApplicationState>((set, get) => {
     },
 
     pendingCameraPoint: null,
-    setPendingCameraPoint: (pendingCameraPoint: CameraPoint) => {
+    setPendingCameraPoint: (pendingCameraPoint: CameraPoint | null) => {
+      console.log("setPendingCameraPoint", pendingCameraPoint);
       set({ pendingCameraPoint });
     },
 

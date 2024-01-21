@@ -40,6 +40,9 @@ function CameraPicker() {
   const setCameraDetailsData = useApplicationStore(
     (state) => state.setCameraData,
   );
+  const setPendingCameraPoint = useApplicationStore(
+    (state) => state.setPendingCameraPoint,
+  );
 
   // get cameraData from open data portal and default camera from local storage
   useEffect(() => {
@@ -98,6 +101,7 @@ function CameraPicker() {
         setCameraDetailsData(details);
       }
     }
+    setPendingCameraPoint(null);
   }, [camera, socrataDataSet, setCameraDetailsData]);
 
   return (

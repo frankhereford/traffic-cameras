@@ -121,8 +121,6 @@ function Camera() {
     setPendingCameraPoint(pendingCameraPoint);
   };
 
-  console.log("Render Camera");
-
   return (
     <>
       {camera && (
