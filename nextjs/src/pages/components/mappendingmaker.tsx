@@ -4,7 +4,7 @@ import { Marker } from "@react-google-maps/api";
 export default function MapPendingMarker() {
   const pendingMapPoint = useApplicationStore((state) => state.pendingMapPoint);
 
-  console.log("MapPendingMarker", pendingMapPoint);
+  // console.log("MapPendingMarker", pendingMapPoint);
   return (
     <>
       {pendingMapPoint && (

@@ -45,7 +45,6 @@ export const useApplicationStore = create<ApplicationState>((set, get) => {
 
     pendingCameraPoint: null,
     setPendingCameraPoint: (pendingCameraPoint: CameraPoint | null) => {
-      console.log("setPendingCameraPoint", pendingCameraPoint);
       set({ pendingCameraPoint });
     },
 
