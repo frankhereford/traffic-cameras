@@ -24,8 +24,10 @@ export default function CameraCorrelatedPoints({
 }: CameraCorrelatedPointsProps) {
   const [markers, setMarkers] = useState<JSX.Element[]>([]);
   const paneWidths = useApplicationStore((state) => state.paneWidths);
+  const reload = useApplicationStore((state) => state.reload);
 
   useEffect(() => {
+    // console.log("new points or size", points, paneWidths);
     if (!points || points.length === 0) {
       return;
     }
@@ -36,7 +38,7 @@ export default function CameraCorrelatedPoints({
     const resizedWidth = img?.width;
     const resizedHeight = img?.height;
 
-    const markers = points.map((point) => {
+    const newMarkers = points.map((point) => {
       const xRatio = resizedWidth / naturalWidth;
       const yRatio = resizedHeight / naturalHeight;
 
@@ -56,8 +58,8 @@ export default function CameraCorrelatedPoints({
         </>
       );
     });
-    setMarkers(markers);
-  }, [points, paneWidths]);
+    setMarkers(newMarkers);
+  }, [points, paneWidths, reload]);
 
   return <>{markers}</>;
 }

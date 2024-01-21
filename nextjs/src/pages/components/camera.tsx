@@ -31,7 +31,18 @@ function Camera() {
     (state) => state.setPendingCameraPoint,
   );
 
+  const reload = useApplicationStore((state) => state.reload);
+
   const setStatus = api.camera.setStatus.useMutation({});
+
+  const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
+    {
+      cameraId: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  );
 
   useEffect(() => {
     if (setStatus.status === "success") {
@@ -107,24 +118,11 @@ function Camera() {
     }
   }, [cameraResponse]);
 
-  const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
-    {
-      cameraId: camera!,
-    },
-    {
-      enabled: !!camera,
-    },
-  );
-
-  useEffect(() => {
-    correlatedPoints.refetch().catch(console.error);
-  }, [camera]);
-
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     setCameraResponse(404);
   };
 
-  const handleClick = (
+  const handleClick = async (
     event: React.MouseEvent<HTMLImageElement, MouseEvent>,
   ) => {
     const img = event.currentTarget;
@@ -143,6 +141,16 @@ function Camera() {
     };
     setPendingCameraPoint(pendingCameraPoint);
   };
+
+  useEffect(() => {
+    console.log("hi got reloaded");
+    correlatedPoints
+      .refetch()
+      .then(() => {
+        console.log("refetched");
+      })
+      .catch(console.error);
+  }, [reload]);
 
   return (
     <>

@@ -35,6 +35,7 @@ export const correlatedPointsRouter = createTRPCRouter({
           cameraId: camera.id,
         },
       });
+      return newPoint;
     }),
 
   getPointPairs: protectedProcedure
