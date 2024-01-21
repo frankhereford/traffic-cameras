@@ -37,7 +37,6 @@ function Map() {
   const handleClick = (event: google.maps.MapMouseEvent) => {
     const lat = event.latLng?.lat();
     const lng = event.latLng?.lng();
-    // console.log(`Clicked at ${lat}, ${lng}`);
     setPendingMapPoint(new google.maps.LatLng(lat!, lng));
   };
 
