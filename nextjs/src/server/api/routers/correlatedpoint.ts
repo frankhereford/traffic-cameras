@@ -18,8 +18,6 @@ export const correlatedPointsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log("input", input);
-
       const camera = await ctx.db.camera.findFirst({
         where: { cameraId: input.cameraId },
       });
@@ -27,8 +25,6 @@ export const correlatedPointsRouter = createTRPCRouter({
       if (!camera) {
         throw new Error("Camera not found");
       }
-
-      console.log("camera", camera);
 
       const newPoint = await ctx.db.correlatedPoint.create({
         data: {
@@ -39,7 +35,23 @@ export const correlatedPointsRouter = createTRPCRouter({
           cameraId: camera.id,
         },
       });
+    }),
 
-      console.log("newpoint", newPoint);
+  getPointPairs: protectedProcedure
+    .input(z.object({ cameraId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const camera = await ctx.db.camera.findFirst({
+        where: { cameraId: input.cameraId },
+      });
+
+      if (!camera) {
+        throw new Error("Camera not found");
+      }
+
+      const pointPairs = await ctx.db.correlatedPoint.findMany({
+        where: { cameraId: camera.id },
+      });
+
+      return pointPairs;
     }),
 });

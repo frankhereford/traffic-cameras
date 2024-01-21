@@ -3,6 +3,9 @@ import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 import useApplicationStore from "~/pages/hooks/applicationstore";
 import MapPendingMarker from "./mappendingmaker";
 import MapCameraLocations from "./mapcameralocations";
+import MapCorrelatedPoints from "./mapcorrelatedpoints";
+import { api } from "~/utils/api";
+import { Point } from "./mapcorrelatedpoints";
 
 const containerStyle = {
   width: "100%",
@@ -22,6 +25,16 @@ function Map() {
     (state) => state.setPendingMapPoint,
   );
   const setMapZoom = useApplicationStore((state) => state.setMapZoom);
+  const camera = useApplicationStore((state) => state.camera);
+
+  const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
+    {
+      cameraId: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  );
 
   // set the map center to the camera location
   useEffect(() => {
@@ -59,6 +72,7 @@ function Map() {
     >
       <MapPendingMarker />
       <MapCameraLocations />
+      <MapCorrelatedPoints points={correlatedPoints.data as Point[]} />
     </GoogleMap>
   ) : (
     <></>
