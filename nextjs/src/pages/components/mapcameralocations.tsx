@@ -7,6 +7,7 @@ import { api } from "~/utils/api";
 export default function MapCameraLocations() {
   const cameraLocations = api.camera.getCameras.useQuery({});
   const allCameraData = useApplicationStore((state) => state.allCameraData);
+  const setCamera = useApplicationStore((state) => state.setCamera);
   const [markers, setMarkers] = useState<(JSX.Element | undefined)[]>([]);
 
   useEffect(() => {
@@ -46,6 +47,12 @@ export default function MapCameraLocations() {
                 position={{ lat, lng }}
                 icon={{
                   url: `http://maps.google.com/mapfiles/ms/icons/${markerColor}.png`,
+                }}
+                onClick={() => {
+                  setCamera(camera.cameraId);
+                  console.log(
+                    `Marker with cameraId ${camera.cameraId} was clicked.`,
+                  );
                 }}
               />
             );
