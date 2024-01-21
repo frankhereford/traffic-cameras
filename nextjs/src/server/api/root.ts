@@ -1,4 +1,5 @@
 import { cameraRouter } from "~/server/api/routers/camera";
+import { correlatedPointsRouter } from "~/server/api/routers/correlatedpoint";
 import { createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -8,6 +9,7 @@ import { createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   camera: cameraRouter,
+  correlatedPoints: correlatedPointsRouter,
 });
 
 // export type definition of API

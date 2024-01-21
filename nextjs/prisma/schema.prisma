@@ -18,21 +18,21 @@ model Instance {
 }
 
 model Camera {
-    id               String             @id @default(cuid())
+    id               String            @id @default(cuid())
     cameraId         Int
-    user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-    status           Status?            @relation(fields: [statusId], references: [id])
+    user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+    status           Status?           @relation(fields: [statusId], references: [id])
     instances        Instance[]
-    CorrelatedPoints CorrelatedPoints[]
+    correlatedPoints CorrelatedPoint[]
     userId           String
     statusId         String?
-    createdAt        DateTime           @default(now())
-    updatedAt        DateTime           @updatedAt
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
 
     @@unique([cameraId, userId])
 }
 
-model CorrelatedPoints {
+model CorrelatedPoint {
     id           String   @id @default(cuid())
     cameraX      Int
     cameraY      Int

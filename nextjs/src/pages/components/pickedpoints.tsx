@@ -3,12 +3,14 @@ import useApplicationStore from "~/pages/hooks/applicationstore";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { useTheme } from "@mui/material/styles";
+import { api } from "~/utils/api";
 
 export default function PickedPoints() {
   const pendingCameraPoint = useApplicationStore(
     (state) => state.pendingCameraPoint,
   );
 
+  const camera = useApplicationStore((state) => state.camera);
   const pendingMapPoint = useApplicationStore((state) => state.pendingMapPoint);
   const theme = useTheme();
 
@@ -16,9 +18,20 @@ export default function PickedPoints() {
     console.log(pendingMapPoint);
   }, [pendingMapPoint]);
 
+  const setCorrelatedPoint = api.correlatedPoints.setPointPair.useMutation({});
+
   const savePointPair = () => {
     console.log("Camera Point:", pendingCameraPoint);
     console.log("Map Point:", pendingMapPoint);
+    if (camera && pendingCameraPoint && pendingMapPoint) {
+      setCorrelatedPoint.mutate({
+        cameraId: camera,
+        cameraX: pendingCameraPoint.x,
+        cameraY: pendingCameraPoint.y,
+        mapLat: pendingMapPoint.lat(),
+        mapLng: pendingMapPoint.lng(),
+      });
+    }
   };
 
   return (
