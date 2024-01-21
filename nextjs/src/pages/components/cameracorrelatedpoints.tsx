@@ -29,18 +29,12 @@ export default function CameraCorrelatedPoints({
     if (!points || points.length === 0) {
       return;
     }
-    // console.log("points!: ", points);
-    // console.log(JSON.stringify(points, null, 2));
 
     const img = document.getElementById("camera") as HTMLImageElement;
     const naturalWidth = img?.naturalWidth;
     const naturalHeight = img?.naturalHeight;
     const resizedWidth = img?.width;
     const resizedHeight = img?.height;
-    // console.log("naturalWidth: ", naturalWidth);
-    // console.log("naturalHeight: ", naturalHeight);
-    // console.log("resizedWidth: ", resizedWidth);
-    // console.log("resizedHeight: ", resizedHeight);
 
     const markers = points.map((point) => {
       const xRatio = resizedWidth / naturalWidth;
