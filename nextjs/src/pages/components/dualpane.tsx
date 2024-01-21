@@ -1,4 +1,5 @@
-import { Allotment, AllotmentHandle } from "allotment";
+import { Allotment } from "allotment";
+import type { AllotmentHandle } from "allotment";
 import "allotment/dist/style.css";
 import ToolPanel from "./toolpanel";
 import Map from "./map";
