@@ -3,6 +3,9 @@ import type { Camera } from "~/pages/components/camerapicker";
 import type { CameraPoint } from "~/pages/components/camera";
 
 export type ApplicationState = {
+  reload: number;
+  setReload: (reload: number) => void;
+
   camera: number | null; // the camera ID defined by socrata data set
   setCamera: (camera: number) => void;
 
@@ -28,6 +31,11 @@ export type ApplicationState = {
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 export const useApplicationStore = create<ApplicationState>((set, get) => {
   return {
+    reload: 0,
+    setReload: (reload: number) => {
+      set({ reload });
+    },
+
     camera: null,
     setCamera: (camera: number) => {
       set({ camera });

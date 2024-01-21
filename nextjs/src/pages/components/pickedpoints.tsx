@@ -19,16 +19,14 @@ export default function PickedPoints() {
     (state) => state.setPendingMapPoint,
   );
   const theme = useTheme();
-
-  useEffect(() => {
-    console.log(pendingMapPoint);
-  }, [pendingMapPoint]);
+  const setReload = useApplicationStore((state) => state.setReload);
+  const reload = useApplicationStore((state) => state.reload);
 
   const setCorrelatedPoint = api.correlatedPoints.setPointPair.useMutation({});
 
   const savePointPair = () => {
-    console.log("Camera Point:", pendingCameraPoint);
-    console.log("Map Point:", pendingMapPoint);
+    // console.log("Camera Point:", pendingCameraPoint);
+    // console.log("Map Point:", pendingMapPoint);
     if (camera && pendingCameraPoint && pendingMapPoint) {
       setCorrelatedPoint.mutate({
         cameraId: camera,
@@ -42,8 +40,16 @@ export default function PickedPoints() {
     }
   };
 
+  useEffect(() => {
+    console.log("setCorrelatedPoint", setCorrelatedPoint.status);
+    if (setCorrelatedPoint.status == "success") {
+      setReload(reload + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setCorrelatedPoint.status]);
+
   return (
-    <div className="mb-2 mr-[20px] flex  text-black">
+    <div className="mb-2 mr-[20px] flex text-black">
       <div className="flex-grow">
         <Typography>
           Camera:

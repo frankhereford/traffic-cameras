@@ -4,10 +4,20 @@ import useApplicationStore from "~/pages/hooks/applicationstore";
 import CryptoJS from "crypto-js";
 import { api } from "~/utils/api";
 import CameraPendingPoint from "./camerapendingpoint";
-
+import CameraCorrelatedPoints from "./cameracorrelatedpoints";
 export interface CameraPoint {
   x: number;
   y: number;
+}
+export interface CorrelatedPoint {
+  id: string;
+  cameraX: number;
+  cameraY: number;
+  mapLatitude: number;
+  mapLongitude: number;
+  cameraId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 function Camera() {
@@ -21,7 +31,18 @@ function Camera() {
     (state) => state.setPendingCameraPoint,
   );
 
+  const reload = useApplicationStore((state) => state.reload);
+
   const setStatus = api.camera.setStatus.useMutation({});
+
+  const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
+    {
+      cameraId: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  );
 
   useEffect(() => {
     if (setStatus.status === "success") {
@@ -101,7 +122,7 @@ function Camera() {
     setCameraResponse(404);
   };
 
-  const handleClick = (
+  const handleClick = async (
     event: React.MouseEvent<HTMLImageElement, MouseEvent>,
   ) => {
     const img = event.currentTarget;
@@ -121,6 +142,16 @@ function Camera() {
     setPendingCameraPoint(pendingCameraPoint);
   };
 
+  useEffect(() => {
+    console.log("hi got reloaded");
+    correlatedPoints
+      .refetch()
+      .then(() => {
+        console.log("refetched");
+      })
+      .catch(console.error);
+  }, [reload]);
+
   return (
     <>
       {camera && (
@@ -138,6 +169,9 @@ function Camera() {
             onError={handleImageError}
           />
           <CameraPendingPoint />
+          <CameraCorrelatedPoints
+            points={correlatedPoints.data as CorrelatedPoint[]}
+          />
         </>
       )}
     </>
