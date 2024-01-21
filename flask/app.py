@@ -1,6 +1,9 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 import requests
 import datetime
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -28,6 +31,15 @@ def status():
             "current_weather_in_austin": weather_description,
         }
     )
+
+
+@app.route("/vision", methods=["POST"])
+def vision():
+    logging.info("")
+    data = request.get_json()
+    base64_image = data.get("image")
+    logging.info(f"Received image data: {base64_image[:100]}...")
+    return jsonify({"status": "Image processed"})
 
 
 if __name__ == "__main__":

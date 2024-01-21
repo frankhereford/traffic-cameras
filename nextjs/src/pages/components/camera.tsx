@@ -26,6 +26,7 @@ function Camera() {
 
   const [cameraHex, setCameraHex] = useState<string | null>(null);
   const [cameraResponse, setCameraResponse] = useState<number | null>(null);
+  const [base64Data, setBase64Data] = useState<string>("");
 
   const setPendingCameraPoint = useApplicationStore(
     (state) => state.setPendingCameraPoint,
@@ -34,6 +35,7 @@ function Camera() {
   const reload = useApplicationStore((state) => state.reload);
 
   const setStatus = api.camera.setStatus.useMutation({});
+  // const vision = api.vision.processImage.useMutation({});
 
   const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
     {
@@ -81,10 +83,26 @@ function Camera() {
     ctx?.drawImage(img, 0, 0);
 
     const base64data = canvas.toDataURL("image/jpeg");
+    setBase64Data(base64data);
     const hash = CryptoJS.SHA256(base64data);
     const hex = hash.toString(CryptoJS.enc.Hex);
     setCameraHex(hex);
   };
+
+  useEffect(() => {
+    if (base64Data) {
+      fetch("/flask/vision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ image: base64Data }),
+      })
+        .then((response) => response.json())
+        .then((data) => console.log(data))
+        .catch((error) => console.error("Error:", error));
+    }
+  }, [base64Data]);
 
   useEffect(() => {
     setCameraResponse(200);
@@ -143,12 +161,11 @@ function Camera() {
   };
 
   useEffect(() => {
-    console.log("hi got reloaded");
     correlatedPoints
       .refetch()
-      .then(() => {
-        console.log("refetched");
-      })
+      // .then(() => {
+      //   console.log("refetched");
+      // })
       .catch(console.error);
   }, [reload]);
 

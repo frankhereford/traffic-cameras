@@ -21,6 +21,7 @@ services:
       - postgis
 
   flask:
+    restart: always
     build:
       context: ./flask
     volumes:
