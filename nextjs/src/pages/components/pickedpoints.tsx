@@ -12,6 +12,12 @@ export default function PickedPoints() {
 
   const camera = useApplicationStore((state) => state.camera);
   const pendingMapPoint = useApplicationStore((state) => state.pendingMapPoint);
+  const setPendingCameraPoint = useApplicationStore(
+    (state) => state.setPendingCameraPoint,
+  );
+  const setPendingMapPoint = useApplicationStore(
+    (state) => state.setPendingMapPoint,
+  );
   const theme = useTheme();
 
   useEffect(() => {
@@ -31,6 +37,8 @@ export default function PickedPoints() {
         mapLat: pendingMapPoint.lat(),
         mapLng: pendingMapPoint.lng(),
       });
+      setPendingCameraPoint(null);
+      setPendingMapPoint(null);
     }
   };
 
