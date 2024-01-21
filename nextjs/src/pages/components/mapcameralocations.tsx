@@ -7,6 +7,7 @@ import { api } from "~/utils/api";
 export default function MapCameraLocations() {
   const cameraLocations = api.camera.getCameras.useQuery({});
   const allCameraData = useApplicationStore((state) => state.allCameraData);
+  const mapZoom = useApplicationStore((state) => state.mapZoom);
   const setCamera = useApplicationStore((state) => state.setCamera);
   const [markers, setMarkers] = useState<(JSX.Element | undefined)[]>([]);
 
@@ -66,5 +67,5 @@ export default function MapCameraLocations() {
     }
   }, [cameraLocations.data, allCameraData]);
 
-  return <>{markers}</>;
+  return <>{(mapZoom === null || mapZoom < 17) && markers}</>;
 }

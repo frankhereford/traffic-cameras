@@ -15,12 +15,13 @@ function Map() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY ?? "",
   });
 
-  const [map, setMap] = React.useState(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const [center, setCenter] = useState<google.maps.LatLng | null>(null);
   const cameraData = useApplicationStore((state) => state.cameraData);
   const setPendingMapPoint = useApplicationStore(
     (state) => state.setPendingMapPoint,
   );
+  const setMapZoom = useApplicationStore((state) => state.setMapZoom);
 
   // set the map center to the camera location
   useEffect(() => {
@@ -40,6 +41,11 @@ function Map() {
     setPendingMapPoint(new google.maps.LatLng(lat!, lng));
   };
 
+  const onZoomChanged = () => {
+    // console.log("zoom changed", map?.getZoom());
+    setMapZoom(map?.getZoom() ?? 0);
+  };
+
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
@@ -48,6 +54,8 @@ function Map() {
       onUnmount={onUnmount}
       options={{ tilt: 0, mapTypeId: "satellite" }}
       onClick={handleClick}
+      onLoad={setMap}
+      onZoomChanged={onZoomChanged}
     >
       <MapPendingMarker />
       <MapCameraLocations />
