@@ -4,9 +4,30 @@ import ToolPanel from "./toolpanel";
 import Map from "./map";
 import Camera from "./camera";
 import useApplicationStore from "../hooks/applicationstore";
-
+import { useEffect, useRef, useState } from "react";
 export default function DualPane() {
   const setPaneWidths = useApplicationStore((state) => state.setPaneWidths);
+  const allotmentRef = useRef(null);
+  const [toggle, setToggle] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "z") {
+        setToggle(!toggle);
+        const sizes = toggle ? [95, 5] : [5, 95];
+        allotmentRef.current.resize(sizes);
+      } else if (event.key === "Z") {
+        allotmentRef.current.resize([50, 50]);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Cleanup function to remove the event listener when the component unmounts
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [toggle]);
 
   function onDrag(event: number[]) {
     // console.log("resizing", event);
@@ -17,7 +38,11 @@ export default function DualPane() {
     <>
       <div style={{ height: "100vh", width: "100vw" }}>
         <ToolPanel />
-        <Allotment onChange={onDrag} defaultSizes={[100, 100]}>
+        <Allotment
+          ref={allotmentRef}
+          onChange={onDrag}
+          defaultSizes={[100, 100]}
+        >
           <div
             className="bg-indigo-500"
             style={{
