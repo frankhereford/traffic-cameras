@@ -18,11 +18,9 @@ function Camera() {
       // The mutation has finished successfully
       console.log("setStatus mutation finished successfully");
       console.log(setStatus.data);
-      // Add your code here
     } else if (setStatus.status === "error") {
       // The mutation has finished with an error
       console.log("setStatus mutation finished with an error");
-      // Add your code here
     }
   }, [setStatus.status]);
 
@@ -48,6 +46,9 @@ function Camera() {
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
 
+    // const dimensions = { x: img.naturalWidth, y: img.naturalHeight };
+    // setDimensions(dimensions);
+
     ctx?.drawImage(img, 0, 0);
 
     const base64data = canvas.toDataURL("image/jpeg");
@@ -57,6 +58,7 @@ function Camera() {
   };
 
   useEffect(() => {
+    setCameraResponse(200);
     if (cameraHex) {
       if (
         cameraHex ===
