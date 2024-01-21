@@ -3,6 +3,12 @@ import Image from "next/image";
 import useApplicationStore from "~/pages/hooks/applicationstore";
 import CryptoJS from "crypto-js";
 import { api } from "~/utils/api";
+import CameraPendingPoint from "./camerapendingpoint";
+
+export interface CameraPoint {
+  x: number;
+  y: number;
+}
 
 function Camera() {
   const camera = useApplicationStore((state) => state.camera);
@@ -11,18 +17,20 @@ function Camera() {
   const [cameraHex, setCameraHex] = useState<string | null>(null);
   const [cameraResponse, setCameraResponse] = useState<number | null>(null);
 
+  const setPendingCameraPoint = useApplicationStore(
+    (state) => state.setPendingCameraPoint,
+  );
+
   const setStatus = api.camera.setStatus.useMutation({});
 
   useEffect(() => {
     if (setStatus.status === "success") {
       // The mutation has finished successfully
-      console.log("setStatus mutation finished successfully");
-      console.log(setStatus.data);
-      // Add your code here
+      // console.log("setStatus mutation finished successfully");
+      // console.log(setStatus.data);
     } else if (setStatus.status === "error") {
       // The mutation has finished with an error
       console.log("setStatus mutation finished with an error");
-      // Add your code here
     }
   }, [setStatus.status]);
 
@@ -31,8 +39,9 @@ function Camera() {
       () => {
         setImageKey(Date.now()); // Change key to force re-render
       },
-      5 * 60 * 1000,
-    ); // 5 minutes
+      5 * 60 * 1000, // 5 minutes
+      // 30 * 1000, // 30 seconds
+    );
 
     return () => clearTimeout(timer); // Clear timeout if the component is unmounted
   }, [imageKey]);
@@ -57,6 +66,7 @@ function Camera() {
   };
 
   useEffect(() => {
+    setCameraResponse(200);
     if (cameraHex) {
       if (
         cameraHex ===
@@ -91,20 +101,44 @@ function Camera() {
     setCameraResponse(404);
   };
 
+  const handleClick = (
+    event: React.MouseEvent<HTMLImageElement, MouseEvent>,
+  ) => {
+    const img = event.currentTarget;
+    const rect = img.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    // console.log(`Clicked at coordinates: ${x}, ${y}`);
+    const xRatio = img.naturalWidth / img.width;
+    const yRatio = img.naturalHeight / img.height;
+    const nativeX = Math.floor(x * xRatio);
+    const nativeY = Math.floor(y * yRatio);
+    // console.log(`Clicked at native coordinates: ${nativeX}, ${nativeY}`);
+    const pendingCameraPoint = {
+      x: nativeX,
+      y: nativeY,
+    };
+    setPendingCameraPoint(pendingCameraPoint);
+  };
+
   return (
     <>
       {camera && (
-        <Image
-          key={imageKey}
-          priority
-          src={`${url}?${new Date().getTime()}`}
-          width={1920}
-          height={1080}
-          alt="CCTV Camera"
-          // onClick={handleClick}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-        />
+        <>
+          <Image
+            id="camera"
+            key={imageKey}
+            priority
+            src={`${url}?${new Date().getTime()}`}
+            width={1920}
+            height={1080}
+            alt="CCTV Camera"
+            onClick={handleClick}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+          />
+          <CameraPendingPoint />
+        </>
       )}
     </>
   );

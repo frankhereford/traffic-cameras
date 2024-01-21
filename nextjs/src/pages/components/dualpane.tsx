@@ -3,13 +3,21 @@ import "allotment/dist/style.css";
 import ToolPanel from "./toolpanel";
 import Map from "./map";
 import Camera from "./camera";
+import useApplicationStore from "../hooks/applicationstore";
 
 export default function DualPane() {
+  const setPaneWidths = useApplicationStore((state) => state.setPaneWidths);
+
+  function onDrag(event: number[]) {
+    // console.log("resizing", event);
+    setPaneWidths(event);
+  }
+
   return (
     <>
       <div style={{ height: "100vh", width: "100vw" }}>
         <ToolPanel />
-        <Allotment defaultSizes={[100, 100]}>
+        <Allotment onChange={onDrag} defaultSizes={[100, 100]}>
           <div
             className="bg-indigo-500"
             style={{
