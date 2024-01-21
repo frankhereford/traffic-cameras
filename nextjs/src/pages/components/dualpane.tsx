@@ -5,9 +5,15 @@ import Map from "./map";
 import Camera from "./camera";
 import useApplicationStore from "../hooks/applicationstore";
 import { useEffect, useRef, useState } from "react";
+
+interface AllotmentInstance {
+  resize: (sizes: number[]) => void;
+}
+
 export default function DualPane() {
   const setPaneWidths = useApplicationStore((state) => state.setPaneWidths);
-  const allotmentRef = useRef(null);
+  const allotmentRef = useRef<AllotmentInstance | null>(null);
+
   const [toggle, setToggle] = useState(false);
 
   useEffect(() => {
@@ -15,9 +21,9 @@ export default function DualPane() {
       if (event.key === "z") {
         setToggle(!toggle);
         const sizes = toggle ? [95, 5] : [5, 95];
-        allotmentRef.current.resize(sizes);
+        allotmentRef.current?.resize(sizes);
       } else if (event.key === "Z") {
-        allotmentRef.current.resize([50, 50]);
+        allotmentRef.current?.resize([50, 50]);
       }
     }
 
