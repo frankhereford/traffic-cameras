@@ -1,4 +1,4 @@
-import { Allotment } from "allotment";
+import { Allotment, AllotmentHandle } from "allotment";
 import "allotment/dist/style.css";
 import ToolPanel from "./toolpanel";
 import Map from "./map";
@@ -6,13 +6,9 @@ import Camera from "./camera";
 import useApplicationStore from "../hooks/applicationstore";
 import { useEffect, useRef, useState } from "react";
 
-interface AllotmentInstance {
-  resize: (sizes: number[]) => void;
-}
-
 export default function DualPane() {
   const setPaneWidths = useApplicationStore((state) => state.setPaneWidths);
-  const allotmentRef = useRef<AllotmentInstance | null>(null);
+  const allotmentRef = useRef<AllotmentHandle | null>(null);
 
   const [toggle, setToggle] = useState(false);
 
