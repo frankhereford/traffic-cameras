@@ -14,6 +14,9 @@ export type ApplicationState = {
 
   paneWidths: number[] | null; // the widths of the panes
   setPaneWidths: (paneWidths: number[]) => void;
+
+  pendingMapPoint: google.maps.LatLng | null; // the lat/lng of the map point being added
+  setPendingMapPoint: (mapPoint: google.maps.LatLng | null) => void;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
@@ -38,6 +41,11 @@ export const useApplicationStore = create<ApplicationState>((set, get) => {
     paneWidths: null,
     setPaneWidths: (paneWidths: number[]) => {
       set({ paneWidths });
+    },
+
+    pendingMapPoint: null,
+    setPendingMapPoint: (pendingMapPoint: google.maps.LatLng | null) => {
+      set({ pendingMapPoint });
     },
   };
 });
