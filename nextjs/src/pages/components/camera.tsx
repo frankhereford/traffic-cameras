@@ -99,7 +99,7 @@ function Camera() {
         body: JSON.stringify({ image: base64Data }),
       })
         .then((response) => response.json())
-        .then((data) => console.log(data))
+        .then((data) => console.log("vision: ", data))
         .catch((error) => console.error("Error:", error));
     }
   }, [base64Data]);

@@ -105,9 +105,11 @@ def vision():
             )
 
         # Convert the list of detected objects to a JSON string
-        json_string = json.dumps(detected_objects)
+        # json_string = json.dumps(detected_objects)
 
-        return jsonify({"status": "Image processed", "detected_objects": json_string})
+        return jsonify(
+            {"status": "Image processed", "detected_objects": detected_objects}
+        )
 
 
 if __name__ == "__main__":
