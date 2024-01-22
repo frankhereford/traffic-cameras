@@ -28,6 +28,7 @@
     "correlatedpoint",
     "dualpane",
     "Georeferenced",
+    "Georeferencer",
     "jsonify",
     "lucide",
     "mapcameralocations",
