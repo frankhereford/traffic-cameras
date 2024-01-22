@@ -1,30 +1,56 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
     provider      = "prisma-client-js"
-    binaryTargets = ["native", "darwin-arm64", "linux-arm64-openssl-1.1.x"]
+    binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
-    provider = "sqlite"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+    provider = "postgresql"
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
+model Instance {
+    id        String   @id @default(cuid())
+    cameraId  String
+    hex       String?
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    camera    Camera   @relation(fields: [cameraId], references: [id])
+}
 
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
+model Camera {
+    id               String            @id @default(cuid())
+    cameraId         Int
+    user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+    status           Status?           @relation(fields: [statusId], references: [id])
+    instances        Instance[]
+    correlatedPoints CorrelatedPoint[]
+    userId           String
+    statusId         String?
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
 
-    @@index([name])
+    @@unique([cameraId, userId])
+}
+
+model CorrelatedPoint {
+    id           String   @id @default(cuid())
+    cameraX      Int
+    cameraY      Int
+    mapLatitude  Float
+    mapLongitude Float
+    camera       Camera   @relation(fields: [cameraId], references: [id])
+    cameraId     String
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+}
+
+model Status {
+    id        String   @id @default(cuid())
+    Cameras   Camera[]
+    name      String
+    slug      String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 // Necessary for Next auth
@@ -62,7 +88,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+    Camera        Camera[]
 }
 
 model VerificationToken {

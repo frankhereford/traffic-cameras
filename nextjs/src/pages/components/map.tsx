@@ -1,131 +1,82 @@
-import React, { useState, useCallback, useEffect } from "react"
-import useIntersectionStore from "~/pages/hooks/IntersectionStore"
-import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api"
+import React, { useState, useEffect } from "react";
+import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
+import useApplicationStore from "~/pages/hooks/applicationstore";
+import MapPendingMarker from "./mappendingmaker";
+import MapCameraLocations from "./mapcameralocations";
+import MapCorrelatedPoints from "./mapcorrelatedpoints";
+import { api } from "~/utils/api";
+import type { Point } from "./mapcorrelatedpoints";
 
-const Map: React.FC = ({}) => {
-  const cameraData = useIntersectionStore((state) => state.cameraData)
+const containerStyle = {
+  width: "100%",
+  height: "100%",
+};
 
-  const [map, setMap] = useState<google.maps.Map | null>(null)
-  const [center, setCenter] = useState<google.maps.LatLng | null>(null)
-  const [markerPosition, setMarkerPosition] =
-    useState<google.maps.LatLng | null>(null)
-  const [peekPosition, setPeekPosition] = useState<google.maps.LatLng | null>(
-    null,
-  )
-
+function Map() {
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
-  })
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY ?? "",
+  });
 
-  const setMapPendingPoint = useIntersectionStore(
-    (state) => state.setMapPendingPoint,
-  )
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [center, setCenter] = useState<google.maps.LatLng | null>(null);
+  const cameraData = useApplicationStore((state) => state.cameraData);
+  const setPendingMapPoint = useApplicationStore(
+    (state) => state.setPendingMapPoint,
+  );
+  const setMapZoom = useApplicationStore((state) => state.setMapZoom);
+  const camera = useApplicationStore((state) => state.camera);
 
-  const correlatedPoints = useIntersectionStore(
-    (state) => state.correlatedPoints,
-  )
+  const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
+    {
+      cameraId: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  );
 
-  const mapPendingPoint = useIntersectionStore((state) => state.mapPendingPoint)
-  const warpedLabels = useIntersectionStore((state) => state.warpedLabels)
-  const mapPeekPoint = useIntersectionStore((state) => state.mapPeekPoint)
-
-  useEffect(() => {
-    if (warpedLabels !== null) {
-      console.log("warpedLabels", JSON.stringify(warpedLabels, null, 2))
-    }
-  }, [warpedLabels])
-
-  useEffect(() => {
-    if (mapPeekPoint !== null) {
-      console.log("mapPeekPoint", JSON.stringify(mapPeekPoint, null, 2))
-      const peekLatLng = new google.maps.LatLng(
-        mapPeekPoint.lat,
-        mapPeekPoint.lng,
-      )
-      setPeekPosition(peekLatLng)
-    }
-  }, [mapPeekPoint])
-
-  useEffect(() => {
-    if (mapPendingPoint === null) {
-      // console.log("mapPendingPoint is null")
-      setMarkerPosition(null)
-    }
-  }, [mapPendingPoint])
-
+  // set the map center to the camera location
   useEffect(() => {
     if (isLoaded && cameraData?.location?.coordinates) {
-      const newCenter = new google.maps.LatLng(
-        cameraData.location.coordinates[1]!,
-        cameraData.location.coordinates[0],
-      )
-      setCenter(newCenter)
+      const [longitude, latitude] = cameraData.location.coordinates;
+      setCenter(new google.maps.LatLng(latitude!, longitude));
     }
-  }, [map, cameraData, isLoaded])
+  }, [cameraData, isLoaded]);
 
-  const onUnmount = useCallback(() => {
-    setMap(null)
-  }, [])
+  const onUnmount = React.useCallback(function callback() {
+    setMap(null);
+  }, []);
 
-  const handleClick = (e: {
-    latLng: { lat: () => unknown; lng: () => unknown }
-  }) => {
-    const lat = e.latLng?.lat() as number
-    const lng = e.latLng?.lng() as number
-    // console.log(`Clicked at ${lat}, ${lng}`)
-    setMapPendingPoint({ lat, lng })
-    setMarkerPosition(new google.maps.LatLng(lat, lng))
-  }
+  const handleClick = (event: google.maps.MapMouseEvent) => {
+    const lat = event.latLng?.lat();
+    const lng = event.latLng?.lng();
+    setPendingMapPoint(new google.maps.LatLng(lat!, lng));
+  };
 
-  const containerStyle = {
-    width: "100%",
-    height: "100%",
-  }
+  const onZoomChanged = () => {
+    // console.log("zoom changed", map?.getZoom());
+    setMapZoom(map?.getZoom() ?? 0);
+  };
 
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={center ?? new google.maps.LatLng(30.2672, -97.7431)}
-      zoom={20}
-      maxZoom={22}
+      center={center ?? new google.maps.LatLng(30.262531, -97.753983)}
+      zoom={17}
       onUnmount={onUnmount}
       options={{ tilt: 0, mapTypeId: "satellite" }}
       onClick={handleClick}
+      onLoad={setMap}
+      onZoomChanged={onZoomChanged}
     >
-      {markerPosition && <Marker position={markerPosition} />}
-      {correlatedPoints.map((point, index) => (
-        <Marker
-          key={index}
-          position={
-            new google.maps.LatLng(point.mapPoint.lat, point.mapPoint.lng)
-          }
-          icon={{
-            url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-          }}
-        />
-      ))}
-      {warpedLabels?.map((label, index) => (
-        <Marker
-          key={index}
-          position={new google.maps.LatLng(label.lat, label.lng)}
-          icon={{
-            url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-          }}
-        />
-      ))}
-      {peekPosition && (
-        <Marker
-          position={peekPosition}
-          icon={{
-            url: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
-          }}
-        />
-      )}
+      <MapPendingMarker />
+      <MapCameraLocations />
+      <MapCorrelatedPoints points={correlatedPoints.data as Point[]} />
     </GoogleMap>
   ) : (
     <></>
-  )
+  );
 }
 
-export default Map
+export default React.memo(Map);

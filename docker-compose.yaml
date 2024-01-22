@@ -1,12 +1,46 @@
 version: "3"
 services:
-  nextjs:
-    build: .
-    ports:
-      - "3000:3000"
+  postgis:
+    image: postgis/postgis
+    environment:
+      POSTGRES_DB: cameras
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - ./nextjs:/application/nextjs
-      - ./thin-plate-spline-transformer:/transformer
-      - ./workDir:/tmp
-    env_file:
-      - .env
+      - db_data:/var/lib/postgresql/data
+
+  nextjs:
+    build:
+      context: ./nextjs
+    volumes:
+      - ./nextjs:/app
+    ports:
+      - 3000:3000
+      - 5555:5555
+    depends_on:
+      - postgis
+
+  flask:
+    restart: always
+    build:
+      context: ./flask
+    volumes:
+      - ./flask:/app
+      - ./flask/tmp:/tmp
+    ports:
+      - 5000:5000
+    depends_on:
+      - postgis
+
+  haproxy:
+    image: haproxy:latest
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - 80:80
+    depends_on:
+      - nextjs
+      - flask
+
+volumes:
+  db_data:
