@@ -51,6 +51,7 @@ def status():
     )
 
 
+# remember to change this, think about this, make it a useQuery
 @app.route("/vision", methods=["POST"])
 def vision():
     logging.info("")
