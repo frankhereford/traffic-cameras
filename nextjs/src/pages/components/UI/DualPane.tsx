@@ -6,7 +6,13 @@ import "allotment/dist/style.css"
 import Camera from "~/pages/components/Camera/Camera"
 import Map from "~/pages/components/Map/Map"
 
-export default function DualPane() {
+import type { SocrataData } from "~/pages/hooks/useSocrataData"
+
+interface DualPaneProps {
+  socrataData: SocrataData[]
+}
+
+export default function DualPane({ socrataData }: DualPaneProps) {
   const [toggle, setToggle] = useState(false)
   const allotmentRef = useRef<AllotmentHandle | null>(null)
   const cameraDivRef = useRef<HTMLDivElement | null>(null)

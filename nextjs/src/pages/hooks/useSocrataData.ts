@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import type { UseQueryResult } from "@tanstack/react-query"
 
 // Define a type for your data, modify it according to your data structure
-interface SocrataData {
+export interface SocrataData {
   camera_id: string
   location_name: string
   camera_status: string
@@ -41,7 +41,32 @@ const useGetSocrataData = (): UseQueryResult<SocrataData[], Error> => {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
-    return response.json() as Promise<SocrataData[]>
+
+    const data = (await response.json()) as SocrataData[]
+
+    // Filter out duplicates based on camera_id
+    const uniqueCameraIdData = data.reduce(
+      (acc: SocrataData[], current: SocrataData) => {
+        const duplicate = acc.find(
+          (item) => item.camera_id === current.camera_id,
+        )
+        return duplicate ? acc : [...acc, current]
+      },
+      [],
+    )
+
+    // Filter out duplicates based on location_name
+    const uniqueData = uniqueCameraIdData.reduce(
+      (acc: SocrataData[], current: SocrataData) => {
+        const duplicate = acc.find(
+          (item) => item.location_name === current.location_name,
+        )
+        return duplicate ? acc : [...acc, current]
+      },
+      [],
+    )
+
+    return uniqueData
   }
 
   return useQuery<SocrataData[], Error>({
