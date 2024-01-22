@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { DetectedObject, DetectionResult } from "./camera";
+import useApplicationStore from "../hooks/applicationstore";
 
 interface CameraBoundingBoxesProps {
   detections: DetectionResult;
@@ -9,15 +10,28 @@ export default function CameraBoundingBoxes({
   detections,
 }: CameraBoundingBoxesProps) {
   const [boxes, setBoxes] = useState<JSX.Element[]>([]);
+  const paneWidths = useApplicationStore((state) => state.paneWidths);
 
   useEffect(() => {
     console.log("detections: ", JSON.stringify(detections, null, 2));
 
+    const img = document.getElementById("camera") as HTMLImageElement;
+    const naturalWidth = img?.naturalWidth;
+    const naturalHeight = img?.naturalHeight;
+    const resizedWidth = img?.width;
+    const resizedHeight = img?.height;
+
+    const xRatio = resizedWidth / naturalWidth;
+    const yRatio = resizedHeight / naturalHeight;
+
     const newBoxes = detections.detected_objects.map((obj: DetectedObject) => {
       const { location, label } = obj;
-      const [left, top, right, bottom] = location;
-      const width = right! - left!;
-      const height = bottom! - top!;
+      // eslint-disable-next-line prefer-const
+      let [left, top, right, bottom] = location;
+      const width = (right! - left!) * xRatio;
+      const height = (bottom! - top!) * yRatio;
+      left! *= xRatio;
+      top! *= yRatio;
 
       return (
         <div
@@ -41,7 +55,7 @@ export default function CameraBoundingBoxes({
     });
 
     setBoxes(newBoxes);
-  }, [detections]);
+  }, [detections, paneWidths]);
 
   return <>{boxes}</>;
 }
