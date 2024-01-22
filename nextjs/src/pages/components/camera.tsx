@@ -104,6 +104,7 @@ function Camera() {
     setCameraHex(hex);
   };
 
+  // detect a new image's base64 data and get it processed by the object detection API
   useEffect(() => {
     setDetectionResult(null);
     if (base64Data) {
