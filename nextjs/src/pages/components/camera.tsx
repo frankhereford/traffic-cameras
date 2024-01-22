@@ -59,6 +59,12 @@ function Camera() {
     },
   );
 
+  useEffect(() => {
+    if (!cameraHex || !detectionResult) return;
+    console.log("cameraHex:", cameraHex);
+    console.log("detectionResult:", detectionResult);
+  }, [detectionResult]);
+
   // log the outcome of the setStatus mutation
   useEffect(() => {
     if (setStatus.status === "success") {
@@ -101,6 +107,7 @@ function Camera() {
     setBase64Data(base64data);
     const hash = CryptoJS.SHA256(base64data);
     const hex = hash.toString(CryptoJS.enc.Hex);
+    // setDetectionResult(null);
     setCameraHex(hex);
   };
 
@@ -108,6 +115,7 @@ function Camera() {
   useEffect(() => {
     setDetectionResult(null);
     if (base64Data) {
+      console.log("asking for vision for hash: ", cameraHex);
       fetch("/flask/vision", {
         method: "POST",
         headers: {

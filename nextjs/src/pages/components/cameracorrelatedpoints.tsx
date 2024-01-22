@@ -48,7 +48,7 @@ export default function CameraCorrelatedPoints({
       return (
         <>
           <div
-            key={point.id}
+            key={`${x}-${y}`}
             className={styles.pointpairmarker}
             style={{
               left: `${x - markerSize}px`,
@@ -58,6 +58,7 @@ export default function CameraCorrelatedPoints({
         </>
       );
     });
+    console.log("newMarkers", newMarkers);
     setMarkers(newMarkers);
   }, [points, paneWidths, reload]);
 
