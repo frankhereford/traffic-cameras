@@ -13,7 +13,7 @@ export default function CameraBoundingBoxes({
   const paneWidths = useApplicationStore((state) => state.paneWidths);
 
   useEffect(() => {
-    console.log("detections: ", JSON.stringify(detections, null, 2));
+    // console.log("detections: ", JSON.stringify(detections, null, 2));
 
     const img = document.getElementById("camera") as HTMLImageElement;
     const naturalWidth = img?.naturalWidth;

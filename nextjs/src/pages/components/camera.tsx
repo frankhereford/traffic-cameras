@@ -48,8 +48,8 @@ function Camera() {
   const reload = useApplicationStore((state) => state.reload);
 
   const setStatus = api.camera.setStatus.useMutation({});
-  // const vision = api.vision.processImage.useMutation({});
 
+  //set up a query to get this camera's correlated points
   const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
     {
       cameraId: camera!,
@@ -59,6 +59,7 @@ function Camera() {
     },
   );
 
+  // log the outcome of the setStatus mutation
   useEffect(() => {
     if (setStatus.status === "success") {
       // The mutation has finished successfully
@@ -70,6 +71,7 @@ function Camera() {
     }
   }, [setStatus.status]);
 
+  // refresh the camera image every 5 minutes
   useEffect(() => {
     const timer = setTimeout(
       () => {
@@ -103,6 +105,7 @@ function Camera() {
   };
 
   useEffect(() => {
+    setDetectionResult(null);
     if (base64Data) {
       fetch("/flask/vision", {
         method: "POST",
@@ -122,6 +125,7 @@ function Camera() {
     }
   }, [base64Data]);
 
+  // save a status based on the hash of the image we got
   useEffect(() => {
     setCameraResponse(200);
     if (cameraHex) {
@@ -144,6 +148,7 @@ function Camera() {
     }
   }, [cameraHex]);
 
+  //set a status if we got a 404
   useEffect(() => {
     if (cameraResponse === 404) {
       console.log("cameraResponse changed:", cameraResponse);
@@ -178,6 +183,7 @@ function Camera() {
     setPendingCameraPoint(pendingCameraPoint);
   };
 
+  // this is garbage
   useEffect(() => {
     correlatedPoints
       .refetch()
