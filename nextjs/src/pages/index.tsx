@@ -1,4 +1,5 @@
-import Head from "next/head";
+import Head from "next/head"
+import DualPane from "./components/DualPane"
 
 // import { api } from "~/utils/api";
 
@@ -10,7 +11,11 @@ export default function Home() {
         <meta name="description" content="Traffic Camera Georeferencer" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main></main>
+      <main>
+        <div>
+          <DualPane />
+        </div>
+      </main>
     </>
-  );
+  )
 }
