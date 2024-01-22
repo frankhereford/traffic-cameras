@@ -3,8 +3,8 @@ import { Allotment } from "allotment"
 import type { AllotmentHandle } from "allotment"
 import "allotment/dist/style.css"
 // import ToolPanel from "./toolpanel";
-import Camera from "./Camera/Camera"
-import Map from "./Map/Map"
+import Camera from "~/pages/components/Camera/Camera"
+import Map from "~/pages/components/Map/Map"
 
 export default function DualPane() {
   const [toggle, setToggle] = useState(false)

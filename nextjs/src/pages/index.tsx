@@ -1,7 +1,5 @@
 import Head from "next/head"
-import DualPane from "./components/DualPane"
-
-// import { api } from "~/utils/api";
+import CameraGeoreferenceApp from "~/pages/components/Application/CameraGeoreferenceApp"
 
 export default function Home() {
   return (
@@ -12,9 +10,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        <div>
-          <DualPane />
-        </div>
+        <CameraGeoreferenceApp />
       </main>
     </>
   )

@@ -27,6 +27,7 @@
     "camerapicker",
     "correlatedpoint",
     "dualpane",
+    "Georeference",
     "Georeferenced",
     "Georeferencer",
     "jsonify",
