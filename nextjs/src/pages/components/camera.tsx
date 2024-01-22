@@ -5,6 +5,7 @@ import CryptoJS from "crypto-js";
 import { api } from "~/utils/api";
 import CameraPendingPoint from "./camerapendingpoint";
 import CameraCorrelatedPoints from "./cameracorrelatedpoints";
+import CameraBoundingBoxes from "./cameraboundingboxes";
 export interface CameraPoint {
   x: number;
   y: number;
@@ -20,6 +21,16 @@ export interface CorrelatedPoint {
   updatedAt: Date;
 }
 
+export type DetectedObject = {
+  confidence: number;
+  label: string;
+  location: number[];
+};
+
+export type DetectionResult = {
+  detected_objects: DetectedObject[];
+};
+
 function Camera() {
   const camera = useApplicationStore((state) => state.camera);
   const [imageKey, setImageKey] = useState(Date.now());
@@ -27,6 +38,8 @@ function Camera() {
   const [cameraHex, setCameraHex] = useState<string | null>(null);
   const [cameraResponse, setCameraResponse] = useState<number | null>(null);
   const [base64Data, setBase64Data] = useState<string>("");
+  const [detectionResult, setDetectionResult] =
+    useState<DetectionResult | null>(null);
 
   const setPendingCameraPoint = useApplicationStore(
     (state) => state.setPendingCameraPoint,
@@ -35,8 +48,8 @@ function Camera() {
   const reload = useApplicationStore((state) => state.reload);
 
   const setStatus = api.camera.setStatus.useMutation({});
-  // const vision = api.vision.processImage.useMutation({});
 
+  //set up a query to get this camera's correlated points
   const correlatedPoints = api.correlatedPoints.getPointPairs.useQuery(
     {
       cameraId: camera!,
@@ -46,6 +59,13 @@ function Camera() {
     },
   );
 
+  useEffect(() => {
+    if (!cameraHex || !detectionResult) return;
+    console.log("cameraHex:", cameraHex);
+    console.log("detectionResult:", detectionResult);
+  }, [detectionResult]);
+
+  // log the outcome of the setStatus mutation
   useEffect(() => {
     if (setStatus.status === "success") {
       // The mutation has finished successfully
@@ -57,6 +77,7 @@ function Camera() {
     }
   }, [setStatus.status]);
 
+  // refresh the camera image every 5 minutes
   useEffect(() => {
     const timer = setTimeout(
       () => {
@@ -86,11 +107,15 @@ function Camera() {
     setBase64Data(base64data);
     const hash = CryptoJS.SHA256(base64data);
     const hex = hash.toString(CryptoJS.enc.Hex);
+    // setDetectionResult(null);
     setCameraHex(hex);
   };
 
+  // detect a new image's base64 data and get it processed by the object detection API
   useEffect(() => {
+    setDetectionResult(null);
     if (base64Data) {
+      console.log("asking for vision for hash: ", cameraHex);
       fetch("/flask/vision", {
         method: "POST",
         headers: {
@@ -99,11 +124,17 @@ function Camera() {
         body: JSON.stringify({ image: base64Data }),
       })
         .then((response) => response.json())
-        .then((data) => console.log(data))
+        .then((data) => {
+          // console.log("vision: ", JSON.stringify(data, null, 2));
+          setDetectionResult(data as DetectionResult);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          return data;
+        })
         .catch((error) => console.error("Error:", error));
     }
   }, [base64Data]);
 
+  // save a status based on the hash of the image we got
   useEffect(() => {
     setCameraResponse(200);
     if (cameraHex) {
@@ -126,6 +157,7 @@ function Camera() {
     }
   }, [cameraHex]);
 
+  //set a status if we got a 404
   useEffect(() => {
     if (cameraResponse === 404) {
       console.log("cameraResponse changed:", cameraResponse);
@@ -160,6 +192,7 @@ function Camera() {
     setPendingCameraPoint(pendingCameraPoint);
   };
 
+  // this is garbage
   useEffect(() => {
     correlatedPoints
       .refetch()
@@ -189,6 +222,9 @@ function Camera() {
           <CameraCorrelatedPoints
             points={correlatedPoints.data as CorrelatedPoint[]}
           />
+          {detectionResult && (
+            <CameraBoundingBoxes detections={detectionResult} />
+          )}
         </>
       )}
     </>

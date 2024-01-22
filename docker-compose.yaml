@@ -26,6 +26,7 @@ services:
       context: ./flask
     volumes:
       - ./flask:/app
+      - ./flask/tmp:/tmp
     ports:
       - 5000:5000
     depends_on:
