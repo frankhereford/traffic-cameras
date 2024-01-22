@@ -5,6 +5,7 @@ import CryptoJS from "crypto-js";
 import { api } from "~/utils/api";
 import CameraPendingPoint from "./camerapendingpoint";
 import CameraCorrelatedPoints from "./cameracorrelatedpoints";
+import CameraBoundingBoxes from "./cameraboundingboxes";
 export interface CameraPoint {
   x: number;
   y: number;
@@ -20,6 +21,16 @@ export interface CorrelatedPoint {
   updatedAt: Date;
 }
 
+export type DetectedObject = {
+  confidence: number;
+  label: string;
+  location: number[];
+};
+
+export type DetectionResult = {
+  detected_objects: DetectedObject[];
+};
+
 function Camera() {
   const camera = useApplicationStore((state) => state.camera);
   const [imageKey, setImageKey] = useState(Date.now());
@@ -27,6 +38,8 @@ function Camera() {
   const [cameraHex, setCameraHex] = useState<string | null>(null);
   const [cameraResponse, setCameraResponse] = useState<number | null>(null);
   const [base64Data, setBase64Data] = useState<string>("");
+  const [detectionResult, setDetectionResult] =
+    useState<DetectionResult | null>(null);
 
   const setPendingCameraPoint = useApplicationStore(
     (state) => state.setPendingCameraPoint,
@@ -99,7 +112,12 @@ function Camera() {
         body: JSON.stringify({ image: base64Data }),
       })
         .then((response) => response.json())
-        .then((data) => console.log("vision: ", data))
+        .then((data) => {
+          // console.log("vision: ", JSON.stringify(data, null, 2));
+          setDetectionResult(data as DetectionResult);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          return data;
+        })
         .catch((error) => console.error("Error:", error));
     }
   }, [base64Data]);
@@ -189,6 +207,9 @@ function Camera() {
           <CameraCorrelatedPoints
             points={correlatedPoints.data as CorrelatedPoint[]}
           />
+          {detectionResult && (
+            <CameraBoundingBoxes detections={detectionResult} />
+          )}
         </>
       )}
     </>

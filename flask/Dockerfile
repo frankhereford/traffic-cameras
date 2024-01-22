@@ -1,5 +1,3 @@
-#docker run --platform linux/amd64 -it cnstark/pytorch:2.0.1-py3.10.11-ubuntu22.04 bash
-# Dockerfile-python
 FROM cnstark/pytorch:2.0.1-py3.10.11-ubuntu22.04
 
 WORKDIR /app
