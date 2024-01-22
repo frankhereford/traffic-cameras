@@ -63,7 +63,7 @@ export default function DualPane({ socrataData }: DualPaneProps) {
             className="bg-indigo-500"
             style={{
               background: "radial-gradient(at right top, #281450, #3A4957)",
-              borderRight: "5px solid black",
+              // borderRight: "5px solid black",
             }}
           >
             <div style={{ height: "100vh" }}>
@@ -72,7 +72,7 @@ export default function DualPane({ socrataData }: DualPaneProps) {
           </div>
           <div ref={mapDivRef} className="bg-slate-500">
             <div style={{ height: "100vh" }}>
-              <Map paneWidth={mapPaneWidth} />
+              <Map socrataData={socrataData} paneWidth={mapPaneWidth} />
             </div>
           </div>
         </Allotment>
