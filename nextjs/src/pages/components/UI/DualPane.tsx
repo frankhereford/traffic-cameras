@@ -8,6 +8,8 @@ import Map from "~/pages/components/Map/Map"
 
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 
+import { debounce } from "lodash"
+
 interface DualPaneProps {
   socrataData: SocrataData[]
 }
@@ -44,10 +46,10 @@ export default function DualPane({ socrataData }: DualPaneProps) {
     setMapPaneWidth(mapDivRef.current?.offsetWidth ?? 0)
   }, [])
 
-  function onDrag() {
+  const debouncedOnDrag = debounce(() => {
     setCameraPaneWidth(cameraDivRef.current?.offsetWidth ?? 0)
     setMapPaneWidth(mapDivRef.current?.offsetWidth ?? 0)
-  }
+  }, 250) // 250ms delay
 
   return (
     <>
@@ -55,7 +57,7 @@ export default function DualPane({ socrataData }: DualPaneProps) {
         {/* <ToolPanel /> */}
         <Allotment
           ref={allotmentRef}
-          onChange={onDrag}
+          onChange={debouncedOnDrag}
           defaultSizes={[100, 100]}
         >
           <div

@@ -38,6 +38,7 @@ export default function CameraLocations({
     if (data) {
       const queriedCameraMap: Record<number, string> = {}
       data.forEach((camera) => {
+        console.log(camera)
         queriedCameraMap[camera.coaId] = camera.status!.name
       })
       setCameraMap(queriedCameraMap)
