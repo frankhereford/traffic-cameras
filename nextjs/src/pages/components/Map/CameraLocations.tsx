@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import { Marker } from "@react-google-maps/api"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
-import { getQueryKey } from "@trpc/react-query"
+// import { getQueryKey } from "@trpc/react-query"
 
 import { api } from "~/utils/api"
 
@@ -31,12 +31,8 @@ export default function CameraLocations({
     cameras: filteredData.map((data) => parseInt(data.camera_id)),
   })
 
-  const cameraKey = getQueryKey(api.camera.getCameras, undefined, "any")
-  console.log("cameraKey: ", JSON.stringify(cameraKey, null, 2))
-
-  // useEffect(() => {
-  //   console.log("cameraMap: ", JSON.stringify(cameraMap, null, 2))
-  // }, [cameraMap])
+  // const cameraKey = getQueryKey(api.camera.getCameras, undefined, "any")
+  // console.log("cameraKey: ", JSON.stringify(cameraKey, null, 2))
 
   useEffect(() => {
     if (data) {
@@ -83,7 +79,7 @@ export default function CameraLocations({
                   url: `http://maps.google.com/mapfiles/ms/icons/${statusColors[cameraMap[parseInt(camera_id)]!] ?? "purple.png"}`,
                 }}
                 onClick={() => {
-                  console.log(`Marker with cameraId ${camera_id} was clicked.`)
+                  // console.log(`Marker with cameraId ${camera_id} was clicked.`)
                   setCamera(parseInt(camera_id))
                 }}
               />

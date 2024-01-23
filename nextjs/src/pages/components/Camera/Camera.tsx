@@ -26,8 +26,8 @@ export default function Camera({ paneWidth }: CameraProps) {
         <Image
           src={url}
           alt="Camera Image"
-          width={1920} // Replace with your desired width
-          height={1080} // Replace with your desired height
+          width={1920}
+          height={1080}
           onLoad={handleImageLoad}
         />
       )}
