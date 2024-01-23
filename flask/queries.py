@@ -3,35 +3,36 @@ import logging
 
 db = Prisma(auto_register=True)
 
+db.connect()
 
 logging.basicConfig(level=logging.INFO)
 
 
 async def getOrCreateCameraById(camera_id: int) -> None:
-    await db.connect()
-    camera = await db.camera.find_first(where={"coaId": camera_id})
+    # db.connect()
+    camera = db.camera.find_first(where={"coaId": camera_id})
 
     if camera is None:
-        camera = await db.camera.create({"coaId": camera_id})
+        camera = db.camera.create({"coaId": camera_id})
 
-    await db.disconnect()
+    # db.disconnect()
     return camera
 
 
 async def getOrCreateStatusByName(camera_id: int, name: str) -> None:
-    await db.connect()
-    status = await db.status.find_first(where={"name": name})
-    camera = await db.camera.find_first(where={"coaId": camera_id})
+    # db.connect()
+    status = db.status.find_first(where={"name": name})
+    camera = db.camera.find_first(where={"coaId": camera_id})
 
     if status is None:
-        status = await db.status.create({"name": name})
+        status = db.status.create({"name": name})
 
     logging.info("status: %s", status.id)
 
-    await db.camera.update(
+    db.camera.update(
         where={"id": camera.id},
         data={"statusId": status.id},
     )
 
-    await db.disconnect()
+    # db.disconnect()
     return status
