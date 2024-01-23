@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import { Marker } from "@react-google-maps/api"
+import { useCameraStore } from "~/pages/hooks/useCameraStore"
 
 interface CameraLocationsProps {
   socrataData: SocrataData[]
@@ -13,6 +14,7 @@ export default function CameraLocations({
 }: CameraLocationsProps) {
   const [filteredData, setFilteredData] = useState<SocrataData[]>([])
   const [markers, setMarkers] = useState<JSX.Element[] | null>()
+  const setCamera = useCameraStore((state) => state.setCamera)
 
   useEffect(() => {
     if (socrataData && bounds) {
@@ -50,7 +52,8 @@ export default function CameraLocations({
                 }}
                 onClick={() => {
                   console.log(
-                    `Marker with cameraId ${camera_id} was clicked.`, // Use camera_id here
+                    `Marker with cameraId ${camera_id} was clicked.`,
+                    setCamera(parseInt(camera_id)),
                   )
                 }}
               />

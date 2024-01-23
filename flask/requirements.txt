@@ -3,3 +3,4 @@ requests==2.*
 transformers==4.*
 pillow==10.*
 psycopg2-binary
+prisma

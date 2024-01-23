@@ -11,10 +11,14 @@ import tempfile
 import json
 from io import BytesIO
 from PIL import Image
-import psycopg2
+import hashlib
+from queries import *
+import asyncio
+from prisma import Prisma
 
+db = Prisma(auto_register=True)
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -25,16 +29,6 @@ processor = DetrImageProcessor.from_pretrained(
 model = DetrForObjectDetection.from_pretrained(
     "facebook/detr-resnet-101", revision="no_timm"
 )
-
-
-params = {
-    "host": "postgis",
-    "user": "postgres",
-    "password": "cameras",
-    "dbname": "cameras",
-}
-
-conn = psycopg2.connect(**params)
 
 
 @app.route("/")
@@ -62,45 +56,49 @@ def status():
     )
 
 
-from PIL import Image, ImageDraw, ImageFont
-
-
 @app.route("/image/<int:id>", methods=["GET"])
 def image(id):
     # Construct the URL for the image
-    image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
+    timestamp = datetime.datetime.now().isoformat()
+    image_url = f"https://cctv.austinmobility.io/image/{id}.jpg?timestamp={timestamp}"
 
     # Download the image
     response = requests.get(image_url)
 
-    # Check if the request was successful
+    camera = asyncio.run(getOrCreateCameraById(db, id))
+    print("camera", camera)
+
     if response.status_code != 200:
-        # Create a new black image
-        img = Image.new("RGB", (1280, 1920), color="black")
-
-        # Create a draw object
+        asyncio.run(getOrCreateStatusByName(db, id, "404"))
+        img = Image.new("RGB", (1920, 1080), color="black")
         d = ImageDraw.Draw(img)
-
-        # Define the font for the text
         fnt = ImageFont.truetype(
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 150
         )
-
-        # Add the text to the image
         d.text((10, 10), "404", font=fnt, fill=(255, 255, 255))
-
-        # Save the image to a BytesIO object
         img_io = BytesIO()
         img.save(img_io, "JPEG", quality=70)
         img_io.seek(0)
-
-        # Return the image
         return send_file(img_io, mimetype="image/jpeg")
 
     # Create a BytesIO object from the response content
     image = BytesIO(response.content)
 
-    # Return the image as a response
+    # Calculate the SHA256 hash of the image
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(response.content)
+    image_hash = sha256_hash.hexdigest()
+
+    logging.info(f"SHA256 hash of the image: {image_hash}")
+
+    if (
+        image_hash == "58da0d53512030c5748d6ecf8337419586ab95d91e1ca2f9d6347cb8879ea960"
+    ):  # unavailable
+        asyncio.run(getOrCreateStatusByName(db, id, "unavailable"))
+
+    else:
+        asyncio.run(getOrCreateStatusByName(db, id, "ok"))
+
     return send_file(image, mimetype="image/jpeg")
 
 

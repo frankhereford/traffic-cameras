@@ -7,7 +7,22 @@ await import("./src/env.js")
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: false,
-
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "flask",
+        port: "5000",
+        pathname: "**",
+      },
+      {
+        protocol: "https",
+        hostname: "flask",
+        port: "5000",
+        pathname: "**",
+      },
+    ],
+  },
   /**
    * If you are using `appDir` then you must comment the below `i18n` config out.
    *
