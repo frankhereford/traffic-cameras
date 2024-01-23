@@ -35,7 +35,7 @@ export default function CameraLocations({
     if (filteredData) {
       const markerElements = filteredData
         .map((data, index) => {
-          const { location } = data
+          const { location, camera_id } = data // Destructure camera_id from data
           if (location?.coordinates) {
             const position: google.maps.LatLng = new google.maps.LatLng(
               location.coordinates[1]!,
@@ -47,6 +47,11 @@ export default function CameraLocations({
                 position={position}
                 icon={{
                   url: `http://maps.google.com/mapfiles/ms/icons/purple.png`,
+                }}
+                onClick={() => {
+                  console.log(
+                    `Marker with cameraId ${camera_id} was clicked.`, // Use camera_id here
+                  )
                 }}
               />
             )

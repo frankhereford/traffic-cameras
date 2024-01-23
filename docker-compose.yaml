@@ -4,7 +4,7 @@ services:
     image: postgis/postgis
     environment:
       POSTGRES_DB: cameras
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: cameras
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - db_data:/var/lib/postgresql/data
