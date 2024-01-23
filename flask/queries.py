@@ -1,4 +1,3 @@
-import asyncio
 from prisma import Prisma
 import logging
 
