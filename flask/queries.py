@@ -1,10 +1,13 @@
 from prisma import Prisma
 import logging
 
+db = Prisma(auto_register=True)
+
+
 logging.basicConfig(level=logging.INFO)
 
 
-async def getOrCreateCameraById(db, camera_id: int) -> None:
+async def getOrCreateCameraById(camera_id: int) -> None:
     await db.connect()
     camera = await db.camera.find_first(where={"coaId": camera_id})
 
@@ -15,7 +18,7 @@ async def getOrCreateCameraById(db, camera_id: int) -> None:
     return camera
 
 
-async def getOrCreateStatusByName(db, camera_id: int, name: str) -> None:
+async def getOrCreateStatusByName(camera_id: int, name: str) -> None:
     await db.connect()
     status = await db.status.find_first(where={"name": name})
     camera = await db.camera.find_first(where={"coaId": camera_id})

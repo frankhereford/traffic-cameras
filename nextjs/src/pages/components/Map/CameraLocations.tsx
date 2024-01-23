@@ -3,7 +3,6 @@ import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import { Marker } from "@react-google-maps/api"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import { getQueryKey } from "@trpc/react-query"
-import { useQueryClient } from "@tanstack/react-query"
 
 import { api } from "~/utils/api"
 
@@ -16,7 +15,7 @@ interface CameraLocationsProps {
 const statusColors: Record<string, string> = {
   ok: "green.png",
   "404": "red.png",
-  unavailable: "purple.png",
+  unavailable: "yellow.png",
 }
 export default function CameraLocations({
   bounds,
@@ -26,26 +25,26 @@ export default function CameraLocations({
   const [markers, setMarkers] = useState<JSX.Element[] | null>()
   const setCamera = useCameraStore((state) => state.setCamera)
   const [cameraMap, setCameraMap] = useState<Record<number, string>>({})
-  // const queryClient = useQueryClient()
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } = api.camera.getCameras.useQuery({
     cameras: filteredData.map((data) => parseInt(data.camera_id)),
   })
 
-  // const cameraKey = getQueryKey(api.camera.getCameras, undefined, "query")
-  // console.log("cameraKey: ", JSON.stringify(cameraKey, null, 2))
+  const cameraKey = getQueryKey(api.camera.getCameras, undefined, "any")
+  console.log("cameraKey: ", JSON.stringify(cameraKey, null, 2))
 
-  useEffect(() => {
-    console.log("cameraMap: ", JSON.stringify(cameraMap, null, 2))
-  }, [cameraMap])
+  // useEffect(() => {
+  //   console.log("cameraMap: ", JSON.stringify(cameraMap, null, 2))
+  // }, [cameraMap])
 
   useEffect(() => {
     if (data) {
       const queriedCameraMap: Record<number, string> = {}
       data.forEach((camera) => {
-        cameraMap[camera.coaId] = camera.status!.name
+        queriedCameraMap[camera.coaId] = camera.status!.name
       })
-      setCameraMap(cameraMap)
+      setCameraMap(queriedCameraMap)
     }
   }, [data])
 
@@ -95,7 +94,7 @@ export default function CameraLocations({
         .filter((element): element is JSX.Element => element !== null)
       setMarkers(markerElements)
     }
-  }, [filteredData])
+  }, [filteredData, cameraMap, setCamera])
 
   return <>{markers}</>
 }

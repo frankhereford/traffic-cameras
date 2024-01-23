@@ -14,9 +14,7 @@ from PIL import Image
 import hashlib
 from queries import *
 import asyncio
-from prisma import Prisma
 
-db = Prisma(auto_register=True)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -65,11 +63,11 @@ def image(id):
     # Download the image
     response = requests.get(image_url)
 
-    camera = asyncio.run(getOrCreateCameraById(db, id))
+    camera = asyncio.run(getOrCreateCameraById(id))
     print("camera", camera)
 
     if response.status_code != 200:
-        asyncio.run(getOrCreateStatusByName(db, id, "404"))
+        asyncio.run(getOrCreateStatusByName(id, "404"))
         img = Image.new("RGB", (1920, 1080), color="black")
         d = ImageDraw.Draw(img)
         fnt = ImageFont.truetype(
@@ -92,10 +90,10 @@ def image(id):
     if (
         image_hash == "58da0d53512030c5748d6ecf8337419586ab95d91e1ca2f9d6347cb8879ea960"
     ):  # unavailable
-        asyncio.run(getOrCreateStatusByName(db, id, "unavailable"))
+        asyncio.run(getOrCreateStatusByName(id, "unavailable"))
 
     else:
-        asyncio.run(getOrCreateStatusByName(db, id, "ok"))
+        asyncio.run(getOrCreateStatusByName(id, "ok"))
 
     return send_file(image, mimetype="image/jpeg")
 
