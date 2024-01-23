@@ -81,10 +81,8 @@ def image(id):
         img_io.seek(0)
         return send_file(img_io, mimetype="image/jpeg")
 
-    # Create a BytesIO object from the response content
     image = BytesIO(response.content)
 
-    # Calculate the SHA256 hash of the image
     sha256_hash = hashlib.sha256()
     sha256_hash.update(response.content)
     image_hash = sha256_hash.hexdigest()
