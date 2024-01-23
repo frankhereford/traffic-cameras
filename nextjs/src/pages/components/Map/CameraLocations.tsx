@@ -2,12 +2,22 @@ import { useState, useEffect } from "react"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import { Marker } from "@react-google-maps/api"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
+import { getQueryKey } from "@trpc/react-query"
+import { useQueryClient } from "@tanstack/react-query"
+
+import { api } from "~/utils/api"
 
 interface CameraLocationsProps {
   socrataData: SocrataData[]
   bounds: google.maps.LatLngBounds
 }
 
+// Outside of your component
+const statusColors: Record<string, string> = {
+  ok: "green.png",
+  "404": "red.png",
+  unavailable: "purple.png",
+}
 export default function CameraLocations({
   bounds,
   socrataData,
@@ -15,6 +25,29 @@ export default function CameraLocations({
   const [filteredData, setFilteredData] = useState<SocrataData[]>([])
   const [markers, setMarkers] = useState<JSX.Element[] | null>()
   const setCamera = useCameraStore((state) => state.setCamera)
+  const [cameraMap, setCameraMap] = useState<Record<number, string>>({})
+  // const queryClient = useQueryClient()
+
+  const { data, isLoading, isError, error } = api.camera.getCameras.useQuery({
+    cameras: filteredData.map((data) => parseInt(data.camera_id)),
+  })
+
+  // const cameraKey = getQueryKey(api.camera.getCameras, undefined, "query")
+  // console.log("cameraKey: ", JSON.stringify(cameraKey, null, 2))
+
+  useEffect(() => {
+    console.log("cameraMap: ", JSON.stringify(cameraMap, null, 2))
+  }, [cameraMap])
+
+  useEffect(() => {
+    if (data) {
+      const queriedCameraMap: Record<number, string> = {}
+      data.forEach((camera) => {
+        cameraMap[camera.coaId] = camera.status!.name
+      })
+      setCameraMap(cameraMap)
+    }
+  }, [data])
 
   useEffect(() => {
     if (socrataData && bounds) {
@@ -48,13 +81,11 @@ export default function CameraLocations({
                 key={index}
                 position={position}
                 icon={{
-                  url: `http://maps.google.com/mapfiles/ms/icons/purple.png`,
+                  url: `http://maps.google.com/mapfiles/ms/icons/${statusColors[cameraMap[parseInt(camera_id)]!] ?? "purple.png"}`,
                 }}
                 onClick={() => {
-                  console.log(
-                    `Marker with cameraId ${camera_id} was clicked.`,
-                    setCamera(parseInt(camera_id)),
-                  )
+                  console.log(`Marker with cameraId ${camera_id} was clicked.`)
+                  setCamera(parseInt(camera_id))
                 }}
               />
             )
