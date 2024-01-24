@@ -105,6 +105,17 @@ def image(id, db, redis):
                     "update": {"statusId": status.id},
                 },
             )
+            db.image.upsert(
+                where={"hash": image_hash, "cameraId": camera.id},
+                data={
+                    "create": {
+                        "hash": image_hash,
+                        "cameraId": camera.id,
+                        "statusId": status.id,
+                    },
+                    "update": {"statusId": status.id},
+                },
+            )
     else:
         with db.tx() as transaction:
             status = db.status.upsert(
@@ -118,7 +129,7 @@ def image(id, db, redis):
                     "update": {"statusId": status.id},
                 },
             )
-            camera = db.image.upsert(
+            db.image.upsert(
                 where={"hash": image_hash, "cameraId": camera.id},
                 data={
                     "create": {
