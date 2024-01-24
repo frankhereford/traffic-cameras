@@ -25,9 +25,10 @@ services:
   flask:
     restart: always
     build:
-      context: ./flask
+      dockerfile: Dockerfile.flask
+      context: ./python
     volumes:
-      - ./flask:/app
+      - ./python:/app
     ports:
       - 5000:5000
     depends_on:
@@ -41,7 +42,7 @@ services:
       - 80:80
     depends_on:
       - nextjs
-      - flask
+      - python
 
   redis:
     image: redis:latest
