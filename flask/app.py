@@ -12,9 +12,13 @@ import json
 from io import BytesIO
 from PIL import Image
 import hashlib
+import redis
+import pickle
+
 
 # from queries import *
 
+redis = redis.Redis(host="redis", port=6379, db=0)
 from prisma import Prisma
 
 db = Prisma()
@@ -63,10 +67,22 @@ def image(id):
     # image_url = f"https://cctv.austinmobility.io/image/{id}.jpg?{timestamp}"
     image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
 
-    # Download the image
-    response = requests.get(image_url)
+    response = redis.get(image_url)
 
-    if response.status_code != 200:
+    # Try fetching the image content and status code from the cache
+    cached_response = redis.get(image_url)
+    if cached_response:
+        logging.info("Image found in cache")
+        status_code, image_content = pickle.loads(cached_response)
+    else:
+        logging.info(f"Image not found in cache, downloading from {image_url}")
+        response = requests.get(image_url)
+        status_code, image_content = response.status_code, response.content
+
+        # Cache the status code and image content
+        redis.setex(image_url, 300, pickle.dumps((status_code, image_content)))
+
+    if status_code != 200:
         with db.tx() as transaction:
             status = db.status.upsert(
                 where={"name": "404"},
@@ -90,10 +106,10 @@ def image(id):
         img_io.seek(0)
         return send_file(img_io, mimetype="image/jpeg")
 
-    image = BytesIO(response.content)
+    image = BytesIO(image_content)
 
     sha256_hash = hashlib.sha256()
-    sha256_hash.update(response.content)
+    sha256_hash.update(image_content)
     image_hash = sha256_hash.hexdigest()
 
     logging.info(f"SHA256 hash of the image: {image_hash}")
