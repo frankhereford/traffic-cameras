@@ -12,7 +12,7 @@ export default function Camera({ paneWidth }: CameraProps) {
   const [imageKey, setImageKey] = useState(Date.now())
   const queryClient = useQueryClient()
 
-  // refresh the camera image every 5 minutes
+  // refresh the camera image on an interval
   useEffect(() => {
     const timer = setTimeout(
       () => {
@@ -25,7 +25,6 @@ export default function Camera({ paneWidth }: CameraProps) {
     return () => clearTimeout(timer) // Clear timeout if the component is unmounted
   }, [imageKey])
 
-  // const url = `http://flask:5000/image/${camera}`
   const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
 
   const handleImageLoad = () => {
