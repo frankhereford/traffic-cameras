@@ -1,20 +1,15 @@
 from flask import Flask, request, jsonify, send_file
 import requests
-import datetime
 import logging
 from transformers import DetrImageProcessor, DetrForObjectDetection
-import torch
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import requests
-import base64
-import tempfile
-import json
 from io import BytesIO
 from PIL import Image
 import hashlib
-import redis
 import pickle
 from xml.dom.minidom import parseString
+from io import BytesIO
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,10 +26,8 @@ def pretty_print_xml(xml_string):
 
 
 def image(id, db, redis):
-    # Construct the URL for the image
-    # timestamp = datetime.datetime.now().isoformat()
-    # image_url = f"https://cctv.austinmobility.io/image/{id}.jpg?{timestamp}"
     image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
+    image_key = f"requests:{image_url[8:]}"
 
     response = redis.get(image_url)
 
@@ -49,7 +42,7 @@ def image(id, db, redis):
         status_code, image_content = response.status_code, response.content
 
         # Cache the status code and image content
-        redis.setex(image_url, 300, pickle.dumps((status_code, image_content)))
+        redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
 
     if status_code != 200:
         with db.tx() as transaction:
@@ -105,17 +98,7 @@ def image(id, db, redis):
                     "update": {"statusId": status.id},
                 },
             )
-            db.image.upsert(
-                where={"hash": image_hash, "cameraId": camera.id},
-                data={
-                    "create": {
-                        "hash": image_hash,
-                        "cameraId": camera.id,
-                        "statusId": status.id,
-                    },
-                    "update": {"statusId": status.id},
-                },
-            )
+
     else:
         with db.tx() as transaction:
             status = db.status.upsert(
@@ -141,4 +124,41 @@ def image(id, db, redis):
                 },
             )
 
+        image.seek(0)
+        # Check if the key exists in Redis
+        if not redis.exists(f"images:{image_hash}"):
+            # Serialize the BytesIO object
+            serialized_image = pickle.dumps(image)
+            # Store it in Redis with an expiration time of 24 hours (86400 seconds)
+            redis.setex(f"images:{image_hash}", 86400, serialized_image)
+
+        image.seek(0)
+        pillow_image = Image.open(image)
+        d = ImageDraw.Draw(pillow_image)
+        font_path = "/usr/share/fonts/truetype/MonaspaceNeon-Light.otf"
+        font = ImageFont.truetype(font_path, 24)
+
+        # Draw the black stroke
+        for i in range(-3, 4):
+            for j in range(-3, 4):
+                d.text(
+                    (1790 + i, 10 + j),
+                    image_hash[:8],
+                    font=font,
+                    fill=(0, 0, 0),  # Black color
+                )
+
+        # Draw the white text
+        d.text(
+            (1790, 10),
+            image_hash[:8],
+            font=font,
+            fill=(255, 255, 255),  # White color
+        )
+
+        img_io = BytesIO()
+        pillow_image.save(img_io, "JPEG", quality=70)
+        image = img_io
+
+    image.seek(0)  # Rewind to the start of the stream
     return send_file(image, mimetype="image/jpeg")
