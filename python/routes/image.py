@@ -125,11 +125,8 @@ def image(id, db, redis):
             )
 
         image.seek(0)
-        # Check if the key exists in Redis
         if not redis.exists(f"images:{image_hash}"):
-            # Serialize the BytesIO object
             serialized_image = pickle.dumps(image)
-            # Store it in Redis with an expiration time of 24 hours (86400 seconds)
             redis.setex(f"images:{image_hash}", 86400, serialized_image)
 
         image.seek(0)
