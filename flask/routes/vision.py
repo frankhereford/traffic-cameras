@@ -7,6 +7,7 @@ import base64
 import tempfile
 from io import BytesIO
 from PIL import Image
+import time
 
 # import redis
 # import pickle
@@ -22,7 +23,19 @@ model = DetrForObjectDetection.from_pretrained(
 )
 
 
-def vision(db, redis):
+def vision_request_processor(db, redis):
+    while True:
+        job = db.image.find_first(
+            where={
+                "detectionsProcessed": {"is": False},
+            },
+        )
+        print(job)
+        time.sleep(10)
+
+
+# this is going to changed to just return what's in the DB
+def vision_flask_response(db, redis):
     logging.info("")
     data = request.get_json()
     base64_image = data.get("image")
