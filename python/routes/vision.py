@@ -37,7 +37,7 @@ def throttle(func):
     return wrapper
 
 
-def vision_request_processor(db, redis):
+def vision(db, redis):
     while True:
         process_one_image(db, redis)
 
@@ -115,8 +115,3 @@ def process_one_image(db, redis):
             "detectionsProcessed": True,
         },
     )
-
-
-# this is going to changed to just return what's in the DB
-def vision_flask_response(db, redis):
-    logging.info("")
