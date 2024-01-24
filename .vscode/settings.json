@@ -48,6 +48,7 @@
     "setex",
     "socrata",
     "tanstack",
+    "textsize",
     "toolpanel",
     "TRPC",
     "utxs",
