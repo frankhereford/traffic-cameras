@@ -14,7 +14,7 @@ datasource db {
 
 model Camera {
   id        String   @id @default(cuid())
-  coaId     Int
+  coaId     Int      @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   statusId  String?
@@ -25,7 +25,7 @@ model Camera {
 
 model Status {
   id      String   @id @default(cuid())
-  name    String
+  name    String   @unique
   cameras Camera[]
 
   @@map("statuses")

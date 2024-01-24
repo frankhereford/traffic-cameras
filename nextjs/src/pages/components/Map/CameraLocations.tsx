@@ -41,6 +41,7 @@ export default function CameraLocations({
         console.log(camera)
         queriedCameraMap[camera.coaId] = camera.status!.name
       })
+      console.log("queriedCameraMap: ", queriedCameraMap)
       setCameraMap(queriedCameraMap)
     }
   }, [data])

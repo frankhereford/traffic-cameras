@@ -25,7 +25,8 @@ export default function Camera({ paneWidth }: CameraProps) {
     return () => clearTimeout(timer) // Clear timeout if the component is unmounted
   }, [imageKey])
 
-  const url = `http://flask:5000/image/${camera}`
+  // const url = `http://flask:5000/image/${camera}`
+  const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
 
   const handleImageLoad = () => {
     console.log("Image has finished loading")
@@ -39,7 +40,8 @@ export default function Camera({ paneWidth }: CameraProps) {
       {/* <div>{paneWidth}</div> */}
       {camera && (
         <Image
-          src={`${url}?${new Date().getTime()}`}
+          src={`${url}`}
+          // src={`${url}?${new Date().getTime()}`}
           key={imageKey}
           priority
           alt="Camera Image"

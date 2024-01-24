@@ -12,9 +12,13 @@ import json
 from io import BytesIO
 from PIL import Image
 import hashlib
-from queries import *
-import asyncio
 
+# from queries import *
+
+from prisma import Prisma
+
+db = Prisma()
+db.connect()
 
 logging.basicConfig(level=logging.INFO)
 
@@ -58,16 +62,28 @@ def status():
 def image(id):
     # Construct the URL for the image
     timestamp = datetime.datetime.now().isoformat()
-    image_url = f"https://cctv.austinmobility.io/image/{id}.jpg?timestamp={timestamp}"
+    # image_url = f"https://cctv.austinmobility.io/image/{id}.jpg?{timestamp}"
+    image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
 
     # Download the image
     response = requests.get(image_url)
 
-    camera = asyncio.run(getOrCreateCameraById(id))
-    print("camera", camera)
+    # camera = getOrCreateCameraById(id)
+    # logging.info(f"camera: {camera}")
 
     if response.status_code != 200:
-        asyncio.run(getOrCreateStatusByName(id, "404"))
+        with db.tx() as transaction:
+            status = db.status.upsert(
+                where={"name": "404"},
+                data={"create": {"name": "404"}, "update": {}},
+            )
+            camera = db.camera.upsert(
+                where={"coaId": id},
+                data={
+                    "create": {"coaId": id, "statusId": status.id},
+                    "update": {"statusId": status.id},
+                },
+            )
         img = Image.new("RGB", (1920, 1080), color="black")
         d = ImageDraw.Draw(img)
         fnt = ImageFont.truetype(
@@ -90,10 +106,31 @@ def image(id):
     if (
         image_hash == "58da0d53512030c5748d6ecf8337419586ab95d91e1ca2f9d6347cb8879ea960"
     ):  # unavailable
-        asyncio.run(getOrCreateStatusByName(id, "unavailable"))
-
+        with db.tx() as transaction:
+            status = db.status.upsert(
+                where={"name": "unavailable"},
+                data={"create": {"name": "unavailable"}, "update": {}},
+            )
+            camera = db.camera.upsert(
+                where={"coaId": id},
+                data={
+                    "create": {"coaId": id, "statusId": status.id},
+                    "update": {"statusId": status.id},
+                },
+            )
     else:
-        asyncio.run(getOrCreateStatusByName(id, "ok"))
+        with db.tx() as transaction:
+            status = db.status.upsert(
+                where={"name": "ok"},
+                data={"create": {"name": "ok"}, "update": {}},
+            )
+            camera = db.camera.upsert(
+                where={"coaId": id},
+                data={
+                    "create": {"coaId": id, "statusId": status.id},
+                    "update": {"statusId": status.id},
+                },
+            )
 
     return send_file(image, mimetype="image/jpeg")
 
