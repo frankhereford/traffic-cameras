@@ -35,8 +35,6 @@ model = DetrForObjectDetection.from_pretrained(
 
 @app.route("/")
 def status():
-    # Weather description to emoji mapping
-
     # Get the current time
     current_time = datetime.datetime.now().isoformat()
 
@@ -61,15 +59,12 @@ def status():
 @app.route("/image/<int:id>", methods=["GET"])
 def image(id):
     # Construct the URL for the image
-    timestamp = datetime.datetime.now().isoformat()
+    # timestamp = datetime.datetime.now().isoformat()
     # image_url = f"https://cctv.austinmobility.io/image/{id}.jpg?{timestamp}"
     image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
 
     # Download the image
     response = requests.get(image_url)
-
-    # camera = getOrCreateCameraById(id)
-    # logging.info(f"camera: {camera}")
 
     if response.status_code != 200:
         with db.tx() as transaction:
