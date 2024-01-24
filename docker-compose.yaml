@@ -23,9 +23,7 @@ services:
       - postgis
 
   flask:
-    restart: always
     build:
-      dockerfile: Dockerfile.flask
       context: ./python
     volumes:
       - ./python:/app
@@ -33,6 +31,18 @@ services:
       - 5000:5000
     depends_on:
       - postgis
+    command: ["python", "app.py", "--mode=flask"]
+
+  detector:
+    build:
+      context: ./python
+    volumes:
+      - ./python:/app
+    ports:
+      - 5000:5000
+    depends_on:
+      - postgis
+    command: ["python", "app.py", "--mode=detector"]
 
   haproxy:
     image: haproxy:latest
@@ -42,7 +52,7 @@ services:
       - 80:80
     depends_on:
       - nextjs
-      - python
+      - flask
 
   redis:
     image: redis:latest
