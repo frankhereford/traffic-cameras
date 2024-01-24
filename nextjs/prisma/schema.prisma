@@ -14,20 +14,22 @@ datasource db {
 model Camera {
     id        String   @id @default(cuid())
     coaId     Int      @unique
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
     statusId  String?
     status    Status?  @relation(fields: [statusId], references: [id])
     Image     Image[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@map("cameras")
 }
 
 model Status {
-    id      String   @id @default(cuid())
-    name    String   @unique
-    cameras Camera[]
-    images  Image[]
+    id        String   @id @default(cuid())
+    name      String   @unique
+    cameras   Camera[]
+    images    Image[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@map("statuses")
 }
@@ -40,15 +42,19 @@ model Image {
     statusId   String?
     status     Status?     @relation(fields: [statusId], references: [id])
     detections Detection[]
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
 
     @@map("images")
 }
 
 model Detection {
-    id      String @id @default(cuid())
-    item    String
-    imageId String
-    image   Image  @relation(fields: [imageId], references: [id])
+    id        String   @id @default(cuid())
+    item      String
+    imageId   String
+    image     Image    @relation(fields: [imageId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@map("detections")
 }
