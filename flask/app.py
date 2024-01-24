@@ -212,7 +212,7 @@ def vision():
 
 
 def pretty_print_xml(xml_string):
-    logging.info(xml_string)
+    # logging.info(xml_string)
     try:
         dom = parseString(xml_string)
         pretty_xml = dom.toprettyxml(indent="    ")  # Use 4 spaces for indentation
