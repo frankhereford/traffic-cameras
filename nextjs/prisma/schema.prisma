@@ -51,12 +51,17 @@ model Image {
 }
 
 model Detection {
-    id        String   @id @default(cuid())
-    item      String
-    imageId   String
-    image     Image    @relation(fields: [imageId], references: [id])
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id         String   @id @default(cuid())
+    label      String
+    confidence Float
+    xMin       Int
+    xMax       Int
+    yMin       Int
+    yMax       Int
+    imageId    String
+    image      Image    @relation(fields: [imageId], references: [id])
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
 
     @@map("detections")
 }
