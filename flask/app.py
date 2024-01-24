@@ -14,6 +14,7 @@ from PIL import Image
 import hashlib
 import redis
 import pickle
+from xml.dom.minidom import parseString
 
 
 # from queries import *
@@ -97,10 +98,17 @@ def image(id):
             )
         img = Image.new("RGB", (1920, 1080), color="black")
         d = ImageDraw.Draw(img)
-        fnt = ImageFont.truetype(
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 150
+        font_path = "/usr/share/fonts/truetype/MonaspaceNeon-Light.otf"
+        font = ImageFont.truetype(font_path, 150)
+        small_font = ImageFont.truetype(font_path, 24)
+        d.text((10, 10), str(status_code), font=font, fill=(255, 255, 255))
+
+        d.text(
+            (10, 200),
+            pretty_print_xml(str(image_content.decode())),
+            font=small_font,
+            fill=(255, 255, 255),
         )
-        d.text((10, 10), "404", font=fnt, fill=(255, 255, 255))
         img_io = BytesIO()
         img.save(img_io, "JPEG", quality=70)
         img_io.seek(0)
@@ -201,6 +209,17 @@ def vision():
             )
 
         return jsonify({"detected_objects": detected_objects})
+
+
+def pretty_print_xml(xml_string):
+    logging.info(xml_string)
+    try:
+        dom = parseString(xml_string)
+        pretty_xml = dom.toprettyxml(indent="    ")  # Use 4 spaces for indentation
+        return pretty_xml
+    except Exception as e:
+        logging.error(f"Failed to parse XML: {e}")
+        return xml_string
 
 
 if __name__ == "__main__":

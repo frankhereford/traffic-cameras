@@ -1,12 +1,16 @@
 FROM cnstark/pytorch:2.0.1-py3.10.11-ubuntu22.04
 
 RUN apt-get update && \
-    apt-get install -y curl
+    apt-get install -y curl fontconfig wget
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
 
 RUN npm install prisma --save-dev
+
+WORKDIR /usr/share/fonts/truetype/
+
+RUN wget https://github.com/githubnext/monaspace/raw/main/fonts/otf/MonaspaceNeon-Light.otf
 
 WORKDIR /app
 
