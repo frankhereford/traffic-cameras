@@ -43,5 +43,10 @@ services:
       - nextjs
       - flask
 
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+
 volumes:
   db_data:

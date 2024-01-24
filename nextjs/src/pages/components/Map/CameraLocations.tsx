@@ -11,12 +11,12 @@ interface CameraLocationsProps {
   bounds: google.maps.LatLngBounds
 }
 
-// Outside of your component
 const statusColors: Record<string, string> = {
   ok: "green.png",
   "404": "red.png",
   unavailable: "yellow.png",
 }
+
 export default function CameraLocations({
   bounds,
   socrataData,
@@ -31,17 +31,12 @@ export default function CameraLocations({
     cameras: filteredData.map((data) => parseInt(data.camera_id)),
   })
 
-  // const cameraKey = getQueryKey(api.camera.getCameras, undefined, "any")
-  // console.log("cameraKey: ", JSON.stringify(cameraKey, null, 2))
-
   useEffect(() => {
     if (data) {
       const queriedCameraMap: Record<number, string> = {}
       data.forEach((camera) => {
-        console.log(camera)
         queriedCameraMap[camera.coaId] = camera.status!.name
       })
-      console.log("queriedCameraMap: ", queriedCameraMap)
       setCameraMap(queriedCameraMap)
     }
   }, [data])
