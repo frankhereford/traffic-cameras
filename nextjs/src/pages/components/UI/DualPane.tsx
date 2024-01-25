@@ -7,6 +7,7 @@ import Camera from "~/pages/components/Camera/Camera"
 import Map from "~/pages/components/Map/Map"
 
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
+import Toolbar from "./Toolbar/Toolbar"
 
 import { debounce } from "lodash"
 
@@ -54,7 +55,7 @@ export default function DualPane({ socrataData }: DualPaneProps) {
   return (
     <>
       <div style={{ height: "100vh", width: "100vw" }}>
-        {/* <ToolPanel /> */}
+        <Toolbar />
         <Allotment
           ref={allotmentRef}
           onChange={debouncedOnDrag}

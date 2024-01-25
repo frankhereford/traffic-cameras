@@ -34,7 +34,7 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
   const scaledYMin = yMin * scaleFactor
   const scaledYMax = yMax * scaleFactor
 
-  const highlightedLabels = ["car", "truck"] // Add more labels as needed
+  const highlightedLabels = ["car", "truck", "bus"]
 
   const boxStyle: React.CSSProperties = {
     position: "absolute",

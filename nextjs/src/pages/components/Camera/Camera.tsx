@@ -37,11 +37,20 @@ export default function Camera({ paneWidth }: CameraProps) {
       .catch((error) => {
         console.log("error: ", error)
       })
+    queryClient
+      .invalidateQueries([["camera", "getAllCameras"]])
+      .catch((error) => {
+        console.log("error: ", error)
+      })
+    queryClient
+      .invalidateQueries([["camera", "getWorkingCameras"]])
+      .catch((error) => {
+        console.log("error: ", error)
+      })
   }
 
   return (
     <>
-      {/* <div>{paneWidth}</div> */}
       <div>
         {camera && (
           <>

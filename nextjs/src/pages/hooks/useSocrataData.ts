@@ -66,7 +66,12 @@ const useGetSocrataData = (): UseQueryResult<SocrataData[], Error> => {
       [],
     )
 
-    return uniqueData
+    // Filter out records that have a 'camera_status' of anything except 'TURNED_ON'
+    const onCameras = uniqueData.filter(
+      (item) => item.camera_status === "TURNED_ON",
+    )
+
+    return onCameras
   }
 
   return useQuery<SocrataData[], Error>({

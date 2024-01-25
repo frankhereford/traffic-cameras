@@ -26,24 +26,18 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
   })
   const queryClient = useQueryClient()
 
-  // const [isLoadingDetections, setIsLoadingDetections] = useState(true)
-
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
 
-    //if (data?.detections.length == 0) {
     if (data?.detectionsProcessed == false) {
       intervalId = setInterval(() => {
         // it's ugly to poll but it works
-        // console.log("polling for detections", isLoadingDetections)
         queryClient
           .invalidateQueries([["image", "getDetections"]])
           .catch((error) => {
             console.log("error: ", error)
           })
       }, 1000) // Run every 1000 milliseconds (1 second)
-    } else {
-      // setIsLoadingDetections(false)
     }
 
     // Clear interval on component unmount
@@ -52,12 +46,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
         clearInterval(intervalId)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
-
-  // useEffect(() => {
-  //   setIsLoadingDetections(true)
-  // }, [isLoading])
+  }, [data, queryClient])
 
   if (isLoading || !data) {
     return <></>
@@ -67,10 +56,20 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
     return <div>Error: {String(error)}</div>
   }
 
+  const originalImageWidth = 1920
+  const scaleFactor =
+    paneWidth < originalImageWidth ? paneWidth / originalImageWidth : 1
+
   return (
     <>
       {data?.detectionsProcessed == false && (
-        <div style={{ position: "absolute", right: 0, bottom: 0 }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 1920 * scaleFactor - 40, // 👈 the width of the spinner
+            bottom: 0,
+          }}
+        >
           <Stack sx={{ color: "grey.500" }} spacing={2} direction="row">
             <CircularProgress color="success" />
           </Stack>
