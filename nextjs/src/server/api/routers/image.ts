@@ -10,17 +10,24 @@ export const imageRouter = createTRPCRouter({
   getDetections: protectedProcedure
     .input(z.object({ camera: z.number() }))
     .query(async ({ ctx, input }) => {
-      return true
-      // const cameras = await ctx.db.camera.findMany({
-      //   where: {
-      //     coaId: {
-      //       in: input.cameras,
-      //     },
-      //   },
-      //   include: {
-      //     status: true,
-      //   },
-      // })
-      // return cameras
+      const camera = await ctx.db.camera.findUnique({
+        where: {
+          coaId: input.camera,
+        },
+      })
+      console.log("\ncamera", camera)
+      const image = await ctx.db.image.findFirst({
+        where: {
+          cameraId: camera?.id,
+        },
+        include: {
+          detections: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      })
+      console.log("image", image)
+      return image
     }),
 })

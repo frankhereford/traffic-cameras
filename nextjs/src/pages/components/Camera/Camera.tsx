@@ -2,6 +2,7 @@ import Image from "next/image" // Import Image from Next.js
 import { useEffect, useState } from "react"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
+import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
 
 interface CameraProps {
   paneWidth: number
@@ -28,27 +29,38 @@ export default function Camera({ paneWidth }: CameraProps) {
   const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
 
   const handleImageLoad = () => {
-    console.log("Image has finished loading")
     queryClient.invalidateQueries([["camera", "getCameras"]]).catch((error) => {
       console.log("error: ", error)
     })
+    queryClient
+      .invalidateQueries([["image", "getDetections"]])
+      .catch((error) => {
+        console.log("error: ", error)
+      })
   }
 
   return (
     <>
       {/* <div>{paneWidth}</div> */}
-      {camera && (
-        <Image
-          src={`${url}`}
-          // src={`${url}?${new Date().getTime()}`}
-          key={imageKey}
-          priority
-          alt="Camera Image"
-          width={1920}
-          height={1080}
-          onLoad={handleImageLoad}
-        />
-      )}
+      <div>
+        {camera && (
+          <>
+            <div className="relative">
+              <Image
+                src={`${url}`}
+                // src={`${url}?${new Date().getTime()}`}
+                key={imageKey}
+                priority
+                alt="Camera Image"
+                width={1920}
+                height={1080}
+                onLoad={handleImageLoad}
+              />
+              <BoundingBoxes camera={camera} paneWidth={paneWidth} />
+            </div>
+          </>
+        )}
+      </div>
     </>
   )
 }
