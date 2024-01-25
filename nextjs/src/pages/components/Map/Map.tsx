@@ -79,6 +79,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
           // map.setZoom(15)
         }
       }
+      setBounds(map?.getBounds() ?? null)
     }
   }, [camera, map, data, zoomTight])
 

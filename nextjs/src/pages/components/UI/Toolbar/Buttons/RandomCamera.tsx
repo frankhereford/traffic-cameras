@@ -10,7 +10,6 @@ export default function RandomCamera() {
     api.camera.getWorkingCameras.useQuery({})
 
   const dataString = data ? JSON.stringify(data, null, 2) : ""
-  console.log(dataString)
 
   const handleClick = () => {
     if (data) {
