@@ -7,7 +7,7 @@ import Camera from "~/pages/components/Camera/Camera"
 import Map from "~/pages/components/Map/Map"
 
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
-import Toolbar from "./Toolbar"
+import Toolbar from "./Toolbar/Toolbar"
 
 import { debounce } from "lodash"
 
