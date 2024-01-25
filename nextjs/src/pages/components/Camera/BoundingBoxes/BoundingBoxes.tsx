@@ -26,7 +26,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
   })
   const queryClient = useQueryClient()
 
-  const [isLoadingDetections, setIsLoadingDetections] = useState(true)
+  // const [isLoadingDetections, setIsLoadingDetections] = useState(true)
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
@@ -35,7 +35,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
     if (data?.detectionsProcessed == false) {
       intervalId = setInterval(() => {
         // it's ugly to poll but it works
-        console.log("polling for detections", isLoadingDetections)
+        // console.log("polling for detections", isLoadingDetections)
         queryClient
           .invalidateQueries([["image", "getDetections"]])
           .catch((error) => {
@@ -43,7 +43,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
           })
       }, 1000) // Run every 1000 milliseconds (1 second)
     } else {
-      setIsLoadingDetections(false)
+      // setIsLoadingDetections(false)
     }
 
     // Clear interval on component unmount
@@ -55,9 +55,9 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
-  useEffect(() => {
-    setIsLoadingDetections(true)
-  }, [isLoading])
+  // useEffect(() => {
+  //   setIsLoadingDetections(true)
+  // }, [isLoading])
 
   if (isLoading || !data) {
     return <></>
@@ -69,7 +69,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
 
   return (
     <>
-      {isLoadingDetections && (
+      {data?.detectionsProcessed == false && (
         <div style={{ position: "absolute", right: 0, bottom: 0 }}>
           <Stack sx={{ color: "grey.500" }} spacing={2} direction="row">
             <CircularProgress color="success" />

@@ -19,8 +19,8 @@ export default function Camera({ paneWidth }: CameraProps) {
       () => {
         setImageKey(Date.now()) // Change key to force re-render
       },
-      5 * 60 * 1000, // 5 minutes
-      // 30 * 1000, // 30 seconds
+      // 5 * 60 * 1000, // 5 minutes
+      30 * 1000, // 30 seconds
     )
 
     return () => clearTimeout(timer) // Clear timeout if the component is unmounted
@@ -48,7 +48,6 @@ export default function Camera({ paneWidth }: CameraProps) {
             <div className="relative">
               <Image
                 src={`${url}`}
-                // src={`${url}?${new Date().getTime()}`}
                 key={imageKey}
                 priority
                 alt="Camera Image"
