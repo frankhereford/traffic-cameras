@@ -4,6 +4,8 @@ import { GoogleMap, useJsApiLoader } from "@react-google-maps/api"
 
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import CameraLocations from "./CameraLocations"
+import { useCameraStore } from "~/pages/hooks/useCameraStore"
+import useGetSocrataData from "~/pages/hooks/useSocrataData"
 
 interface MapProps {
   paneWidth: number
@@ -25,6 +27,10 @@ function Map({ socrataData, paneWidth }: MapProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [center, setCenter] = useState<google.maps.LatLng | null>(null)
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
+  const camera = useCameraStore((state) => state.camera)
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data, isLoading, isError, error } = useGetSocrataData()
 
   const onUnmount = useCallback(function callback() {
     setMap(null)
@@ -44,6 +50,32 @@ function Map({ socrataData, paneWidth }: MapProps) {
       setCenter(new google.maps.LatLng(latitude, longitude))
     }
   }, [isLoaded])
+
+  useEffect(() => {
+    console.log("data:", data)
+
+    if (camera && map && data) {
+      const cameraData = data.find(
+        (item) => parseInt(item.camera_id, 10) === camera,
+      )
+
+      if (cameraData ?? cameraData!.location.coordinates) {
+        const latitude = cameraData!.location.coordinates[1]
+        const longitude = cameraData!.location.coordinates[0]
+
+        const location = new google.maps.LatLng(latitude!, longitude)
+        map.panTo(location)
+        map.setZoom(21)
+      }
+    }
+
+    // if (camera && map) {
+    //   const { latitude, longitude } = camera
+    //   const location = new google.maps.LatLng(latitude, longitude)
+    //   map.panTo(location)
+    //   map.setZoom(19)
+    // }
+  }, [camera, map, data])
 
   return isLoaded ? (
     <GoogleMap
