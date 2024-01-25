@@ -22,7 +22,7 @@ export default function RandomCamera() {
 
   return (
     <>
-      {data && (
+      {data && data.length > 0 && (
         <Button
           className="mb-4 p-0"
           variant="contained"
@@ -32,7 +32,6 @@ export default function RandomCamera() {
           🎯
         </Button>
       )}
-      {/* <pre>{dataString}</pre> */}
     </>
   )
 }
