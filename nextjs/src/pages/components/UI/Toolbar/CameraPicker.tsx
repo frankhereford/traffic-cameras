@@ -19,6 +19,7 @@ export default function CameraPicker() {
   useEffect(() => {
     if (data) {
       // todo order these by radiating distance from map center
+      // todo filter these by the ones we know won't work
       const transformedData = data.map((item: SocrataData) => ({
         label: item.location_name.trim(),
         cameraId: item.camera_id,
