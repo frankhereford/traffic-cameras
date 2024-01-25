@@ -80,13 +80,6 @@ function Map({ socrataData, paneWidth }: MapProps) {
         }
       }
     }
-
-    // if (camera && map) {
-    //   const { latitude, longitude } = camera
-    //   const location = new google.maps.LatLng(latitude, longitude)
-    //   map.panTo(location)
-    //   map.setZoom(19)
-    // }
   }, [camera, map, data, zoomTight])
 
   return isLoaded ? (
