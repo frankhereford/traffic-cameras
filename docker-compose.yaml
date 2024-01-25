@@ -3,7 +3,7 @@ services:
   postgis:
     image: postgis/postgis
     ports:
-      - 5432:5432
+      - 5430:5432
     environment:
       POSTGRES_DB: cameras
       POSTGRES_PASSWORD: cameras
