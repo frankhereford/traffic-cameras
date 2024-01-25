@@ -5,6 +5,7 @@ import TightZoom from "~/pages/components/UI/Toolbar/Buttons/TightZoom"
 import RandomCamera from "~/pages/components/UI/Toolbar/Buttons/RandomCamera"
 import RandomNewCamera from "./Buttons/RandomNewCamera"
 import Logout from "./Buttons/Logout"
+import Previous from "./Buttons/Previous"
 
 export default function ToolPanel() {
   return (
@@ -16,6 +17,7 @@ export default function ToolPanel() {
             <TightZoom />
             <RandomCamera />
             <RandomNewCamera />
+            <Previous />
             <Logout />
           </div>
           <CameraPicker />
