@@ -3,9 +3,9 @@ import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
+import Badge from "@mui/material/Badge"
 
 import { api } from "~/utils/api"
-import { set } from "lodash"
 
 export default function RandomNewCamera() {
   const setCamera = useCameraStore((state) => state.setCamera)
@@ -58,14 +58,16 @@ export default function RandomNewCamera() {
   return (
     <>
       {cameraData && socrataData && newCameraCount && (
-        <Button
-          className="mb-4 p-0"
-          variant="contained"
-          style={{ fontSize: "35px" }}
-          onClick={handleClick}
-        >
-          🛰️
-        </Button>
+        <Badge badgeContent={newCameraCount} color="primary" max={500}>
+          <Button
+            className="mb-4 p-0"
+            variant="contained"
+            style={{ fontSize: "35px" }}
+            onClick={handleClick}
+          >
+            🛰️
+          </Button>
+        </Badge>
       )}
       {/* <pre>{dataString}</pre> */}
     </>

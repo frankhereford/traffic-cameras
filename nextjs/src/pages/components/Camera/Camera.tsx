@@ -37,6 +37,11 @@ export default function Camera({ paneWidth }: CameraProps) {
       .catch((error) => {
         console.log("error: ", error)
       })
+    queryClient
+      .invalidateQueries([["camera", "getAllCameras"]])
+      .catch((error) => {
+        console.log("error: ", error)
+      })
   }
 
   return (
