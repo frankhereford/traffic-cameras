@@ -1,4 +1,3 @@
-// import Auth from "./auth"
 import CameraPicker from "~/pages/components/UI/Toolbar/CameraPicker"
 // import PickedPoints from "./pickedpoints"
 import Draggable from "react-draggable"
@@ -13,12 +12,13 @@ export default function ToolPanel() {
       <Draggable>
         <div className="top-25 right-25 absolute z-50 w-[480px] rounded-lg bg-stone-50 pb-6 pl-[20px] pt-6">
           {/* <PickedPoints /> */}
-          <TightZoom />
-          <RandomCamera />
-          <RandomNewCamera />
-          <Logout />
+          <div className="flex justify-center space-x-4">
+            <TightZoom />
+            <RandomCamera />
+            <RandomNewCamera />
+            <Logout />
+          </div>
           <CameraPicker />
-          {/* <Auth /> */}
         </div>
       </Draggable>
     </>
