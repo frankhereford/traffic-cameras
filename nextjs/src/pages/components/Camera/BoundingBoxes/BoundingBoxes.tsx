@@ -56,10 +56,22 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
     return <div>Error: {String(error)}</div>
   }
 
+  const originalImageWidth = 1920
+  const scaleFactor =
+    paneWidth < originalImageWidth ? paneWidth / originalImageWidth : 1
+
+  console.log("scaleFactor: ", scaleFactor)
+
   return (
     <>
       {data?.detectionsProcessed == false && (
-        <div style={{ position: "absolute", right: 0, bottom: 0 }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 1920 * scaleFactor - 40, // 👈 the width of the spinner
+            bottom: 0,
+          }}
+        >
           <Stack sx={{ color: "grey.500" }} spacing={2} direction="row">
             <CircularProgress color="success" />
           </Stack>
