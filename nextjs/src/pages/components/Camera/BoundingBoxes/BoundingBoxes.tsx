@@ -1,7 +1,9 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { api } from "~/utils/api"
 import BoundingBox from "~/pages/components/Camera/BoundingBoxes/BoundingBox"
 import { useQueryClient } from "@tanstack/react-query"
+import Stack from "@mui/material/Stack"
+import CircularProgress from "@mui/material/CircularProgress"
 
 interface BoundingBoxesProps {
   camera: number
@@ -24,6 +26,8 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
   })
   const queryClient = useQueryClient()
 
+  const [isLoadingDetections, setIsLoadingDetections] = useState(true)
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
 
@@ -31,12 +35,15 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
     if (data?.detectionsProcessed == false) {
       intervalId = setInterval(() => {
         // it's ugly to poll but it works
+        console.log("polling for detections", isLoadingDetections)
         queryClient
           .invalidateQueries([["image", "getDetections"]])
           .catch((error) => {
             console.log("error: ", error)
           })
       }, 1000) // Run every 1000 milliseconds (1 second)
+    } else {
+      setIsLoadingDetections(false)
     }
 
     // Clear interval on component unmount
@@ -45,7 +52,13 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
         clearInterval(intervalId)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
+
+  useEffect(() => {
+    setIsLoadingDetections(true)
+  }, [isLoading])
+
   if (isLoading || !data) {
     return <></>
   }
@@ -56,6 +69,13 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
 
   return (
     <>
+      {isLoadingDetections && (
+        <div style={{ position: "absolute", right: 0, bottom: 0 }}>
+          <Stack sx={{ color: "grey.500" }} spacing={2} direction="row">
+            <CircularProgress color="success" />
+          </Stack>
+        </div>
+      )}
       {data.detections.map((detection: Detection) => (
         <BoundingBox
           key={detection.id}
