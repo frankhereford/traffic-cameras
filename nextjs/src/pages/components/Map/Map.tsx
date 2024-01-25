@@ -87,7 +87,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
     //   map.panTo(location)
     //   map.setZoom(19)
     // }
-  }, [camera, map, data])
+  }, [camera, map, data, zoomTight])
 
   return isLoaded ? (
     <GoogleMap
