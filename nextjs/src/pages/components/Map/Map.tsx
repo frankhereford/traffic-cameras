@@ -18,6 +18,8 @@ const containerStyle = {
   height: "100%",
 }
 
+const maxZoom = 20
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Map({ socrataData, paneWidth }: MapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
@@ -32,8 +34,8 @@ function Map({ socrataData, paneWidth }: MapProps) {
   const zoomTight = useMapControls((state) => state.zoomTight)
 
   useEffect(() => {
-    if (map) {
-      map.setZoom(zoomTight ? 19 : 14)
+    if (!zoomTight && map) {
+      map.setZoom(zoomTight ? maxZoom : 14)
     }
   }, [zoomTight, map])
 
@@ -60,8 +62,6 @@ function Map({ socrataData, paneWidth }: MapProps) {
   }, [isLoaded])
 
   useEffect(() => {
-    console.log("data:", data)
-
     if (camera && map && data) {
       const cameraData = data.find(
         (item) => parseInt(item.camera_id, 10) === camera,
@@ -73,7 +73,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
 
         const location = new google.maps.LatLng(latitude!, longitude)
         if (zoomTight) {
-          map.setZoom(19)
+          map.setZoom(maxZoom)
           map.panTo(location)
         } else {
           // map.setZoom(15)

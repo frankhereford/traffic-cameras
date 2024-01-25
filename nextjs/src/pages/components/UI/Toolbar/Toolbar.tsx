@@ -2,7 +2,7 @@
 import CameraPicker from "~/pages/components/UI/Toolbar/CameraPicker"
 // import PickedPoints from "./pickedpoints"
 import Draggable from "react-draggable"
-import TightZoom from "~/pages/components/UI/Toolbar/BooleanSettings/TightZoom"
+import TightZoom from "~/pages/components/UI/Toolbar/ConfigurationButtons/TightZoom"
 
 export default function ToolPanel() {
   return (
