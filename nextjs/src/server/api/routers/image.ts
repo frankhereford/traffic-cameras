@@ -19,6 +19,13 @@ export const imageRouter = createTRPCRouter({
       const image = await ctx.db.image.findFirst({
         where: {
           cameraId: camera?.id,
+          detections: {
+            every: {
+              createdAt: {
+                gte: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+              },
+            },
+          },
         },
         include: {
           detections: true,
