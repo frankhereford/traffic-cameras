@@ -60,8 +60,6 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
   const scaleFactor =
     paneWidth < originalImageWidth ? paneWidth / originalImageWidth : 1
 
-  console.log("scaleFactor: ", scaleFactor)
-
   return (
     <>
       {data?.detectionsProcessed == false && (
