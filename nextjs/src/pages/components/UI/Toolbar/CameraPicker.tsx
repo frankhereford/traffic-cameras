@@ -15,6 +15,7 @@ export default function CameraPicker() {
   const { data, isLoading, isError, error } = useGetSocrataData()
   const [cameras, setCameras] = useState<Camera[] | undefined>()
   const setCamera = useCameraStore((state) => state.setCamera)
+  const camera = useCameraStore((state) => state.camera)
 
   useEffect(() => {
     if (data) {

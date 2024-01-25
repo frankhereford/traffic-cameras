@@ -6,6 +6,7 @@ import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import CameraLocations from "./CameraLocations"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
+import { useMapControls } from "~/pages/hooks/useMapControls"
 
 interface MapProps {
   paneWidth: number
@@ -28,6 +29,13 @@ function Map({ socrataData, paneWidth }: MapProps) {
   const [center, setCenter] = useState<google.maps.LatLng | null>(null)
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
   const camera = useCameraStore((state) => state.camera)
+  const zoomTight = useMapControls((state) => state.zoomTight)
+
+  useEffect(() => {
+    if (map) {
+      map.setZoom(zoomTight ? 19 : 14)
+    }
+  }, [zoomTight, map])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } = useGetSocrataData()
@@ -64,8 +72,12 @@ function Map({ socrataData, paneWidth }: MapProps) {
         const longitude = cameraData!.location.coordinates[0]
 
         const location = new google.maps.LatLng(latitude!, longitude)
-        map.panTo(location)
-        map.setZoom(21)
+        if (zoomTight) {
+          map.setZoom(19)
+          map.panTo(location)
+        } else {
+          // map.setZoom(15)
+        }
       }
     }
 
