@@ -28,7 +28,7 @@ def throttle(func):
     def wrapper(*args, **kwargs):
         if throttle._last_called is not None:
             time_since_last_call = time.time() - throttle._last_called
-            sleep_time = int(round(max(0, 3 - time_since_last_call), 0))
+            sleep_time = int(round(max(0, 1 - time_since_last_call), 0))
             print("sleep time: ", sleep_time)
             time.sleep(sleep_time)
         throttle._last_called = time.time()

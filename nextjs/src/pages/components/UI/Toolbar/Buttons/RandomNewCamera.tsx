@@ -54,10 +54,13 @@ export default function RandomNewCamera() {
       }
     }
   }
+  if (newCameraCount == 0) {
+    return <></>
+  }
 
   return (
     <>
-      {cameraData && socrataData && newCameraCount && (
+      {cameraData && socrataData && (
         <Badge badgeContent={newCameraCount} color="primary" max={1000}>
           <Button
             className="mb-4 p-0"
@@ -69,7 +72,6 @@ export default function RandomNewCamera() {
           </Button>
         </Badge>
       )}
-      {/* <pre>{dataString}</pre> */}
     </>
   )
 }
