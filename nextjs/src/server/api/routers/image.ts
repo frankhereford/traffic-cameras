@@ -15,7 +15,7 @@ export const imageRouter = createTRPCRouter({
           coaId: input.camera,
         },
       })
-      console.log("\ncamera", camera)
+      // console.log("\ncamera", camera)
       const image = await ctx.db.image.findFirst({
         where: {
           cameraId: camera?.id,
@@ -34,7 +34,7 @@ export const imageRouter = createTRPCRouter({
           createdAt: "desc",
         },
       })
-      console.log("image", image)
+      // console.log("image", image)
       return image
     }),
 })

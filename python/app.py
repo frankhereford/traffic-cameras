@@ -6,11 +6,6 @@ from routes.status import status
 from routes.vision import vision
 from routes.image import image
 
-redis = redis.Redis(host="redis", port=6379, db=0)
-from prisma import Prisma
-
-db = Prisma()
-db.connect()
 
 app = Flask(__name__)
 
@@ -42,4 +37,12 @@ if __name__ == "__main__":
         required=True,
     )
     args = parser.parse_args()
+
+    hostname = "localhost" if args.mode == "detector" else "redis"
+    redis = redis.Redis(host=hostname, port=6379, db=0)
+    from prisma import Prisma
+
+    db = Prisma()
+    db.connect()
+
     main(args.mode)
