@@ -5,6 +5,7 @@ import { api } from "~/utils/api"
 
 export default function RandomCamera() {
   const setCamera = useCameraStore((state) => state.setCamera)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } =
     api.camera.getWorkingCameras.useQuery({})
 
