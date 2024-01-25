@@ -4,6 +4,7 @@ import CameraPicker from "~/pages/components/UI/Toolbar/CameraPicker"
 import Draggable from "react-draggable"
 import TightZoom from "~/pages/components/UI/Toolbar/Buttons/TightZoom"
 import RandomCamera from "~/pages/components/UI/Toolbar/Buttons/RandomCamera"
+import RandomNewCamera from "./Buttons/RandomNewCamera"
 
 export default function ToolPanel() {
   return (
@@ -13,6 +14,7 @@ export default function ToolPanel() {
           {/* <PickedPoints /> */}
           <TightZoom />
           <RandomCamera />
+          <RandomNewCamera />
           <CameraPicker />
           {/* <Auth /> */}
         </div>
