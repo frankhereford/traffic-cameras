@@ -44,6 +44,7 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
   ]
 
   const boxStyle: React.CSSProperties = {
+    pointerEvents: "none",
     position: "absolute",
     left: `${scaledXMin}px`,
     top: `${scaledYMin}px`,
