@@ -16,9 +16,9 @@ services:
       context: ./nextjs
     volumes:
       - ./nextjs:/app
-    ports:
-      - 3000:3000
-      - 5555:5555
+    # ports:
+    # - 2999:3000
+    # - 5555:5555
     depends_on:
       - postgis
 
@@ -27,8 +27,8 @@ services:
       context: ./python
     volumes:
       - ./python:/app
-    ports:
-      - 5000:5000
+    # ports:
+    #   - 5000:5000
     depends_on:
       - postgis
     command: ["python", "app.py", "--mode=flask"]
