@@ -24,7 +24,7 @@ export default function CameraPicker() {
     const selectedCamera = cameras?.find(
       ({ cameraId }) => parseInt(cameraId) === camera,
     )
-    console.log("selectedCamera:", selectedCamera)
+    // console.log("selectedCamera:", selectedCamera)
     if (selectedCamera) {
       setSelectedCamera(selectedCamera)
     }
