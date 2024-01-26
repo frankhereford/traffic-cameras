@@ -16,9 +16,9 @@ services:
       context: ./nextjs
     volumes:
       - ./nextjs:/app
-    # ports:
-    # - 2999:3000
-    # - 5555:5555
+    ports:
+      # - 2999:3000
+      - 5555:5555
     depends_on:
       - postgis
 
