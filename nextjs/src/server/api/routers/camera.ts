@@ -7,6 +7,7 @@ import {
 } from "~/server/api/trpc"
 
 export const cameraRouter = createTRPCRouter({
+  // should be get getSpecificCameras by array of ids
   getCameras: protectedProcedure
     .input(z.object({ cameras: z.array(z.number()) }))
     .query(async ({ ctx, input }) => {

@@ -29,14 +29,14 @@ export default function Camera({ paneWidth }: CameraProps) {
   const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
 
   const handleImageLoad = () => {
-    queryClient.invalidateQueries([["camera", "getCameras"]]).catch((error) => {
-      console.log("error: ", error)
-    })
     queryClient
       .invalidateQueries([["image", "getDetections"]])
       .catch((error) => {
         console.log("error: ", error)
       })
+    queryClient.invalidateQueries([["camera", "getCameras"]]).catch((error) => {
+      console.log("error: ", error)
+    })
     queryClient
       .invalidateQueries([["camera", "getAllCameras"]])
       .catch((error) => {
