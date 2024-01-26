@@ -26,8 +26,7 @@ export default function Camera({ paneWidth }: CameraProps) {
     return () => clearTimeout(timer) // Clear timeout if the component is unmounted
   }, [imageKey])
 
-  const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
-
+  // invalidate certain queries when the image loads
   const handleImageLoad = () => {
     queryClient
       .invalidateQueries([["image", "getDetections"]])
@@ -49,6 +48,17 @@ export default function Camera({ paneWidth }: CameraProps) {
       })
   }
 
+  const handleImageClick = (
+    event: React.MouseEvent<HTMLImageElement, MouseEvent>,
+  ) => {
+    const imgElement = event.currentTarget
+    const scaleFactor = imgElement.naturalWidth / imgElement.clientWidth
+    const x = event.nativeEvent.offsetX * scaleFactor
+    const y = event.nativeEvent.offsetY * scaleFactor
+    console.log(`Clicked at native coordinates: ${x}, ${y}`)
+  }
+
+  const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
   return (
     <>
       <div>
@@ -63,6 +73,7 @@ export default function Camera({ paneWidth }: CameraProps) {
                 width={1920}
                 height={1080}
                 onLoad={handleImageLoad}
+                onClick={handleImageClick}
               />
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
             </div>
