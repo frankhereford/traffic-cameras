@@ -7,7 +7,6 @@ import usePendingLocation from "~/pages/hooks/usePendingLocation"
 export default function SaveLocation() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
-  const [showSaveButton, setShowSaveButton] = useState(false)
 
   const imageLocation = usePendingLocation((state) => state.imageLocation)
   const mapLocation = usePendingLocation((state) => state.mapLocation)
@@ -18,14 +17,6 @@ export default function SaveLocation() {
   const setPendingMapLocation = usePendingLocation(
     (state) => state.setPendingMapLocation,
   )
-
-  // useEffect(() => {
-  //   if (imageLocation && mapLocation) {
-  //     setShowSaveButton(true)
-  //   } else {
-  //     setShowSaveButton(false)
-  //   }
-  // }, [imageLocation, mapLocation])
 
   const getCorrelatedLocation = usePendingLocation(
     (state) => state.getCorrelatedLocation,
