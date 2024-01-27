@@ -61,7 +61,7 @@ export default function Camera({ paneWidth }: CameraProps) {
     const x = Math.round(event.nativeEvent.offsetX * scaleFactor)
     const y = Math.round(event.nativeEvent.offsetY * scaleFactor)
     setPendingImageLocation([x, y])
-    // console.log(`Clicked at native coordinates: ${x}, ${y}`)
+    console.log(`Clicked at native coordinates: ${x}, ${y}`)
   }
 
   const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
