@@ -5,7 +5,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import PendingLocation from "./Locations/PendingLocation"
-import { set } from "lodash"
 
 interface CameraProps {
   paneWidth: number
@@ -92,7 +91,11 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onLoad={handleImageLoad}
                 onClick={handleImageClick}
               />
-              <PendingLocation location={pendingImageLocation} />
+              <PendingLocation
+                paneWidth={paneWidth}
+                angle={0}
+                location={pendingImageLocation}
+              />
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
             </div>
           </>
