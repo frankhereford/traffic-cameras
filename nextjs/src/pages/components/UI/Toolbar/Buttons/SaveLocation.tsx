@@ -12,6 +12,13 @@ export default function SaveLocation() {
   const imageLocation = usePendingLocation((state) => state.imageLocation)
   const mapLocation = usePendingLocation((state) => state.mapLocation)
 
+  const setPendingImageLocation = usePendingLocation(
+    (state) => state.setPendingImageLocation,
+  )
+  const setPendingMapLocation = usePendingLocation(
+    (state) => state.setPendingMapLocation,
+  )
+
   useEffect(() => {
     if (imageLocation && mapLocation) {
       setShowSaveButton(true)
@@ -26,9 +33,9 @@ export default function SaveLocation() {
 
   const handleClick = () => {
     console.log("getCorrelatedLocation: ", getCorrelatedLocation())
-    // if (previousCamera && !isFocus) {
-    //   setCamera(previousCamera)
-    // }
+
+    setPendingImageLocation(null)
+    setPendingMapLocation(null)
   }
 
   useEffect(() => {
