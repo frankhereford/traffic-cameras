@@ -1,8 +1,9 @@
 import Image from "next/image" // Import Image from Next.js
 import { useEffect, useState } from "react"
-import { useCameraStore } from "~/pages/hooks/useCameraStore"
+import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
+import usePendingLocation from "~/pages/hooks/usePendingLocation"
 
 interface CameraProps {
   paneWidth: number
@@ -12,6 +13,13 @@ export default function Camera({ paneWidth }: CameraProps) {
   const camera = useCameraStore((state) => state.camera)
   const [imageKey, setImageKey] = useState(Date.now())
   const queryClient = useQueryClient()
+
+  const getPendingImageLocation = usePendingLocation(
+    (state) => state.getPendingImageLocation,
+  )
+  const setPendingImageLocation = usePendingLocation(
+    (state) => state.setPendingImageLocation,
+  )
 
   // refresh the camera image on an interval
   useEffect(() => {
