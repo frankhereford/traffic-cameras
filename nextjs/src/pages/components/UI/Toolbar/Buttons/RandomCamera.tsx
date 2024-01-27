@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import Button from "@mui/material/Button"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 
@@ -18,6 +19,20 @@ export default function RandomCamera() {
       setCamera(cameraId)
     }
   }
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "r") {
+        handleClick()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [data])
 
   return (
     <>
