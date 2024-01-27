@@ -1,11 +1,11 @@
 import Image from "next/image" // Import Image from Next.js
-import { use, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import PendingLocation from "./Locations/PendingLocation"
-
+import ReloadProgress from "./UI/ReloadProgress"
 interface CameraProps {
   paneWidth: number
 }
@@ -18,6 +18,8 @@ export default function Camera({ paneWidth }: CameraProps) {
     x: number
     y: number
   } | null>(null)
+  const [reloadInterval, setReloadInterval] = useState(5 * 60 * 1000) // Default to 5 minutes
+  const [reloadPercentage, setReloadPercentage] = useState(100)
 
   const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
@@ -30,16 +32,25 @@ export default function Camera({ paneWidth }: CameraProps) {
 
   // refresh the camera image on an interval
   useEffect(() => {
-    const timer = setTimeout(
-      () => {
-        setImageKey(Date.now()) // Change key to force re-render
-      },
-      5 * 60 * 1000, // 5 minutes
-      // 30 * 1000, // 30 seconds
-    )
+    const timer = setTimeout(() => {
+      setImageKey(Date.now()) // Change key to force re-render
+    }, reloadInterval)
 
     return () => clearTimeout(timer) // Clear timeout if the component is unmounted
-  }, [imageKey])
+  }, [imageKey, reloadInterval])
+
+  // Update reloadPercentage every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const timeElapsed = Date.now() - imageKey
+      const percentage = 100 - (timeElapsed / reloadInterval) * 100
+      const clampedPercentage = Math.max(0, percentage)
+
+      setReloadPercentage(clampedPercentage)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [imageKey, reloadInterval])
 
   // invalidate certain queries when the image loads
   const handleImageLoad = () => {
@@ -101,6 +112,7 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onLoad={handleImageLoad}
                 onClick={handleImageClick}
               />
+              <ReloadProgress progress={100 - reloadPercentage} />
               <PendingLocation
                 paneWidth={paneWidth}
                 location={pendingImageLocation}
