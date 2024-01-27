@@ -3,12 +3,14 @@ import Typography from "@mui/material/Typography"
 
 type Props = {
   location: { x: number; y: number } | null
-  angle: number // angle in degrees
   paneWidth: number // width of the pane
 }
 
-export default function PendingLocation({ location, angle, paneWidth }: Props) {
+export default function PendingLocation({ location, paneWidth }: Props) {
   if (!location) return <></>
+
+  // Ensure paneWidth never exceeds 1920
+  paneWidth = paneWidth > 1920 ? 1920 : paneWidth
 
   const scaleFactor = paneWidth / 1920
   const scaledX = location.x * scaleFactor
@@ -17,12 +19,12 @@ export default function PendingLocation({ location, angle, paneWidth }: Props) {
   const coordinateStyle: React.CSSProperties = {
     pointerEvents: "none",
     position: "absolute",
-    left: `${scaledX}px`,
-    top: `${scaledY}px`,
+    left: `${scaledX - 25}px`,
+    top: `${scaledY - 5}px`,
   }
 
   return (
-    <div style={coordinateStyle}>
+    <>
       <Typography
         style={{
           color: "white",
@@ -32,13 +34,11 @@ export default function PendingLocation({ location, angle, paneWidth }: Props) {
           textTransform: "uppercase",
         }}
       >{`${scaledX.toFixed(2)}, ${scaledY.toFixed(2)}`}</Typography>
-      <svg height="50" width="50">
-        <polygon
-          points="25,0 30,20 25,15 20,20"
-          fill="red"
-          transform={`rotate(${angle}, 25, 25)`}
-        />
-      </svg>
-    </div>
+      <div style={coordinateStyle}>
+        <svg height="50" width="50">
+          <polygon points="25,0 30,20 25,15 20,20" fill="red" />
+        </svg>
+      </div>
+    </>
   )
 }

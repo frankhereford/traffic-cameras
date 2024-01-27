@@ -93,7 +93,6 @@ export default function Camera({ paneWidth }: CameraProps) {
               />
               <PendingLocation
                 paneWidth={paneWidth}
-                angle={0}
                 location={pendingImageLocation}
               />
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
