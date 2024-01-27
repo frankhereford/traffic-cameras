@@ -4,6 +4,7 @@ import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
+import Coordinates from "./Coordinates"
 
 interface CameraProps {
   paneWidth: number
@@ -13,10 +14,6 @@ export default function Camera({ paneWidth }: CameraProps) {
   const camera = useCameraStore((state) => state.camera)
   const [imageKey, setImageKey] = useState(Date.now())
   const queryClient = useQueryClient()
-
-  const getPendingImageLocation = usePendingLocation(
-    (state) => state.getPendingImageLocation,
-  )
   const setPendingImageLocation = usePendingLocation(
     (state) => state.setPendingImageLocation,
   )
@@ -61,9 +58,10 @@ export default function Camera({ paneWidth }: CameraProps) {
   ) => {
     const imgElement = event.currentTarget
     const scaleFactor = imgElement.naturalWidth / imgElement.clientWidth
-    const x = event.nativeEvent.offsetX * scaleFactor
-    const y = event.nativeEvent.offsetY * scaleFactor
-    console.log(`Clicked at native coordinates: ${x}, ${y}`)
+    const x = Math.round(event.nativeEvent.offsetX * scaleFactor)
+    const y = Math.round(event.nativeEvent.offsetY * scaleFactor)
+    setPendingImageLocation([x, y])
+    // console.log(`Clicked at native coordinates: ${x}, ${y}`)
   }
 
   const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
@@ -83,6 +81,7 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onLoad={handleImageLoad}
                 onClick={handleImageClick}
               />
+              <Coordinates />
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
             </div>
           </>
