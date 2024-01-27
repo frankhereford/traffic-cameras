@@ -2,14 +2,16 @@ import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useCameraStore from "~/pages/hooks/useCameraStore"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 export default function Previous() {
   const setCamera = useCameraStore((state) => state.setCamera)
   const previousCamera = useCameraStore((state) => state.previousCamera)
   const [isHovered, setIsHovered] = useState(false)
+  const isFocus = useAutocompleteFocus((state) => state.isFocus)
 
   const handleClick = () => {
-    if (previousCamera) {
+    if (previousCamera && !isFocus) {
       setCamera(previousCamera)
     }
   }
@@ -26,7 +28,7 @@ export default function Previous() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [previousCamera])
+  }, [previousCamera, isFocus])
 
   return (
     previousCamera !== null && (

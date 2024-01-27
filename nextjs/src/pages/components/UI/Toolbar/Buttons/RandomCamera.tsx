@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import useCameraStore from "~/pages/hooks/useCameraStore"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 import { api } from "~/utils/api"
 
 export default function RandomCamera() {
   const setCamera = useCameraStore((state) => state.setCamera)
+  const isFocus = useAutocompleteFocus((state) => state.isFocus)
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } =
     api.camera.getWorkingCameras.useQuery({})
 
-  // const dataString = data ? JSON.stringify(data, null, 2) : ""
   const [isHovered, setIsHovered] = useState(false)
 
   const handleClick = () => {
-    if (data) {
+    if (data && !isFocus) {
       const randomCamera = data[Math.floor(Math.random() * data.length)]!
       const cameraId = randomCamera.coaId
       setCamera(cameraId)
@@ -34,7 +36,7 @@ export default function RandomCamera() {
       window.removeEventListener("keydown", handleKeyDown)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
+  }, [data, isFocus])
 
   return (
     <>

@@ -27,7 +27,7 @@ export default function Logout() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [])
+  }, [isFocus])
 
   return (
     <Button
