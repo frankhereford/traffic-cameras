@@ -8,12 +8,9 @@ import type { SocrataData } from "~/pages/hooks/useSocrataData"
 export default function CameraGeoreferenceApp() {
   const { data: sessionData } = useSession()
 
+  // TODO i have started just using this hook when i need it and i should remove this prop drilling.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } = useGetSocrataData()
-
-  useEffect(() => {
-    console.log("Socrata Data:", { data, isLoading, isError, error })
-  }, [data, isLoading, isError, error])
 
   const [storedData, setStoredData] = useState<SocrataData[] | null>(null)
 
