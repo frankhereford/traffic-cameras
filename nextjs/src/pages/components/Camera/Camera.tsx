@@ -81,7 +81,6 @@ export default function Camera({ paneWidth }: CameraProps) {
   }
 
   const url = `http://flask:5000/image/${camera}?${imageKey}`
-  console.log("url: ", url)
   return (
     <>
       <div>
