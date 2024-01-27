@@ -21,6 +21,7 @@ export default function PendingLocation({ location, paneWidth }: Props) {
     left: `${scaledX - 51}px`,
     top: `${scaledY - 4}px`,
     zIndex: 9999,
+    pointerEvents: "none", // Make the whole component click-through
   }
   const textStyle: React.CSSProperties = {
     position: "absolute",
