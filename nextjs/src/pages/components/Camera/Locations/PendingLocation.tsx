@@ -12,7 +12,7 @@ export default function PendingLocation({ location }: Props) {
     pointerEvents: "none",
     position: "absolute",
     left: "5px",
-    top: "5px",
+    top: "3px",
   }
 
   return (
