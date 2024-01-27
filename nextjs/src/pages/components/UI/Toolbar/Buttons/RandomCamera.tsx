@@ -10,7 +10,7 @@ export default function RandomCamera() {
   const { data, isLoading, isError, error } =
     api.camera.getWorkingCameras.useQuery({})
 
-  const dataString = data ? JSON.stringify(data, null, 2) : ""
+  // const dataString = data ? JSON.stringify(data, null, 2) : ""
   const [isHovered, setIsHovered] = useState(false)
 
   const handleClick = () => {
@@ -33,6 +33,7 @@ export default function RandomCamera() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
   return (
