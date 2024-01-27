@@ -1,5 +1,5 @@
 import Image from "next/image" // Import Image from Next.js
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
@@ -22,6 +22,11 @@ export default function Camera({ paneWidth }: CameraProps) {
   const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
   )
+
+  // make sure we always get a fresh image
+  useEffect(() => {
+    setImageKey(Date.now())
+  }, [])
 
   // refresh the camera image on an interval
   useEffect(() => {
@@ -56,6 +61,7 @@ export default function Camera({ paneWidth }: CameraProps) {
       .catch((error) => {
         console.log("error: ", error)
       })
+    setPendingImageLocation(null)
   }
 
   const handleImageClick = (
@@ -74,7 +80,7 @@ export default function Camera({ paneWidth }: CameraProps) {
     setPendingImageLocationStore({ x, y })
   }
 
-  const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
+  const url = `http://flask:5000/image/${camera}?{imageKey}`
   return (
     <>
       <div>
