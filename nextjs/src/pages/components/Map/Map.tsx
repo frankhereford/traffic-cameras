@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api"
 
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
-import CameraLocations from "./CameraLocations"
+import CameraLocations from "./Locations/CameraLocations"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import { useMapControls } from "~/pages/hooks/useMapControls"
