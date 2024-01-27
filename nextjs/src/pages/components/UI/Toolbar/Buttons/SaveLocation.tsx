@@ -2,12 +2,17 @@ import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import usePendingLocation from "~/pages/hooks/usePendingLocation"
 
 export default function SaveLocation() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const getCorrelatedLocation = usePendingLocation(
+    (state) => state.getCorrelatedLocation,
+  )
 
   const handleClick = () => {
+    console.log("getCorrelatedLocation: ", getCorrelatedLocation())
     // if (previousCamera && !isFocus) {
     //   setCamera(previousCamera)
     // }
@@ -25,6 +30,7 @@ export default function SaveLocation() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocus])
 
   return (

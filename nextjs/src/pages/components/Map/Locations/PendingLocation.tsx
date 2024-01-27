@@ -6,7 +6,7 @@ type Props = {
 }
 
 export default function PendingLocation({ location }: Props) {
-  if (!location) return null
+  if (!location) return <></>
 
   return (
     <Marker

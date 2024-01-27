@@ -44,6 +44,17 @@ function Map({ socrataData, paneWidth }: MapProps) {
   )
 
   useEffect(() => {
+    if (pendingMapLocation) {
+      console.log(
+        `Pending map location is: ${JSON.stringify(pendingMapLocation)}`,
+      )
+      // You can perform other actions with pendingMapLocation here
+    } else {
+      console.log("No pending map location")
+    }
+  }, [pendingMapLocation])
+
+  useEffect(() => {
     if (!zoomTight && map) {
       map.setZoom(zoomTight ? maxZoom : 14)
     }
@@ -90,6 +101,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
         }
       }
       setBounds(map?.getBounds() ?? null)
+      // Reset the pending map location when the camera changes
+      setPendingMapLocation(null)
+      setPendingMapLocationStore(null)
     }
   }, [camera, map, data, zoomTight])
 

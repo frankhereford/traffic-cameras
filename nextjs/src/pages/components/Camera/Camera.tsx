@@ -24,6 +24,9 @@ export default function Camera({ paneWidth }: CameraProps) {
   const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
   )
+  const setPendingMapLocation = usePendingLocation(
+    (state) => state.setPendingMapLocation,
+  )
 
   // make sure we always get a fresh image
   useEffect(() => {
@@ -77,6 +80,8 @@ export default function Camera({ paneWidth }: CameraProps) {
     //     console.log("error: ", error)
     //   })
     setPendingImageLocation(null)
+    setPendingImageLocationStore(null)
+    setPendingMapLocation(null)
   }
 
   const handleImageClick = (
