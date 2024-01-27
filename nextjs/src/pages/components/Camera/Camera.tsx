@@ -68,19 +68,7 @@ export default function Camera({ paneWidth }: CameraProps) {
     queryClient.invalidateQueries([["camera"]]).catch((error) => {
       console.log("error: ", error)
     })
-    // queryClient.invalidateQueries([["camera", "getCameras"]]).catch((error) => {
-    //   console.log("error: ", error)
-    // })
-    // queryClient
-    //   .invalidateQueries([["camera", "getAllCameras"]])
-    //   .catch((error) => {
-    //     console.log("error: ", error)
-    //   })
-    // queryClient
-    //   .invalidateQueries([["camera", "getWorkingCameras"]])
-    //   .catch((error) => {
-    //     console.log("error: ", error)
-    //   })
+
     setPendingImageLocation(null)
     setPendingImageLocationStore(null)
     setPendingMapLocation(null)
