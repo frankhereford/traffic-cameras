@@ -19,13 +19,13 @@ export default function SaveLocation() {
     (state) => state.setPendingMapLocation,
   )
 
-  useEffect(() => {
-    if (imageLocation && mapLocation) {
-      setShowSaveButton(true)
-    } else {
-      setShowSaveButton(false)
-    }
-  }, [imageLocation, mapLocation])
+  // useEffect(() => {
+  //   if (imageLocation && mapLocation) {
+  //     setShowSaveButton(true)
+  //   } else {
+  //     setShowSaveButton(false)
+  //   }
+  // }, [imageLocation, mapLocation])
 
   const getCorrelatedLocation = usePendingLocation(
     (state) => state.getCorrelatedLocation,

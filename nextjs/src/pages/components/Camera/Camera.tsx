@@ -28,6 +28,8 @@ export default function Camera({ paneWidth }: CameraProps) {
     (state) => state.setPendingMapLocation,
   )
 
+  const imageLocation = usePendingLocation((state) => state.imageLocation)
+
   // make sure we always get a fresh image
   useEffect(() => {
     setImageKey(Date.now())
@@ -118,10 +120,12 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onClick={handleImageClick}
               />
               <ReloadProgress progress={100 - reloadPercentage} />
-              <PendingLocation
-                paneWidth={paneWidth}
-                location={pendingImageLocation}
-              />
+              {imageLocation && (
+                <PendingLocation
+                  paneWidth={paneWidth}
+                  location={pendingImageLocation}
+                />
+              )}
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
             </div>
           </>
