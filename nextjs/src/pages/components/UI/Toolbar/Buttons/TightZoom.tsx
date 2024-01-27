@@ -9,15 +9,6 @@ export default function TightZoom() {
   const setZoomTight = useMapControls((state) => state.setZoomTight)
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
-  const [isFocusedState, setIsFocusedState] = useState(false)
-
-  useEffect(() => {
-    console.log("isFocus:", isFocus)
-    if (isFocus) {
-      console.log(`setting isFocusedState to ${isFocus}`)
-      setIsFocusedState(isFocus)
-    }
-  }, [isFocus])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -41,12 +32,12 @@ export default function TightZoom() {
         style={{ fontSize: "35px", position: "relative" }}
         onClick={() => setZoomTight(!zoomTight)}
         onMouseEnter={() => {
-          if (isFocusedState) {
+          if (isFocus) {
             setIsHovered(true)
           }
         }}
         onMouseLeave={() => {
-          if (isFocusedState) {
+          if (isFocus) {
             setIsHovered(false)
           }
         }}
