@@ -4,7 +4,8 @@ import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
-import Coordinates from "./Coordinates"
+import PendingLocation from "./Locations/PendingLocation"
+import { set } from "lodash"
 
 interface CameraProps {
   paneWidth: number
@@ -14,7 +15,12 @@ export default function Camera({ paneWidth }: CameraProps) {
   const camera = useCameraStore((state) => state.camera)
   const [imageKey, setImageKey] = useState(Date.now())
   const queryClient = useQueryClient()
-  const setPendingImageLocation = usePendingLocation(
+  const [pendingImageLocation, setPendingImageLocation] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+
+  const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
   )
 
@@ -60,8 +66,13 @@ export default function Camera({ paneWidth }: CameraProps) {
     const scaleFactor = imgElement.naturalWidth / imgElement.clientWidth
     const x = Math.round(event.nativeEvent.offsetX * scaleFactor)
     const y = Math.round(event.nativeEvent.offsetY * scaleFactor)
-    setPendingImageLocation([x, y])
-    console.log(`Clicked at native coordinates: ${x}, ${y}`)
+    if (x === 0 || y === 0) {
+      // ? this happens every 10th click or so .. why?
+      return
+    }
+
+    setPendingImageLocation({ x, y })
+    setPendingImageLocationStore({ x, y })
   }
 
   const url = `http://flask:5000/image/${camera}?${new Date().getTime()}`
@@ -81,7 +92,7 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onLoad={handleImageLoad}
                 onClick={handleImageClick}
               />
-              <Coordinates />
+              <PendingLocation location={pendingImageLocation} />
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
             </div>
           </>
