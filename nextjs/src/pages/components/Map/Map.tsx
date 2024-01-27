@@ -8,7 +8,7 @@ import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import { useMapControls } from "~/pages/hooks/useMapControls"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
-// import PendingLocation from "./Locations/PendingLocation"
+import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
 
 interface MapProps {
   paneWidth: number
@@ -104,6 +104,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
         socrataData && ( // don't fire it off until it has the data it needs
           <CameraLocations bounds={bounds} socrataData={socrataData} />
         )}
+      <PendingLocation />
     </GoogleMap>
   ) : (
     <></>
