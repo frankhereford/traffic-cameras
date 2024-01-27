@@ -21,7 +21,7 @@ export default function PendingLocation({ location }: Props) {
       {isOpen && (
         <InfoWindow onCloseClick={() => setIsOpen(false)}>
           <div>
-            Lat: {location.latitude}, Lng: {location.longitude}
+            {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
           </div>
         </InfoWindow>
       )}
