@@ -31,16 +31,8 @@ export default function TightZoom() {
         variant="contained"
         style={{ fontSize: "35px", position: "relative" }}
         onClick={() => setZoomTight(!zoomTight)}
-        onMouseEnter={() => {
-          if (isFocus) {
-            setIsHovered(true)
-          }
-        }}
-        onMouseLeave={() => {
-          if (isFocus) {
-            setIsHovered(false)
-          }
-        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {zoomTight ? "🚦" : "⛰️"}
         {isHovered && (
