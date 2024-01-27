@@ -9,6 +9,11 @@ export default function PendingLocation({ location }: Props) {
   if (!location) return null
 
   return (
-    <Marker position={{ lat: location.latitude, lng: location.longitude }} />
+    <Marker
+      position={{ lat: location.latitude, lng: location.longitude }}
+      icon={{
+        url: "http://maps.google.com/mapfiles/ms/icons/grey.png",
+      }}
+    />
   )
 }
