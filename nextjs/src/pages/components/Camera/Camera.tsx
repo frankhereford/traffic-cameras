@@ -80,7 +80,8 @@ export default function Camera({ paneWidth }: CameraProps) {
     setPendingImageLocationStore({ x, y })
   }
 
-  const url = `http://flask:5000/image/${camera}?{imageKey}`
+  const url = `http://flask:5000/image/${camera}?${imageKey}`
+  console.log("url: ", url)
   return (
     <>
       <div>
