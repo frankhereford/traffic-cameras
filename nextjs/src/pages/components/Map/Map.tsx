@@ -34,6 +34,10 @@ function Map({ socrataData, paneWidth }: MapProps) {
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
   const camera = useCameraStore((state) => state.camera)
   const zoomTight = useMapControls((state) => state.zoomTight)
+  const [pendingMapLocation, setPendingMapLocation] = useState<{
+    latitude: number
+    longitude: number
+  } | null>(null)
 
   const setPendingMapLocationStore = usePendingLocation(
     (state) => state.setPendingMapLocation,
@@ -99,12 +103,23 @@ function Map({ socrataData, paneWidth }: MapProps) {
       onDragEnd={OnViewportChange}
       onZoomChanged={OnViewportChange}
       options={{ tilt: 0, mapTypeId: "satellite" }}
+      onClick={(e) => {
+        if (e.latLng) {
+          setPendingMapLocation({
+            latitude: e.latLng.lat(),
+            longitude: e.latLng.lng(),
+          })
+          setPendingMapLocationStore({
+            latitude: e.latLng.lat(),
+            longitude: e.latLng.lng(),
+          })
+        }
+      }}
     >
-      {bounds &&
-        socrataData && ( // don't fire it off until it has the data it needs
-          <CameraLocations bounds={bounds} socrataData={socrataData} />
-        )}
-      <PendingLocation />
+      {bounds && socrataData && (
+        <CameraLocations bounds={bounds} socrataData={socrataData} />
+      )}
+      <PendingLocation location={pendingMapLocation} />
     </GoogleMap>
   ) : (
     <></>
