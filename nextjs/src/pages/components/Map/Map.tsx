@@ -43,16 +43,16 @@ function Map({ socrataData, paneWidth }: MapProps) {
     (state) => state.setPendingMapLocation,
   )
 
-  useEffect(() => {
-    if (pendingMapLocation) {
-      console.log(
-        `Pending map location is: ${JSON.stringify(pendingMapLocation)}`,
-      )
-      // You can perform other actions with pendingMapLocation here
-    } else {
-      console.log("No pending map location")
-    }
-  }, [pendingMapLocation])
+  // useEffect(() => {
+  //   if (pendingMapLocation) {
+  //     console.log(
+  //       `Pending map location is: ${JSON.stringify(pendingMapLocation)}`,
+  //     )
+  //     // You can perform other actions with pendingMapLocation here
+  //   } else {
+  //     console.log("No pending map location")
+  //   }
+  // }, [pendingMapLocation])
 
   useEffect(() => {
     if (!zoomTight && map) {
