@@ -17,7 +17,6 @@ export default function Logout() {
     console.log("isFocus:", isFocus)
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isFocus && event.key === "l") {
-        debugger
         handleSignOut()
       }
     }
