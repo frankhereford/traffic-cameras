@@ -6,10 +6,12 @@ import usePendingLocation from "~/pages/hooks/usePendingLocation"
 
 export default function SaveLocation() {
   const [isHovered, setIsHovered] = useState(false)
+  // if the autocomplete has focus, this turns true, so we can suppress the keyboard shortcut
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
 
   const imageLocation = usePendingLocation((state) => state.imageLocation)
   const mapLocation = usePendingLocation((state) => state.mapLocation)
+  const [shouldRender, setShouldRender] = useState(false)
 
   const setPendingImageLocation = usePendingLocation(
     (state) => state.setPendingImageLocation,
@@ -22,9 +24,15 @@ export default function SaveLocation() {
     (state) => state.getCorrelatedLocation,
   )
 
-  const handleClick = () => {
-    console.log("getCorrelatedLocation: ", getCorrelatedLocation())
+  useEffect(() => {
+    if (getCorrelatedLocation()) {
+      setShouldRender(true)
+    } else {
+      setShouldRender(false)
+    }
+  }, [getCorrelatedLocation, imageLocation, mapLocation])
 
+  const handleClick = () => {
     setPendingImageLocation(null)
     setPendingMapLocation(null)
   }
@@ -44,14 +52,12 @@ export default function SaveLocation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocus])
 
-  const shouldRender = getCorrelatedLocation()
-
   if (!shouldRender) {
-    return null
+    return <></>
   }
 
   return (
-    <Tooltip title="Go to previous camera">
+    <Tooltip title="Save Location">
       <Button
         className="mb-4 p-0"
         variant="contained"
