@@ -7,6 +7,19 @@ import usePendingLocation from "~/pages/hooks/usePendingLocation"
 export default function SaveLocation() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const [showSaveButton, setShowSaveButton] = useState(false)
+
+  const imageLocation = usePendingLocation((state) => state.imageLocation)
+  const mapLocation = usePendingLocation((state) => state.mapLocation)
+
+  useEffect(() => {
+    if (imageLocation && mapLocation) {
+      setShowSaveButton(true)
+    } else {
+      setShowSaveButton(false)
+    }
+  }, [imageLocation, mapLocation])
+
   const getCorrelatedLocation = usePendingLocation(
     (state) => state.getCorrelatedLocation,
   )
@@ -32,6 +45,12 @@ export default function SaveLocation() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocus])
+
+  const shouldRender = getCorrelatedLocation()
+
+  if (!shouldRender) {
+    return null
+  }
 
   return (
     <Tooltip title="Go to previous camera">
