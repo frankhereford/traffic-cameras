@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import { signOut } from "next-auth/react"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 export default function Logout() {
   const [isHovered, setIsHovered] = useState(false)
+  const isFocus = useAutocompleteFocus((state) => state.isFocus)
 
   const handleSignOut = () => {
     signOut().catch((e) => {
@@ -12,8 +14,10 @@ export default function Logout() {
   }
 
   useEffect(() => {
+    console.log("isFocus:", isFocus)
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "l") {
+      if (!isFocus && event.key === "l") {
+        debugger
         handleSignOut()
       }
     }

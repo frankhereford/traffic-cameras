@@ -2,15 +2,26 @@ import { useEffect, useState } from "react"
 import { useMapControls } from "~/pages/hooks/useMapControls"
 import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 export default function TightZoom() {
   const zoomTight = useMapControls((state) => state.zoomTight)
   const setZoomTight = useMapControls((state) => state.setZoomTight)
   const [isHovered, setIsHovered] = useState(false)
+  const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const [isFocusedState, setIsFocusedState] = useState(false)
+
+  useEffect(() => {
+    console.log("isFocus:", isFocus)
+    if (isFocus) {
+      console.log(`setting isFocusedState to ${isFocus}`)
+      setIsFocusedState(isFocus)
+    }
+  }, [isFocus])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "w") {
+      if (!isFocus && event.key === "w") {
         setZoomTight(!zoomTight)
       }
     }
@@ -20,7 +31,7 @@ export default function TightZoom() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [zoomTight])
+  }, [zoomTight, isFocus, setZoomTight])
 
   return (
     <Tooltip title="Toggle zoom">
@@ -29,8 +40,16 @@ export default function TightZoom() {
         variant="contained"
         style={{ fontSize: "35px", position: "relative" }}
         onClick={() => setZoomTight(!zoomTight)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={() => {
+          if (isFocusedState) {
+            setIsHovered(true)
+          }
+        }}
+        onMouseLeave={() => {
+          if (isFocusedState) {
+            setIsHovered(false)
+          }
+        }}
       >
         {zoomTight ? "🚦" : "⛰️"}
         {isHovered && (

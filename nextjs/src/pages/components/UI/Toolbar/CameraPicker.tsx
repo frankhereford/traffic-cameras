@@ -5,6 +5,7 @@ import Autocomplete from "@mui/material/Autocomplete"
 import TextField from "@mui/material/TextField"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 interface Camera {
   label: string
@@ -19,6 +20,7 @@ export default function CameraPicker() {
   const camera = useCameraStore((state) => state.camera)
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null)
   const queryClient = useQueryClient()
+  const setIsFocus = useAutocompleteFocus((state) => state.setIsFocus)
 
   useEffect(() => {
     const selectedCamera = cameras?.find(
@@ -66,6 +68,14 @@ export default function CameraPicker() {
                   console.log("error: ", error)
                 })
             }
+          }}
+          onFocus={() => {
+            console.log("Autocomplete gained focus")
+            setIsFocus(true)
+          }}
+          onBlur={() => {
+            console.log("Autocomplete lost focus")
+            setIsFocus(false)
           }}
         />
       )}
