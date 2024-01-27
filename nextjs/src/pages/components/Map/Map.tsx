@@ -7,6 +7,8 @@ import CameraLocations from "./Locations/CameraLocations"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import { useMapControls } from "~/pages/hooks/useMapControls"
+import usePendingLocation from "~/pages/hooks/usePendingLocation"
+// import PendingLocation from "./Locations/PendingLocation"
 
 interface MapProps {
   paneWidth: number
@@ -32,6 +34,10 @@ function Map({ socrataData, paneWidth }: MapProps) {
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
   const camera = useCameraStore((state) => state.camera)
   const zoomTight = useMapControls((state) => state.zoomTight)
+
+  const setPendingMapLocationStore = usePendingLocation(
+    (state) => state.setPendingMapLocation,
+  )
 
   useEffect(() => {
     if (!zoomTight && map) {
