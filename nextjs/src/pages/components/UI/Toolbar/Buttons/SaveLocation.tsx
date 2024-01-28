@@ -5,6 +5,7 @@ import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
+import { useLocationControls } from "~/pages/hooks/useLocationControls"
 
 import { api } from "~/utils/api"
 
@@ -31,6 +32,10 @@ export default function SaveLocation() {
     (state) => state.getCorrelatedLocation,
   )
 
+  const setShowLocations = useLocationControls(
+    (state) => state.setShowLocations,
+  )
+
   useEffect(() => {
     if (getCorrelatedLocation()) {
       setShouldRender(true)
@@ -53,6 +58,7 @@ export default function SaveLocation() {
               .catch((error) => {
                 console.log("error: ", error)
               })
+            setShowLocations(true)
           },
         },
       )
@@ -72,7 +78,7 @@ export default function SaveLocation() {
       window.removeEventListener("keydown", handleKeyDown)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFocus])
+  }, [camera, isFocus])
 
   if (!shouldRender) {
     return <></>

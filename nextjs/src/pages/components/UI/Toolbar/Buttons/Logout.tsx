@@ -15,7 +15,6 @@ export default function Logout() {
   }
 
   useEffect(() => {
-    console.log("isFocus:", isFocus)
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isFocus && event.key === "l") {
         handleSignOut()

@@ -70,11 +70,11 @@ export default function CameraPicker() {
             }
           }}
           onFocus={() => {
-            console.log("Autocomplete gained focus")
+            // console.log("Autocomplete gained focus")
             setIsFocus(true)
           }}
           onBlur={() => {
-            console.log("Autocomplete lost focus")
+            // console.log("Autocomplete lost focus")
             setIsFocus(false)
           }}
         />

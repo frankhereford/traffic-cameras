@@ -18,7 +18,7 @@ export default function Location({ location, paneWidth }: LocationProps) {
     position: "absolute",
     left: `${scaledX - 51}px`,
     top: `${scaledY - 4}px`,
-    zIndex: 9999,
+    // zIndex: 9999,
     pointerEvents: "none", // Make the whole component click-through
   }
   const textStyle: React.CSSProperties = {
