@@ -66,6 +66,11 @@ export default function Camera({ paneWidth }: CameraProps) {
       .catch((error) => {
         console.log("error: ", error)
       })
+    queryClient
+      .invalidateQueries([["detection", "getDetections"]])
+      .catch((error) => {
+        console.log("error: ", error)
+      })
     // this is intended to do getCameras, getAllCameras, and getWorkingCameras
     queryClient.invalidateQueries([["camera"]]).catch((error) => {
       console.log("error: ", error)
