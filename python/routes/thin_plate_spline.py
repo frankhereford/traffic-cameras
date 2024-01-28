@@ -39,7 +39,7 @@ def thin_plate_spline(id, db, redis):
     # objects_to_transform = ["person", "car"]
     points_to_transform = torch.tensor(
         [
-            [(d.xMin + d.xMax) / 2, d.yMin]
+            [(d.xMin + d.xMax) / 2, d.yMax]
             for d in image.detections
             # if d.label in objects_to_transform
         ]

@@ -3,10 +3,10 @@ import logging
 from transformers import DetrImageProcessor, DetrForObjectDetection
 import torch
 from PIL import Image
-import base64
-import tempfile
 from io import BytesIO
 import time
+import torch
+from torch_tps import ThinPlateSpline
 
 import redis
 import pickle
@@ -37,6 +37,14 @@ def throttle(func):
     return wrapper
 
 
+def extract_points(locations):
+    cctv_points = torch.tensor([[location.x, location.y] for location in locations])
+    map_points = torch.tensor(
+        [[location.latitude, location.longitude] for location in locations]
+    )
+    return cctv_points, map_points
+
+
 def vision(db, redis):
     while True:
         process_one_image(db, redis)
@@ -48,6 +56,7 @@ def process_one_image(db, redis):
         where={
             "detectionsProcessed": False,
         },
+        include={"camera": True},
     )
     if job is None:
         return
@@ -81,8 +90,6 @@ def process_one_image(db, redis):
         outputs, target_sizes=target_sizes, threshold=0.9
     )[0]
 
-    detected_objects = []
-
     for score, label, box in zip(
         results["scores"], results["labels"], results["boxes"]
     ):
@@ -106,6 +113,59 @@ def process_one_image(db, redis):
                 "imageId": job.id,
             }
         )
+
+    # starting thin plate spline code
+
+    logging.info("starting thin plate spline code")
+    logging.info(job.camera.id)
+
+    camera = db.camera.find_first(
+        where={"id": job.camera.id}, include={"Location": True}
+    )
+
+    cctv_points, map_points = extract_points(camera.Location)
+
+    if len(cctv_points) >= 5:
+        tps = ThinPlateSpline(0.5)
+
+        cctv_points = cctv_points.float()
+        map_points = map_points.float()
+
+        # Fit the surfaces
+        tps.fit(cctv_points, map_points)
+
+        image = db.image.find_first(
+            where={"cameraId": camera.id},
+            include={"detections": True},
+            order={"createdAt": "desc"},
+        )
+        # logging.info(image.detections)
+
+        # objects_to_transform = ["person", "car"]
+        points_to_transform = torch.tensor(
+            [
+                [(d.xMin + d.xMax) / 2, d.yMax]
+                for d in image.detections
+                # if d.label in objects_to_transform
+            ]
+        ).float()
+        # logging.info("points to transform")
+        # logging.info(points_to_transform)
+        transformed_xy = tps.transform(points_to_transform)
+        transformed_xy_list = transformed_xy.tolist()
+        # logging.info("transformed_xy_list")
+        # logging.info(transformed_xy_list)
+        transformed_objects = [
+            {"id": d.id, "latitude": xy[0], "longitude": xy[1]}
+            for d, xy in zip(image.detections, transformed_xy_list)
+        ]
+        # logging.info("transformed_objects")
+        # logging.info(transformed_objects)
+        for obj in transformed_objects:
+            db.detection.update(
+                where={"id": obj["id"]},
+                data={"latitude": obj["latitude"], "longitude": obj["longitude"]},
+            )
 
     db.image.update(
         where={

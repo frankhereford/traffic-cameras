@@ -10,13 +10,14 @@ datasource db {
 }
 
 model Camera {
-  id        String   @id @default(cuid())
-  coaId     Int      @unique
+  id        String     @id @default(cuid())
+  coaId     Int        @unique
   statusId  String?
-  status    Status?  @relation(fields: [statusId], references: [id])
+  status    Status?    @relation(fields: [statusId], references: [id])
   Image     Image[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Location  Location[]
 
   @@map("cameras")
 }
@@ -66,6 +67,22 @@ model Detection {
   @@map("detections")
 }
 
+model Location {
+  id        String   @id @default(cuid())
+  x         Int
+  y         Int
+  latitude  Float
+  longitude Float
+  cameraId  String
+  camera    Camera   @relation(fields: [cameraId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("locations")
+}
+
 // Necessary for Next auth
 model Account {
   id                String  @id @default(cuid())
@@ -97,13 +114,14 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?    @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
+  locations     Location[]
 
   @@map("users")
 }

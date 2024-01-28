@@ -3,9 +3,10 @@ import { Marker, InfoWindow } from "@react-google-maps/api"
 
 type detectionProps = {
   location: { latitude: number; longitude: number }
+  label: string
 }
 
-export default function Detection({ location }: detectionProps) {
+export default function Detection({ location, label }: detectionProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   if (!location) return <></>
@@ -21,7 +22,10 @@ export default function Detection({ location }: detectionProps) {
       {isOpen && (
         <InfoWindow onCloseClick={() => setIsOpen(false)}>
           <div>
-            {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
+            <div>{label}</div>
+            <div>
+              {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
+            </div>
           </div>
         </InfoWindow>
       )}

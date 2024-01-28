@@ -52,7 +52,7 @@ export default function Detections({ camera }: DetectionProps) {
     return <></>
   }
 
-  const validLabels = ["car", "person"] // Define your valid labels here
+  const validLabels = ["car", "person", "bus", "truck", "bicycle", "motorcycle"]
 
   return (
     <>
@@ -62,6 +62,7 @@ export default function Detections({ camera }: DetectionProps) {
         validLabels.includes(detection.label) ? (
           <Detection
             key={detection.id}
+            label={detection.label}
             location={{
               latitude: detection.latitude,
               longitude: detection.longitude,
