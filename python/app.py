@@ -6,6 +6,7 @@ from routes.status import status
 from routes.vision import vision
 from routes.image import image
 
+from routes.thin_plate_spline import thin_plate_spline
 
 app = Flask(__name__)
 
@@ -18,6 +19,11 @@ def status_route():
 @app.route("/image/<int:id>", methods=["GET"])
 def image_route(id):
     return image(id, db, redis)
+
+
+@app.route("/thin-plate-spline/<int:id>", methods=["GET"])
+def thin_plate_spline_route(id):
+    return thin_plate_spline(id, db, redis)
 
 
 def main(mode):
