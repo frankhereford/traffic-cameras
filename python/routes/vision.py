@@ -7,6 +7,9 @@ from io import BytesIO
 import time
 import torch
 from torch_tps import ThinPlateSpline
+import io
+import base64
+
 
 import redis
 import pickle
@@ -99,7 +102,11 @@ def process_one_image(db, redis):
             f"{round(score.item(), 3)} at location {box}"
         )
 
-        print("box: ", box)
+        detected_object = image.crop((box[0], box[1], box[2], box[3]))
+        byte_stream = io.BytesIO()
+        detected_object.save(byte_stream, format="JPEG")
+        byte_stream.seek(0)
+        base64_encoded = base64.b64encode(byte_stream.getvalue()).decode("utf-8")
 
         # box:  [602.06, 217.31, 623.63, 260.28]
         db.detection.create(
@@ -111,13 +118,11 @@ def process_one_image(db, redis):
                 "xMax": box[2],
                 "yMax": box[3],
                 "imageId": job.id,
+                "picture": base64_encoded,
             }
         )
 
     # starting thin plate spline code
-
-    logging.info("starting thin plate spline code")
-    logging.info(job.camera.id)
 
     camera = db.camera.find_first(
         where={"id": job.camera.id}, include={"Location": True}
@@ -139,28 +144,16 @@ def process_one_image(db, redis):
             include={"detections": True},
             order={"createdAt": "desc"},
         )
-        # logging.info(image.detections)
 
-        # objects_to_transform = ["person", "car"]
         points_to_transform = torch.tensor(
-            [
-                [(d.xMin + d.xMax) / 2, d.yMax]
-                for d in image.detections
-                # if d.label in objects_to_transform
-            ]
+            [[(d.xMin + d.xMax) / 2, d.yMax] for d in image.detections]
         ).float()
-        # logging.info("points to transform")
-        # logging.info(points_to_transform)
         transformed_xy = tps.transform(points_to_transform)
         transformed_xy_list = transformed_xy.tolist()
-        # logging.info("transformed_xy_list")
-        # logging.info(transformed_xy_list)
         transformed_objects = [
             {"id": d.id, "latitude": xy[0], "longitude": xy[1]}
             for d, xy in zip(image.detections, transformed_xy_list)
         ]
-        # logging.info("transformed_objects")
-        # logging.info(transformed_objects)
         for obj in transformed_objects:
             db.detection.update(
                 where={"id": obj["id"]},
