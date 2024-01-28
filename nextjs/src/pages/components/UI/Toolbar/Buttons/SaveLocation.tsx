@@ -4,6 +4,7 @@ import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import useCameraStore from "~/pages/hooks/useCameraStore"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { api } from "~/utils/api"
 
@@ -17,6 +18,7 @@ export default function SaveLocation() {
 
   const saveLocation = api.location.saveLocation.useMutation({})
   const camera = useCameraStore((state) => state.camera)
+  const queryClient = useQueryClient()
 
   const setPendingImageLocation = usePendingLocation(
     (state) => state.setPendingImageLocation,
@@ -40,9 +42,20 @@ export default function SaveLocation() {
   const handleClick = () => {
     const correlatedLocation = getCorrelatedLocation()
     if (correlatedLocation && camera) {
-      saveLocation.mutate({ correlatedLocation, camera })
       setPendingImageLocation(null)
       setPendingMapLocation(null)
+      saveLocation.mutate(
+        { correlatedLocation, camera },
+        {
+          onSuccess: () => {
+            queryClient
+              .invalidateQueries([["location", "getLocations"]])
+              .catch((error) => {
+                console.log("error: ", error)
+              })
+          },
+        },
+      )
     }
   }
 
