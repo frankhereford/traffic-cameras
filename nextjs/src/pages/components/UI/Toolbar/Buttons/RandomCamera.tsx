@@ -16,9 +16,22 @@ export default function RandomCamera() {
 
   const [isHovered, setIsHovered] = useState(false)
 
-  const handleClick = () => {
+  const handleClick = (
+    event?: React.MouseEvent<HTMLButtonElement>,
+    {
+      restrictToGeoreferenced = false,
+    }: { restrictToGeoreferenced?: boolean } = {},
+  ) => {
     if (data && !isFocus) {
-      const randomCamera = data[Math.floor(Math.random() * data.length)]!
+      console.log(JSON.stringify(data.slice(0, 2), null, 2)) // This will log the first two elements of data as JSON
+
+      let filteredData = data
+      if (restrictToGeoreferenced) {
+        console.log("restrictToGeoreferenced")
+        filteredData = data.filter((item) => item._count.Location >= 5)
+      }
+      const randomCamera =
+        filteredData[Math.floor(Math.random() * filteredData.length)]!
       const cameraId = randomCamera.coaId
       setCamera(cameraId)
     }
@@ -27,7 +40,9 @@ export default function RandomCamera() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "r") {
-        handleClick()
+        handleClick(undefined, { restrictToGeoreferenced: false })
+      } else if (event.key === "R") {
+        handleClick(undefined, { restrictToGeoreferenced: true })
       }
     }
 
@@ -47,7 +62,9 @@ export default function RandomCamera() {
             className="mb-4 p-0"
             variant="contained"
             style={{ fontSize: "35px", position: "relative" }}
-            onClick={handleClick}
+            onClick={(event) =>
+              handleClick(event, { restrictToGeoreferenced: false })
+            }
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
