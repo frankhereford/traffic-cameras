@@ -61,7 +61,7 @@ model Detection {
   longitude  Float?
   imageId    String
   image      Image    @relation(fields: [imageId], references: [id])
-  picture    String? // New column
+  picture    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
