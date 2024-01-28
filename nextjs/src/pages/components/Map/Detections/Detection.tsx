@@ -23,7 +23,7 @@ export default function Detection({
       icon={{
         url: "http://maps.google.com/mapfiles/ms/icons/yellow.png",
       }}
-      onClick={() => setIsOpen(true)}
+      onClick={() => setIsOpen(!isOpen)}
     >
       {isOpen && (
         <InfoWindow onCloseClick={() => setIsOpen(false)}>

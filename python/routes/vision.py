@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_file
 import logging
 from transformers import DetrImageProcessor, DetrForObjectDetection
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 from io import BytesIO
 import time
 import torch
@@ -102,12 +102,41 @@ def process_one_image(db, redis):
             f"{round(score.item(), 3)} at location {box}"
         )
 
-        detected_object = image.crop((box[0], box[1], box[2], box[3]))
+        # Calculate the width and height of the bounding box
+        width = box[2] - box[0]
+        height = box[3] - box[1]
+
+        # Calculate the padding
+        padding_width = width * 0.2
+        padding_height = height * 0.2
+
+        # Calculate the new bounding box coordinates, ensuring they do not exceed the image boundaries
+        new_box = [
+            max(0, box[0] - padding_width),
+            max(0, box[1] - padding_height),
+            min(image.width, box[2] + padding_width),
+            min(image.height, box[3] + padding_height),
+        ]
+
+        # Crop the image using the new bounding box
+        detected_object = image.crop(new_box)
+
+        # Calculate the relative bounding box coordinates for the cropped image
+        relative_box = [
+            box[0] - new_box[0],
+            box[1] - new_box[1],
+            box[2] - new_box[0],
+            box[3] - new_box[1],
+        ]
+
+        # Draw the bounding box on the cropped image
+        draw = ImageDraw.Draw(detected_object)
+        draw.rectangle(relative_box, outline="red", width=1)
+
         byte_stream = io.BytesIO()
         detected_object.save(byte_stream, format="JPEG")
         byte_stream.seek(0)
         base64_encoded = base64.b64encode(byte_stream.getvalue()).decode("utf-8")
-
         # box:  [602.06, 217.31, 623.63, 260.28]
         db.detection.create(
             data={

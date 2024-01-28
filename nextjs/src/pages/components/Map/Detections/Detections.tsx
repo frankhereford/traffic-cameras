@@ -36,13 +36,13 @@ export default function Detections({ camera }: DetectionProps) {
     }
   }, [detectedObjects, queryClient])
 
-  useEffect(() => {
-    console.log(
-      "detectedObjects: ",
-      JSON.stringify(detectedObjects.data?.detections, null, 2),
-      // detectedObjects.data,
-    )
-  }, [detectedObjects])
+  // useEffect(() => {
+  //   console.log(
+  //     "detectedObjects: ",
+  //     JSON.stringify(detectedObjects.data?.detections, null, 2),
+  //     // detectedObjects.data,
+  //   )
+  // }, [detectedObjects])
 
   if (
     !detectedObjects.data ||
