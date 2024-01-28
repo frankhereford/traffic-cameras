@@ -9,6 +9,7 @@ import { api } from "~/utils/api"
 interface CameraLocationsProps {
   socrataData: SocrataData[]
   bounds: google.maps.LatLngBounds
+  zoom: number | undefined
 }
 
 const statusColors: Record<string, string> = {
@@ -20,6 +21,7 @@ const statusColors: Record<string, string> = {
 export default function CameraLocations({
   bounds,
   socrataData,
+  zoom,
 }: CameraLocationsProps) {
   const [filteredData, setFilteredData] = useState<SocrataData[]>([])
   const [markers, setMarkers] = useState<JSX.Element[] | null>()
@@ -89,5 +91,8 @@ export default function CameraLocations({
     }
   }, [filteredData, cameraMap, setCamera])
 
+  if (zoom && zoom > 19) {
+    return <></>
+  }
   return <>{markers}</>
 }

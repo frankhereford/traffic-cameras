@@ -123,7 +123,11 @@ function Map({ socrataData, paneWidth }: MapProps) {
       }}
     >
       {bounds && socrataData && (
-        <CameraLocations bounds={bounds} socrataData={socrataData} />
+        <CameraLocations
+          bounds={bounds}
+          socrataData={socrataData}
+          zoom={map?.getZoom()}
+        />
       )}
       {mapLocation && <PendingLocation location={pendingMapLocation} />}{" "}
       {camera && <Locations camera={camera} />}

@@ -36,7 +36,6 @@ export const locationRouter = createTRPCRouter({
           },
         },
       })
-      return true
     }),
   getLocations: protectedProcedure
     .input(z.object({ camera: z.number() }))
@@ -48,5 +47,15 @@ export const locationRouter = createTRPCRouter({
         where: { cameraId: camera.id, userId: ctx.session.user.id },
       })
       return locations
+    }),
+  resetLocations: protectedProcedure
+    .input(z.object({ camera: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const camera = await ctx.db.camera.findFirstOrThrow({
+        where: { coaId: input.camera },
+      })
+      await ctx.db.location.deleteMany({
+        where: { cameraId: camera.id, userId: ctx.session.user.id },
+      })
     }),
 })
