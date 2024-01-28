@@ -4,7 +4,7 @@ import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
-export default function TightZoom() {
+export default function ToggleMapFollow() {
   const zoomTight = useMapControls((state) => state.zoomTight)
   const setZoomTight = useMapControls((state) => state.setZoomTight)
   const [isHovered, setIsHovered] = useState(false)
