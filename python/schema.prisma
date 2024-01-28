@@ -57,6 +57,8 @@ model Detection {
   xMax       Int
   yMin       Int
   yMax       Int
+  latitude   Float?
+  longitude  Float?
   imageId    String
   image      Image    @relation(fields: [imageId], references: [id])
   createdAt  DateTime @default(now())

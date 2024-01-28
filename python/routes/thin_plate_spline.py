@@ -36,26 +36,30 @@ def thin_plate_spline(id, db, redis):
     )
     # logging.info(image.detections)
 
-    objects_to_transform = ["person", "car"]
+    # objects_to_transform = ["person", "car"]
     points_to_transform = torch.tensor(
         [
             [(d.xMin + d.xMax) / 2, d.yMin]
             for d in image.detections
-            if d.label in objects_to_transform
+            # if d.label in objects_to_transform
         ]
     ).float()
-    # test_points = torch.tensor([[d["x"], d["y"]] for d in data["labels"]]).float()
+    # logging.info("points to transform")
+    # logging.info(points_to_transform)
     transformed_xy = tps.transform(points_to_transform)
     transformed_xy_list = transformed_xy.tolist()
+    # logging.info("transformed_xy_list")
+    # logging.info(transformed_xy_list)
     transformed_objects = [
         {"id": d.id, "latitude": xy[0], "longitude": xy[1]}
         for d, xy in zip(image.detections, transformed_xy_list)
-        if d.label in objects_to_transform
     ]
-    logging.info(transformed_objects)
-    # logging.info(json.dumps(transformed_points, indent=2))
+    # logging.info("transformed_objects")
+    # logging.info(transformed_objects)
+    for obj in transformed_objects:
+        db.detection.update(
+            where={"id": obj["id"]},
+            data={"latitude": obj["latitude"], "longitude": obj["longitude"]},
+        )
 
-    # logging.info(f"cctv_points: {cctv_points}")
-    # logging.info(f"cctv_points: {map_points}")
-
-    return "hi"
+    return json.dumps(transformed_objects)
