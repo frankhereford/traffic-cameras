@@ -36,13 +36,13 @@ export default function Detections({ camera }: DetectionProps) {
     }
   }, [detectedObjects, queryClient])
 
-  useEffect(() => {
-    console.log(
-      "detectedObjects: ",
-      JSON.stringify(detectedObjects.data?.detections, null, 2),
-      // detectedObjects.data,
-    )
-  }, [detectedObjects])
+  // useEffect(() => {
+  //   console.log(
+  //     "detectedObjects: ",
+  //     JSON.stringify(detectedObjects.data?.detections, null, 2),
+  //     // detectedObjects.data,
+  //   )
+  // }, [detectedObjects])
 
   if (
     !detectedObjects.data ||
@@ -59,10 +59,12 @@ export default function Detections({ camera }: DetectionProps) {
       {detectedObjects.data.detections.map((detection) =>
         typeof detection.latitude === "number" &&
         typeof detection.longitude === "number" &&
+        typeof detection.picture === "string" &&
         validLabels.includes(detection.label) ? (
           <Detection
             key={detection.id}
             label={detection.label}
+            picture={detection.picture}
             location={{
               latitude: detection.latitude,
               longitude: detection.longitude,
