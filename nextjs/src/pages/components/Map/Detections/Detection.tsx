@@ -6,12 +6,14 @@ type detectionProps = {
   location: { latitude: number; longitude: number }
   label: string
   picture: string
+  color?: string
 }
 
 export default function Detection({
   location,
   label,
   picture,
+  color = "yellow",
 }: detectionProps) {
   const [isOpen, setIsOpen] = useState(false)
 
@@ -21,7 +23,7 @@ export default function Detection({
     <Marker
       position={{ lat: location.latitude, lng: location.longitude }}
       icon={{
-        url: "http://maps.google.com/mapfiles/ms/icons/yellow.png",
+        url: `http://maps.google.com/mapfiles/ms/icons/${color}.png`,
       }}
       onClick={() => setIsOpen(!isOpen)}
     >
