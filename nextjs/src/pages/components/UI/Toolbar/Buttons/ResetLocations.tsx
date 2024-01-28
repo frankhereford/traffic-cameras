@@ -1,51 +1,31 @@
 import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
-import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
-import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import useCameraStore from "~/pages/hooks/useCameraStore"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { api } from "~/utils/api"
 
-export default function SaveLocation() {
+export default function Previous() {
+  const camera = useCameraStore((state) => state.camera)
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
-
-  const imageLocation = usePendingLocation((state) => state.imageLocation)
-  const mapLocation = usePendingLocation((state) => state.mapLocation)
-  const [shouldRender, setShouldRender] = useState(false)
-
-  const saveLocation = api.location.saveLocation.useMutation({})
-  const camera = useCameraStore((state) => state.camera)
+  const resetLocations = api.location.resetLocations.useMutation({})
+  const locations = api.location.getLocations.useQuery(
+    {
+      camera: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  )
   const queryClient = useQueryClient()
 
-  const setPendingImageLocation = usePendingLocation(
-    (state) => state.setPendingImageLocation,
-  )
-  const setPendingMapLocation = usePendingLocation(
-    (state) => state.setPendingMapLocation,
-  )
-
-  const getCorrelatedLocation = usePendingLocation(
-    (state) => state.getCorrelatedLocation,
-  )
-
-  useEffect(() => {
-    if (getCorrelatedLocation()) {
-      setShouldRender(true)
-    } else {
-      setShouldRender(false)
-    }
-  }, [getCorrelatedLocation, imageLocation, mapLocation])
-
   const handleClick = () => {
-    const correlatedLocation = getCorrelatedLocation()
-    if (correlatedLocation && camera) {
-      setPendingImageLocation(null)
-      setPendingMapLocation(null)
-      saveLocation.mutate(
-        { correlatedLocation, camera },
+    if (camera) {
+      resetLocations.mutate(
+        { camera: camera },
         {
           onSuccess: () => {
             queryClient
@@ -61,7 +41,7 @@ export default function SaveLocation() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "s") {
+      if (event.key === "e") {
         handleClick()
       }
     }
@@ -72,14 +52,14 @@ export default function SaveLocation() {
       window.removeEventListener("keydown", handleKeyDown)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFocus])
+  }, [camera, isFocus])
 
-  if (!shouldRender) {
-    return <></>
-  }
+  if (locations.isLoading) return <></>
+  if (locations.isError) return <></>
+  if (locations.data.length === 0) return <></>
 
   return (
-    <Tooltip title="Save Location">
+    <Tooltip title="Reset correlated points">
       <Button
         className="mb-4 p-0"
         variant="contained"
@@ -88,7 +68,7 @@ export default function SaveLocation() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        📌
+        🧹
         {isHovered && (
           <span
             style={{
@@ -100,7 +80,7 @@ export default function SaveLocation() {
               opacity: 0.15,
             }}
           >
-            s
+            e
           </span>
         )}
       </Button>

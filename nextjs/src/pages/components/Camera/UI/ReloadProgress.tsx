@@ -23,7 +23,7 @@ export default function ReloadProgress({ progress }: Props) {
   })
 
   return (
-    <Box sx={{ width: "100%", marginTop: "-2px" }}>
+    <Box sx={{ width: "100%", maxWidth: "1920px", marginTop: "-2px" }}>
       <ThemeProvider theme={theme}>
         <LinearProgress
           variant="determinate"

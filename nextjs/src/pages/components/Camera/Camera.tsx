@@ -6,6 +6,7 @@ import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import PendingLocation from "./Locations/PendingLocation"
 import ReloadProgress from "./UI/ReloadProgress"
+import Locations from "~/pages/components/Camera/Locations/Locations"
 interface CameraProps {
   paneWidth: number
 }
@@ -14,6 +15,7 @@ export default function Camera({ paneWidth }: CameraProps) {
   const camera = useCameraStore((state) => state.camera)
   const [imageKey, setImageKey] = useState(Date.now())
   const queryClient = useQueryClient()
+  // ? do i really need to keep this in state, or can i just use the store?
   const [pendingImageLocation, setPendingImageLocation] = useState<{
     x: number
     y: number
@@ -69,6 +71,7 @@ export default function Camera({ paneWidth }: CameraProps) {
       console.log("error: ", error)
     })
 
+    // TODO: really, we should do this on camera change, not image load.
     setPendingImageLocation(null)
     setPendingImageLocationStore(null)
     setPendingMapLocation(null)
@@ -108,13 +111,14 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onClick={handleImageClick}
               />
               <ReloadProgress progress={100 - reloadPercentage} />
-              {imageLocation && (
+              {imageLocation && pendingImageLocation && (
                 <PendingLocation
                   paneWidth={paneWidth}
                   location={pendingImageLocation}
                 />
               )}
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
+              <Locations camera={camera} paneWidth={paneWidth} />
             </div>
           </>
         )}
