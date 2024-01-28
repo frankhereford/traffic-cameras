@@ -2,13 +2,11 @@ import React from "react"
 import Typography from "@mui/material/Typography"
 
 type Props = {
-  location: { x: number; y: number } | null
+  location: { x: number; y: number }
   paneWidth: number
 }
 
 export default function PendingLocation({ location, paneWidth }: Props) {
-  if (!location) return <></>
-
   // Understand that paneWidth never exceeds 1920
   paneWidth = paneWidth > 1920 ? 1920 : paneWidth
 
