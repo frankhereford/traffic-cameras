@@ -1,12 +1,11 @@
-import Location from "~/pages/components/Camera/Locations/Location"
+import Location from "~/pages/components/Map/Locations/Location"
 import { api } from "~/utils/api"
 
 interface LocationsProps {
-  paneWidth: number
   camera: number
 }
 
-export default function Locations({ paneWidth, camera }: LocationsProps) {
+export default function Locations({ camera }: LocationsProps) {
   const locations = api.location.getLocations.useQuery({
     camera,
   })
@@ -19,8 +18,10 @@ export default function Locations({ paneWidth, camera }: LocationsProps) {
       {locations.data.map((location) => (
         <Location
           key={location.id}
-          location={{ x: location.x, y: location.y }}
-          paneWidth={paneWidth}
+          location={{
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }}
         />
       ))}
     </>

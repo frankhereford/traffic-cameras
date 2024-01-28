@@ -1,12 +1,12 @@
 import React from "react"
 import Typography from "@mui/material/Typography"
 
-type Props = {
+type LocationProps = {
   location: { x: number; y: number }
   paneWidth: number
 }
 
-export default function Location({ location, paneWidth }: Props) {
+export default function Location({ location, paneWidth }: LocationProps) {
   // Understand that paneWidth never exceeds 1920
   paneWidth = paneWidth > 1920 ? 1920 : paneWidth
 

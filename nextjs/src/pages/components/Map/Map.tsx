@@ -9,6 +9,7 @@ import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import { useMapControls } from "~/pages/hooks/useMapControls"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
+import Locations from "~/pages/components/Map/Locations/Locations"
 
 interface MapProps {
   paneWidth: number
@@ -125,6 +126,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
         <CameraLocations bounds={bounds} socrataData={socrataData} />
       )}
       {mapLocation && <PendingLocation location={pendingMapLocation} />}{" "}
+      {camera && <Locations camera={camera} />}
     </GoogleMap>
   ) : (
     <></>
