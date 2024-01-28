@@ -40,6 +40,9 @@ export const cameraRouter = createTRPCRouter({
         },
         include: {
           status: true,
+          _count: {
+            select: { Location: true },
+          },
         },
       })
       return cameras
