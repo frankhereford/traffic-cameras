@@ -4,6 +4,7 @@ import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
+import Badge from "@mui/material/Badge"
 
 import { api } from "~/utils/api"
 
@@ -41,32 +42,40 @@ export default function ToggleLocations() {
   if (locations.isError) return <></>
   if (locations.data.length === 0) return <></>
 
-  return (
-    <Tooltip title="Toggle correlated points">
-      <Button
-        className="mb-4 p-0"
-        variant="contained"
-        style={{ fontSize: "35px", position: "relative" }}
-        onClick={() => setShowLocations(!showLocations)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {showLocations ? "📍" : "️🗺️"}
-        {isHovered && (
-          <span
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              fontSize: "50px",
-              opacity: 0.15,
-            }}
-          >
-            p
-          </span>
-        )}
-      </Button>
-    </Tooltip>
+  let button = (
+    <Button
+      className="mb-4 p-0"
+      variant="contained"
+      style={{ fontSize: "35px", position: "relative" }}
+      onClick={() => setShowLocations(!showLocations)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {showLocations ? "📍" : "️🗺️"}
+      {isHovered && (
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            fontSize: "50px",
+            opacity: 0.15,
+          }}
+        >
+          p
+        </span>
+      )}
+    </Button>
   )
+
+  if (showLocations) {
+    button = (
+      <Badge badgeContent={locations.data.length} color="primary" max={1000}>
+        {button}
+      </Badge>
+    )
+  }
+
+  return <Tooltip title="Toggle correlated points">{button}</Tooltip>
 }
