@@ -5,7 +5,12 @@ export type Location = {
   mapLocation: [number, number] | null
   getPendingImageLocation: () => { x: number; y: number } | null
   getPendingMapLocation: () => { latitude: number; longitude: number } | null
-  getCorrelatedLocation: () => { x: number; y: number } | null
+  getCorrelatedLocation: () => {
+    x: number
+    y: number
+    latitude: number
+    longitude: number
+  } | null
   setPendingImageLocation: (location: { x: number; y: number } | null) => void
   setPendingMapLocation: (
     location: {
@@ -53,6 +58,7 @@ export const usePendingLocation = create<Location>((set, get) => {
         set({ imageLocation: [location.x, location.y] })
       }
     },
+
     setPendingMapLocation: (
       location: {
         latitude: number

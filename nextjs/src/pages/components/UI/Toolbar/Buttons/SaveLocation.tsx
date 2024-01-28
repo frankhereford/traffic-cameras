@@ -3,15 +3,20 @@ import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
+import useCameraStore from "~/pages/hooks/useCameraStore"
+
+import { api } from "~/utils/api"
 
 export default function SaveLocation() {
   const [isHovered, setIsHovered] = useState(false)
-  // if the autocomplete has focus, this turns true, so we can suppress the keyboard shortcut
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
 
   const imageLocation = usePendingLocation((state) => state.imageLocation)
   const mapLocation = usePendingLocation((state) => state.mapLocation)
   const [shouldRender, setShouldRender] = useState(false)
+
+  const saveLocation = api.location.saveLocation.useMutation({})
+  const camera = useCameraStore((state) => state.camera)
 
   const setPendingImageLocation = usePendingLocation(
     (state) => state.setPendingImageLocation,
@@ -33,8 +38,12 @@ export default function SaveLocation() {
   }, [getCorrelatedLocation, imageLocation, mapLocation])
 
   const handleClick = () => {
-    setPendingImageLocation(null)
-    setPendingMapLocation(null)
+    const correlatedLocation = getCorrelatedLocation()
+    if (correlatedLocation && camera) {
+      saveLocation.mutate({ correlatedLocation, camera })
+      setPendingImageLocation(null)
+      setPendingMapLocation(null)
+    }
   }
 
   useEffect(() => {
