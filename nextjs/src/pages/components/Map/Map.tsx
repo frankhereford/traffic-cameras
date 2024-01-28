@@ -43,6 +43,8 @@ function Map({ socrataData, paneWidth }: MapProps) {
     (state) => state.setPendingMapLocation,
   )
 
+  const mapLocation = usePendingLocation((state) => state.mapLocation)
+
   useEffect(() => {
     if (!zoomTight && map) {
       map.setZoom(zoomTight ? maxZoom : 14)
@@ -90,6 +92,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
         }
       }
       setBounds(map?.getBounds() ?? null)
+      // Reset the pending map location when the camera changes
+      setPendingMapLocation(null)
+      setPendingMapLocationStore(null)
     }
   }, [camera, map, data, zoomTight])
 
@@ -119,7 +124,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
       {bounds && socrataData && (
         <CameraLocations bounds={bounds} socrataData={socrataData} />
       )}
-      <PendingLocation location={pendingMapLocation} />
+      {mapLocation && <PendingLocation location={pendingMapLocation} />}{" "}
     </GoogleMap>
   ) : (
     <></>

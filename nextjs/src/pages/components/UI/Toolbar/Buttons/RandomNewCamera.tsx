@@ -4,6 +4,7 @@ import Button from "@mui/material/Button"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import Badge from "@mui/material/Badge"
+import Tooltip from "@mui/material/Tooltip"
 
 import { api } from "~/utils/api"
 
@@ -61,16 +62,18 @@ export default function RandomNewCamera() {
   return (
     <>
       {cameraData && socrataData && (
-        <Badge badgeContent={newCameraCount} color="primary" max={1000}>
-          <Button
-            className="mb-4 p-0"
-            variant="contained"
-            style={{ fontSize: "35px" }}
-            onClick={handleClick}
-          >
-            🛰️
-          </Button>
-        </Badge>
+        <Tooltip title="Save Location">
+          <Badge badgeContent={newCameraCount} color="primary" max={1000}>
+            <Button
+              className="mb-4 p-0"
+              variant="contained"
+              style={{ fontSize: "35px" }}
+              onClick={handleClick}
+            >
+              🛰️
+            </Button>
+          </Badge>
+        </Tooltip>
       )}
     </>
   )

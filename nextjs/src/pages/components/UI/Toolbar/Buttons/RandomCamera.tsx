@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import Tooltip from "@mui/material/Tooltip"
 
 import { api } from "~/utils/api"
 
@@ -41,30 +42,32 @@ export default function RandomCamera() {
   return (
     <>
       {data && data.length > 0 && (
-        <Button
-          className="mb-4 p-0"
-          variant="contained"
-          style={{ fontSize: "35px", position: "relative" }}
-          onClick={handleClick}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          🎯
-          {isHovered && (
-            <span
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                fontSize: "50px",
-                opacity: 0.15,
-              }}
-            >
-              r
-            </span>
-          )}
-        </Button>
+        <Tooltip title="Random camera">
+          <Button
+            className="mb-4 p-0"
+            variant="contained"
+            style={{ fontSize: "35px", position: "relative" }}
+            onClick={handleClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            🎯
+            {isHovered && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  fontSize: "50px",
+                  opacity: 0.15,
+                }}
+              >
+                r
+              </span>
+            )}
+          </Button>
+        </Tooltip>
       )}
     </>
   )

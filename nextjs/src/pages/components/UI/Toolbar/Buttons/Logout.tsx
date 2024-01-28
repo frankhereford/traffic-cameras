@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import { signOut } from "next-auth/react"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import Tooltip from "@mui/material/Tooltip"
 
 export default function Logout() {
   const [isHovered, setIsHovered] = useState(false)
@@ -17,7 +18,6 @@ export default function Logout() {
     console.log("isFocus:", isFocus)
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isFocus && event.key === "l") {
-        debugger
         handleSignOut()
       }
     }
@@ -30,29 +30,31 @@ export default function Logout() {
   }, [isFocus])
 
   return (
-    <Button
-      className="mb-4 p-0"
-      variant="contained"
-      style={{ fontSize: "35px", position: "relative" }}
-      onClick={handleSignOut}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      ✌️
-      {isHovered && (
-        <span
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            fontSize: "50px",
-            opacity: 0.15,
-          }}
-        >
-          l
-        </span>
-      )}
-    </Button>
+    <Tooltip title="Sign out">
+      <Button
+        className="mb-4 p-0"
+        variant="contained"
+        style={{ fontSize: "35px", position: "relative" }}
+        onClick={handleSignOut}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        ✌️
+        {isHovered && (
+          <span
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              fontSize: "50px",
+              opacity: 0.15,
+            }}
+          >
+            l
+          </span>
+        )}
+      </Button>
+    </Tooltip>
   )
 }

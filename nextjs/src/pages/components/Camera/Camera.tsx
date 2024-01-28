@@ -24,6 +24,11 @@ export default function Camera({ paneWidth }: CameraProps) {
   const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
   )
+  const setPendingMapLocation = usePendingLocation(
+    (state) => state.setPendingMapLocation,
+  )
+
+  const imageLocation = usePendingLocation((state) => state.imageLocation)
 
   // make sure we always get a fresh image
   useEffect(() => {
@@ -63,20 +68,10 @@ export default function Camera({ paneWidth }: CameraProps) {
     queryClient.invalidateQueries([["camera"]]).catch((error) => {
       console.log("error: ", error)
     })
-    // queryClient.invalidateQueries([["camera", "getCameras"]]).catch((error) => {
-    //   console.log("error: ", error)
-    // })
-    // queryClient
-    //   .invalidateQueries([["camera", "getAllCameras"]])
-    //   .catch((error) => {
-    //     console.log("error: ", error)
-    //   })
-    // queryClient
-    //   .invalidateQueries([["camera", "getWorkingCameras"]])
-    //   .catch((error) => {
-    //     console.log("error: ", error)
-    //   })
+
     setPendingImageLocation(null)
+    setPendingImageLocationStore(null)
+    setPendingMapLocation(null)
   }
 
   const handleImageClick = (
@@ -113,10 +108,12 @@ export default function Camera({ paneWidth }: CameraProps) {
                 onClick={handleImageClick}
               />
               <ReloadProgress progress={100 - reloadPercentage} />
-              <PendingLocation
-                paneWidth={paneWidth}
-                location={pendingImageLocation}
-              />
+              {imageLocation && (
+                <PendingLocation
+                  paneWidth={paneWidth}
+                  location={pendingImageLocation}
+                />
+              )}
               <BoundingBoxes camera={camera} paneWidth={paneWidth} />
             </div>
           </>

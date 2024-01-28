@@ -1,4 +1,5 @@
 import { cameraRouter } from "~/server/api/routers/camera"
+import { locationRouter } from "~/server/api/routers/location"
 import { imageRouter } from "~/server/api/routers/image"
 import { createTRPCRouter } from "~/server/api/trpc"
 
@@ -10,6 +11,7 @@ import { createTRPCRouter } from "~/server/api/trpc"
 export const appRouter = createTRPCRouter({
   camera: cameraRouter,
   image: imageRouter,
+  location: locationRouter,
 })
 
 // export type definition of API
