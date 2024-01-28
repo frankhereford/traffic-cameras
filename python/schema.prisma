@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:password@postgis:5430/cameras"
+  url      = "postgresql://postgres:password@postgis:5432/cameras"
 }
 
 model Camera {
