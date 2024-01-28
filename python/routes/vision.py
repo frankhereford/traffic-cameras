@@ -177,17 +177,19 @@ def process_one_image(db, redis):
         points_to_transform = torch.tensor(
             [[(d.xMin + d.xMax) / 2, d.yMax] for d in image.detections]
         ).float()
-        transformed_xy = tps.transform(points_to_transform)
-        transformed_xy_list = transformed_xy.tolist()
-        transformed_objects = [
-            {"id": d.id, "latitude": xy[0], "longitude": xy[1]}
-            for d, xy in zip(image.detections, transformed_xy_list)
-        ]
-        for obj in transformed_objects:
-            db.detection.update(
-                where={"id": obj["id"]},
-                data={"latitude": obj["latitude"], "longitude": obj["longitude"]},
-            )
+
+        if points_to_transform.shape[0] > 0:
+            transformed_xy = tps.transform(points_to_transform)
+            transformed_xy_list = transformed_xy.tolist()
+            transformed_objects = [
+                {"id": d.id, "latitude": xy[0], "longitude": xy[1]}
+                for d, xy in zip(image.detections, transformed_xy_list)
+            ]
+            for obj in transformed_objects:
+                db.detection.update(
+                    where={"id": obj["id"]},
+                    data={"latitude": obj["latitude"], "longitude": obj["longitude"]},
+                )
 
     db.image.update(
         where={
