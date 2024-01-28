@@ -23,11 +23,8 @@ export default function RandomCamera() {
     }: { restrictToGeoreferenced?: boolean } = {},
   ) => {
     if (data && !isFocus) {
-      console.log(JSON.stringify(data.slice(0, 2), null, 2)) // This will log the first two elements of data as JSON
-
       let filteredData = data
       if (restrictToGeoreferenced) {
-        console.log("restrictToGeoreferenced")
         filteredData = data.filter((item) => item._count.Location >= 5)
       }
       const randomCamera =

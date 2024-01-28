@@ -65,6 +65,7 @@ export default function Detections({ camera }: DetectionProps) {
             key={detection.id}
             label={detection.label}
             picture={detection.picture}
+            color={detection.isInsideConvexHull ? "yellow" : "grey"}
             location={{
               latitude: detection.latitude,
               longitude: detection.longitude,

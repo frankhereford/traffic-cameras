@@ -9,6 +9,11 @@ import torch
 from torch_tps import ThinPlateSpline
 import io
 import base64
+import json
+
+from scipy.spatial import ConvexHull
+from matplotlib.path import Path
+import numpy as np
 
 
 import redis
@@ -23,6 +28,25 @@ processor = DetrImageProcessor.from_pretrained(
 model = DetrForObjectDetection.from_pretrained(
     "facebook/detr-resnet-101", revision="no_timm"
 )
+
+
+def is_point_in_hull(hull, point):
+    hull_path = Path(hull.points[hull.vertices])
+    return hull_path.contains_point(point)
+
+
+def check_point_in_camera_location(camera, point):
+    locations = camera.Location
+    points = np.array([[location.x, location.y] for location in locations])
+
+    if len(points.shape) > 1 and points.shape[1] >= 2:
+        hull = ConvexHull(points)
+        return is_point_in_hull(hull, point)
+    else:
+        print(
+            "Cannot create a convex hull because the points do not have at least two dimensions."
+        )
+        return False
 
 
 def throttle(func):
@@ -67,6 +91,12 @@ def process_one_image(db, redis):
     print(job.hash)
 
     key = f"images:{job.hash}"
+
+    camera = db.camera.find_first(
+        where={"id": job.camera.id}, include={"Location": True}
+    )
+
+    # print(camera.Location)
 
     if redis.exists(key):
         serialized_data = redis.get(key)
@@ -137,7 +167,17 @@ def process_one_image(db, redis):
         detected_object.save(byte_stream, format="JPEG")
         byte_stream.seek(0)
         base64_encoded = base64.b64encode(byte_stream.getvalue()).decode("utf-8")
-        # box:  [602.06, 217.31, 623.63, 260.28]
+
+        # Calculate the center point of the bounding box
+        center_x = (box[0] + box[2]) / 2
+        center_y = (box[1] + box[3]) / 2
+        point = (center_x, center_y)
+
+        is_in_hull = check_point_in_camera_location(camera, point)
+        logging.info(
+            f"The point {point} is {'inside' if is_in_hull else 'outside'} the convex hull."
+        )
+
         db.detection.create(
             data={
                 "label": model.config.id2label[label.item()],
@@ -148,6 +188,7 @@ def process_one_image(db, redis):
                 "yMax": box[3],
                 "imageId": job.id,
                 "picture": base64_encoded,
+                "isInsideConvexHull": is_in_hull,
             }
         )
 
