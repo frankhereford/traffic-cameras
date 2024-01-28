@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify, send_file
+from flask import send_file
 import requests
 import logging
-from transformers import DetrImageProcessor, DetrForObjectDetection
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 import requests
 from io import BytesIO
 from PIL import Image
