@@ -38,7 +38,6 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
     NEXT_PUBLIC_GOOGLE_MAP_API_KEY: z.string(),
   },
 

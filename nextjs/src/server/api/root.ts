@@ -1,7 +1,8 @@
-import { cameraRouter } from "~/server/api/routers/camera";
-import { correlatedPointsRouter } from "~/server/api/routers/correlatedpoint";
-import { visionRouter } from "~/server/api/routers/vision";
-import { createTRPCRouter } from "~/server/api/trpc";
+import { cameraRouter } from "~/server/api/routers/camera"
+import { locationRouter } from "~/server/api/routers/location"
+import { imageRouter } from "~/server/api/routers/image"
+import { detectionRouter } from "./routers/detection"
+import { createTRPCRouter } from "~/server/api/trpc"
 
 /**
  * This is the primary router for your server.
@@ -10,9 +11,10 @@ import { createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   camera: cameraRouter,
-  correlatedPoints: correlatedPointsRouter,
-  vision: visionRouter,
-});
+  image: imageRouter,
+  location: locationRouter,
+  detection: detectionRouter,
+})
 
 // export type definition of API
-export type AppRouter = typeof appRouter;
+export type AppRouter = typeof appRouter

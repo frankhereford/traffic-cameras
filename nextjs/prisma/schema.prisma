@@ -8,49 +8,78 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Instance {
-    id        String   @id @default(cuid())
-    cameraId  String
-    hex       String?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    camera    Camera   @relation(fields: [cameraId], references: [id])
-}
-
 model Camera {
-    id               String            @id @default(cuid())
-    cameraId         Int
-    user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-    status           Status?           @relation(fields: [statusId], references: [id])
-    instances        Instance[]
-    correlatedPoints CorrelatedPoint[]
-    userId           String
-    statusId         String?
-    createdAt        DateTime          @default(now())
-    updatedAt        DateTime          @updatedAt
+    id        String     @id @default(cuid())
+    coaId     Int        @unique
+    statusId  String?
+    status    Status?    @relation(fields: [statusId], references: [id])
+    Image     Image[]
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+    Location  Location[]
 
-    @@unique([cameraId, userId])
-}
-
-model CorrelatedPoint {
-    id           String   @id @default(cuid())
-    cameraX      Int
-    cameraY      Int
-    mapLatitude  Float
-    mapLongitude Float
-    camera       Camera   @relation(fields: [cameraId], references: [id])
-    cameraId     String
-    createdAt    DateTime @default(now())
-    updatedAt    DateTime @updatedAt
+    @@map("cameras")
 }
 
 model Status {
     id        String   @id @default(cuid())
-    Cameras   Camera[]
-    name      String
-    slug      String   @unique
+    name      String   @unique
+    cameras   Camera[]
+    images    Image[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@map("statuses")
+}
+
+model Image {
+    id                  String      @id @default(cuid())
+    hash                String      @unique
+    cameraId            String
+    camera              Camera      @relation(fields: [cameraId], references: [id])
+    statusId            String?
+    status              Status?     @relation(fields: [statusId], references: [id])
+    detectionsProcessed Boolean     @default(false)
+    detections          Detection[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("images")
+}
+
+model Detection {
+    id         String   @id @default(cuid())
+    label      String
+    confidence Float
+    xMin       Int
+    xMax       Int
+    yMin       Int
+    yMax       Int
+    latitude   Float?
+    longitude  Float?
+    imageId    String
+    image      Image    @relation(fields: [imageId], references: [id])
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+
+    @@map("detections")
+}
+
+model Location {
+    id        String   @id @default(cuid())
+    x         Int
+    y         Int
+    latitude  Float
+    longitude Float
+    cameraId  String
+    camera    Camera   @relation(fields: [cameraId], references: [id])
+    userId    String
+    user      User     @relation(fields: [userId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("locations")
 }
 
 // Necessary for Next auth
@@ -70,6 +99,7 @@ model Account {
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
+    @@map("accounts")
 }
 
 model Session {
@@ -78,17 +108,21 @@ model Session {
     userId       String
     expires      DateTime
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("sessions")
 }
 
 model User {
-    id            String    @id @default(cuid())
+    id            String     @id @default(cuid())
     name          String?
-    email         String?   @unique
+    email         String?    @unique
     emailVerified DateTime?
     image         String?
     accounts      Account[]
     sessions      Session[]
-    Camera        Camera[]
+    locations     Location[]
+
+    @@map("users")
 }
 
 model VerificationToken {
@@ -97,4 +131,5 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+    @@map("verification_tokens")
 }
