@@ -1,5 +1,4 @@
 import CameraPicker from "~/pages/components/UI/Toolbar/CameraPicker"
-// import PickedPoints from "./pickedpoints"
 import Draggable from "react-draggable"
 import ToggleMapFollow from "~/pages/components/UI/Toolbar/Buttons/ToggleMapFollow"
 import RandomCamera from "~/pages/components/UI/Toolbar/Buttons/RandomCamera"
@@ -7,19 +6,20 @@ import RandomNewCamera from "./Buttons/RandomNewCamera"
 import Logout from "./Buttons/Logout"
 import Previous from "./Buttons/Previous"
 import SaveLocation from "./Buttons/SaveLocation"
+import ToggleLocations from "./Buttons/ToggleLocations"
 
 export default function ToolPanel() {
   return (
     <>
       <Draggable>
         <div className="top-25 right-25 absolute z-50 w-[480px] rounded-lg bg-stone-50 pb-6 pl-[20px] pt-6">
-          {/* <PickedPoints /> */}
           <div className="flex justify-center space-x-4">
             <ToggleMapFollow />
             <RandomCamera />
             <RandomNewCamera />
             <Previous />
             <SaveLocation />
+            <ToggleLocations />
             <Logout />
           </div>
           <CameraPicker />

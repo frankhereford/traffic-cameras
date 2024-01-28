@@ -1,3 +1,4 @@
+import useLocationControls from "~/pages/hooks/useLocationControls"
 import Location from "~/pages/components/Camera/Locations/Location"
 import { api } from "~/utils/api"
 
@@ -10,9 +11,11 @@ export default function Locations({ paneWidth, camera }: LocationsProps) {
   const locations = api.location.getLocations.useQuery({
     camera,
   })
+  const showLocations = useLocationControls((state) => state.showLocations)
 
   if (locations.isLoading) return <></>
   if (locations.isError) return <></>
+  if (!showLocations) return <></>
 
   return (
     <>
