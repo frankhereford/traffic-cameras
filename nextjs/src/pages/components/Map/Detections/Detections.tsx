@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import Detection from "./Detection"
 import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
-import useCameraStore from "~/pages/hooks/useCameraStore"
 
 interface DetectionProps {
   camera: number
