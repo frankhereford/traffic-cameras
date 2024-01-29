@@ -1,19 +1,18 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import React, { useState, useEffect, useCallback } from "react"
-import { GoogleMap, useJsApiLoader } from "@react-google-maps/api"
-
-import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import CameraLocations from "./Locations/CameraLocations"
-import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
-import { useMapControls } from "~/pages/hooks/useMapControls"
-import usePendingLocation from "~/pages/hooks/usePendingLocation"
-import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
-import Locations from "~/pages/components/Map/Locations/Locations"
-import Detections from "~/pages/components/Map/Detections/Detections"
 import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
-import HistoricDetections from "~/pages/components/Map/HistoricDetections/HistoricDetections"
+import { useMapControls } from "~/pages/hooks/useMapControls"
+import { useCameraStore } from "~/pages/hooks/useCameraStore"
+import React, { useState, useEffect, useCallback } from "react"
+import type { SocrataData } from "~/pages/hooks/useSocrataData"
+import usePendingLocation from "~/pages/hooks/usePendingLocation"
+import { GoogleMap, useJsApiLoader } from "@react-google-maps/api"
+import Locations from "~/pages/components/Map/Locations/Locations"
 import useShowHistoricData from "~/pages/hooks/useShowHistoricData"
+import Detections from "~/pages/components/Map/Detections/Detections"
+import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
+import HistoricDetections from "~/pages/components/Map/HistoricDetections/HistoricDetections"
 
 interface MapProps {
   paneWidth: number
