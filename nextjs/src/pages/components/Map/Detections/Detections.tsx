@@ -2,6 +2,8 @@ import React, { useEffect } from "react"
 import { api } from "~/utils/api"
 import { useQueryClient } from "@tanstack/react-query"
 import Detection from "./Detection"
+import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
+import useGetSocrataData from "~/pages/hooks/useSocrataData"
 
 interface DetectionProps {
   camera: number
@@ -13,6 +15,71 @@ export default function Detections({ camera }: DetectionProps) {
   const detectedObjects = api.detection.getDetections.useQuery({
     camera: camera,
   })
+
+  const setBoundingBox = useBoundingBox((state) => state.setBoundingBox)
+
+  const socrataData = useGetSocrataData()
+
+  useEffect(() => {
+    const validLabels = [
+      "car",
+      "person",
+      "bus",
+      "truck",
+      "bicycle",
+      "motorcycle",
+    ]
+
+    let cameraCoordinates: [number, number] | null = null
+
+    if (socrataData.data) {
+      const cameraData = socrataData.data.find(
+        (d) => parseInt(d.camera_id) === camera,
+      )
+      if (
+        cameraData?.location?.coordinates &&
+        cameraData.location.coordinates.length === 2
+      ) {
+        cameraCoordinates = cameraData.location.coordinates as [number, number]
+      }
+    }
+
+    if (detectedObjects.data?.detections) {
+      const validDetections = detectedObjects.data.detections.filter((d) =>
+        validLabels.includes(d.label),
+      )
+
+      const latitudes = validDetections.map((d) => d.latitude).filter(Boolean)
+      const longitudes = validDetections.map((d) => d.longitude).filter(Boolean)
+
+      if (cameraCoordinates) {
+        latitudes.push(cameraCoordinates[1])
+        longitudes.push(cameraCoordinates[0])
+      }
+
+      if (latitudes.length > 0 && longitudes.length > 0) {
+        const xMin = Math.min(
+          ...longitudes.filter((x): x is number => x !== null),
+        )
+        const xMax = Math.max(
+          ...longitudes.filter((x): x is number => x !== null),
+        )
+        const yMin = Math.min(
+          ...latitudes.filter((y): y is number => y !== null),
+        )
+        const yMax = Math.max(
+          ...latitudes.filter((y): y is number => y !== null),
+        )
+
+        setBoundingBox(xMin, xMax, yMin, yMax)
+      }
+    }
+  }, [
+    detectedObjects.data?.detections,
+    setBoundingBox,
+    camera,
+    socrataData.data,
+  ])
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
@@ -35,14 +102,6 @@ export default function Detections({ camera }: DetectionProps) {
       }
     }
   }, [detectedObjects, queryClient])
-
-  // useEffect(() => {
-  //   console.log(
-  //     "detectedObjects: ",
-  //     JSON.stringify(detectedObjects.data?.detections, null, 2),
-  //     // detectedObjects.data,
-  //   )
-  // }, [detectedObjects])
 
   if (
     !detectedObjects.data ||

@@ -11,6 +11,7 @@ import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
 import Locations from "~/pages/components/Map/Locations/Locations"
 import Detections from "~/pages/components/Map/Detections/Detections"
+import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
 
 interface MapProps {
   paneWidth: number
@@ -52,6 +53,27 @@ function Map({ socrataData, paneWidth }: MapProps) {
       map.setZoom(zoomTight ? maxZoom : 14)
     }
   }, [zoomTight, map])
+
+  const boundingBoxXMin = useBoundingBox((state) => state.xMin)
+  const boundingBoxXMax = useBoundingBox((state) => state.xMax)
+  const boundingBoxYMin = useBoundingBox((state) => state.yMin)
+  const boundingBoxYMax = useBoundingBox((state) => state.yMax)
+
+  useEffect(() => {
+    if (
+      map &&
+      boundingBoxXMin &&
+      boundingBoxXMax &&
+      boundingBoxYMin &&
+      boundingBoxYMax
+    ) {
+      const bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(boundingBoxYMin, boundingBoxXMin),
+        new google.maps.LatLng(boundingBoxYMax, boundingBoxXMax),
+      )
+      map.fitBounds(bounds)
+    }
+  }, [map, boundingBoxXMin, boundingBoxXMax, boundingBoxYMin, boundingBoxYMax])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } = useGetSocrataData()
