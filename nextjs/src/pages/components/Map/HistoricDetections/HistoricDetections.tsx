@@ -16,12 +16,6 @@ export default function HistoricDetections({
     },
   )
 
-  useEffect(() => {
-    if (historicDetections.data && historicDetections.data.length >= 2) {
-      console.log(JSON.stringify(historicDetections.data.slice(0, 2), null, 2))
-    }
-  }, [historicDetections])
-
   return (
     <>
       {historicDetections.data?.map((image) =>
