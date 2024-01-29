@@ -89,6 +89,8 @@ export default function RandomNewCamera() {
               variant="contained"
               style={{ fontSize: "35px" }}
               onClick={handleClick}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
               🛰️
               {isHovered && (
