@@ -1,23 +1,18 @@
-from flask import Flask, request, jsonify, send_file
-import logging
-from transformers import DetrImageProcessor, DetrForObjectDetection
-import torch
-from PIL import Image, ImageDraw
-from io import BytesIO
+import io
 import time
 import torch
-from torch_tps import ThinPlateSpline
-import io
 import base64
-import json
-
-from scipy.spatial import ConvexHull
-from matplotlib.path import Path
-import numpy as np
-
-
-import redis
 import pickle
+import logging
+import numpy as np
+from io import BytesIO
+from matplotlib.path import Path
+from PIL import Image, ImageDraw
+from torch_tps import ThinPlateSpline
+from scipy.spatial import ConvexHull
+from transformers import DetrImageProcessor, DetrForObjectDetection
+
+# https://xkcd.com/353/
 
 logging.basicConfig(level=logging.INFO)
 
