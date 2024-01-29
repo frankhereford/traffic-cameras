@@ -38,7 +38,7 @@ export default function HistoricDetections({
                   longitude: detection.longitude,
                 }}
                 label={detection.label}
-                color={detection.isInsideConvexHull ? "green" : "red"}
+                color={detection.isInsideConvexHull ? "green" : "grey"}
               />
             )
           }
