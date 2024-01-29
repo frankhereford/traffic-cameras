@@ -39,12 +39,12 @@ def check_point_in_camera_location(camera, point):
     locations = camera.Location
     points = np.array([[location.x, location.y] for location in locations])
 
-    if len(points.shape) > 1 and points.shape[1] >= 2:
+    if len(points) >= 3 and len(points.shape) > 1 and points.shape[1] >= 2:
         hull = ConvexHull(points)
         return is_point_in_hull(hull, point)
     else:
         print(
-            "Cannot create a convex hull because the points do not have at least two dimensions."
+            "Cannot create a convex hull because there are not enough points or the points do not have at least two dimensions."
         )
         return False
 
