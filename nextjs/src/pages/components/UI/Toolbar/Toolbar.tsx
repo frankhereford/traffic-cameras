@@ -8,6 +8,7 @@ import Previous from "./Buttons/Previous"
 import SaveLocation from "./Buttons/SaveLocation"
 import ToggleLocations from "./Buttons/ToggleLocations"
 import ResetLocations from "./Buttons/ResetLocations"
+import ToggleHistoricData from "./Buttons/ToggleHistoricData"
 
 export default function ToolPanel() {
   return (
@@ -21,6 +22,7 @@ export default function ToolPanel() {
             <Previous />
             <SaveLocation />
             <ToggleLocations />
+            <ToggleHistoricData />
             <ResetLocations />
             <Logout />
           </div>
