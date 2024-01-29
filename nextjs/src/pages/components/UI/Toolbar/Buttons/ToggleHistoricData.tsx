@@ -4,6 +4,10 @@ import Tooltip from "@mui/material/Tooltip"
 import useShowHistoricData from "~/pages/hooks/useShowHistoricData"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
+import { api } from "~/utils/api"
+import { useCameraStore } from "~/pages/hooks/useCameraStore"
+import { sum } from "lodash"
+
 export default function ToggleHistoricData() {
   const showHistoricData = useShowHistoricData(
     (state) => state.showHistoricData,
@@ -13,6 +17,16 @@ export default function ToggleHistoricData() {
   )
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const camera = useCameraStore((state) => state.camera)
+
+  const historicDetections = api.detection.getHistoricCameraDetections.useQuery(
+    {
+      camera: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  )
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -27,6 +41,37 @@ export default function ToggleHistoricData() {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [showHistoricData, isFocus, setShowHistoricData])
+
+  const [sumOfValidDetections, setSumOfValidDetections] = useState(0)
+
+  useEffect(() => {
+    if (historicDetections.data) {
+      const validLabels = [
+        "car",
+        "person",
+        "bus",
+        "truck",
+        "bicycle",
+        "motorcycle",
+      ]
+      const sum = historicDetections.data.reduce((sum, current) => {
+        const validDetections = current.detections.filter(
+          (detection) =>
+            validLabels.includes(detection.label) &&
+            detection.latitude !== null &&
+            detection.longitude !== null,
+        )
+        return sum + validDetections.length
+      }, 0)
+      setSumOfValidDetections(sum)
+    }
+  }, [historicDetections.data])
+
+  if (historicDetections.isLoading) return <></>
+  if (historicDetections.isError) return <></>
+  if (historicDetections.data?.length === 0) return <></>
+
+  if (!sumOfValidDetections) return <></>
 
   return (
     <Tooltip title="Toggle historic data">

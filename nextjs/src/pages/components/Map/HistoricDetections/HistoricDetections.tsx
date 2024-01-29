@@ -1,4 +1,3 @@
-import React, { useEffect } from "react"
 import HistoricDetection from "~/pages/components/Map/HistoricDetections/HistoricDetection"
 
 interface HistoricDetectionsProps {
