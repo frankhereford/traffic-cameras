@@ -32,13 +32,28 @@ export const detectionRouter = createTRPCRouter({
         orderBy: { createdAt: "desc" },
       })
 
+      const validLabels = [
+        "car",
+        "person",
+        "bus",
+        "truck",
+        "bicycle",
+        "motorcycle",
+      ]
+
       return images.map((image) => ({
         ...image,
-        detections: image.detections.map((detection) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { picture, ...detectionWithoutPicture } = detection
-          return detectionWithoutPicture
-        }),
+        detections: image.detections
+          .filter(
+            (detection) =>
+              validLabels.includes(detection.label) &&
+              (true || detection.isInsideConvexHull), // set to false to only have inside the convex hull
+          )
+          .map((detection) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { picture, ...detectionWithoutPicture } = detection
+            return detectionWithoutPicture
+          }),
       }))
     }),
 })
