@@ -12,7 +12,6 @@ import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
 import Locations from "~/pages/components/Map/Locations/Locations"
 import Detections from "~/pages/components/Map/Detections/Detections"
 import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
-
 interface MapProps {
   paneWidth: number
   socrataData: SocrataData[]
@@ -71,7 +70,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
         new google.maps.LatLng(boundingBoxYMin, boundingBoxXMin),
         new google.maps.LatLng(boundingBoxYMax, boundingBoxXMax),
       )
-      map.fitBounds(bounds)
+      if (zoomTight) {
+        map.fitBounds(bounds)
+      }
     }
   }, [map, boundingBoxXMin, boundingBoxXMax, boundingBoxYMin, boundingBoxYMax])
 
@@ -120,7 +121,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
       setPendingMapLocation(null)
       setPendingMapLocationStore(null)
     }
-  }, [camera, map, data, zoomTight])
+  }, [camera, map, data, zoomTight, setPendingMapLocationStore])
 
   return isLoaded ? (
     <GoogleMap
