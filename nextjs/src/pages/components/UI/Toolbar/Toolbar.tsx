@@ -14,7 +14,7 @@ export default function ToolPanel() {
   return (
     <>
       <Draggable>
-        <div className="top-25 right-25 mr-25 absolute z-50 w-[480px] rounded-lg bg-stone-50 pb-6 pl-[20px] pt-6">
+        <div className="top-25 right-25 mr-25 absolute z-50 w-[640px] rounded-lg bg-stone-50 pb-6 pl-[20px] pt-6">
           <div className="flex justify-center space-x-2">
             <ToggleMapFollow />
             <RandomCamera />
