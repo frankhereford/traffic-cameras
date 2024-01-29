@@ -36,10 +36,18 @@ export default function Detections({ camera }: DetectionProps) {
       const longitudes = validDetections.map((d) => d.longitude).filter(Boolean)
 
       if (latitudes.length > 0 && longitudes.length > 0) {
-        const xMin = Math.min(...longitudes)
-        const xMax = Math.max(...longitudes)
-        const yMin = Math.min(...latitudes)
-        const yMax = Math.max(...latitudes)
+        const xMin = Math.min(
+          ...longitudes.filter((x): x is number => x !== null),
+        )
+        const xMax = Math.max(
+          ...longitudes.filter((x): x is number => x !== null),
+        )
+        const yMin = Math.min(
+          ...latitudes.filter((y): y is number => y !== null),
+        )
+        const yMax = Math.max(
+          ...latitudes.filter((y): y is number => y !== null),
+        )
 
         setBoundingBox(xMin, xMax, yMin, yMax)
       }
