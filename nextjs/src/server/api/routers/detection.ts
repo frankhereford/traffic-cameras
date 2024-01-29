@@ -41,19 +41,31 @@ export const detectionRouter = createTRPCRouter({
         "motorcycle",
       ]
 
-      return images.map((image) => ({
-        ...image,
-        detections: image.detections
-          .filter(
-            (detection) =>
-              validLabels.includes(detection.label) &&
-              (true || detection.isInsideConvexHull), // set to false to only have inside the convex hull
-          )
-          .map((detection) => {
+      let totalDetections = 0
+      const limitedImages = images.reduce((acc: typeof images, image) => {
+        const validDetections = image.detections.filter(
+          (detection) =>
+            validLabels.includes(detection.label) &&
+            (true || detection.isInsideConvexHull), // set to false to only have inside the convex hull
+        )
+
+        if (totalDetections + validDetections.length > 250) {
+          return acc
+        }
+
+        totalDetections += validDetections.length
+        acc.push({
+          ...image,
+          detections: validDetections.map((detection) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { picture, ...detectionWithoutPicture } = detection
-            return detectionWithoutPicture
+            return { ...detectionWithoutPicture, picture: null }
           }),
-      }))
+        })
+
+        return acc
+      }, [])
+
+      return limitedImages
     }),
 })
