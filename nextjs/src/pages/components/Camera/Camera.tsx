@@ -1,5 +1,5 @@
 import Image from "next/image" // Import Image from Next.js
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import BoundingBoxes from "~/pages/components/Camera/BoundingBoxes/BoundingBoxes"
@@ -7,6 +7,8 @@ import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import PendingLocation from "./Locations/PendingLocation"
 import ReloadProgress from "./UI/ReloadProgress"
 import Locations from "~/pages/components/Camera/Locations/Locations"
+import { FullScreen, useFullScreenHandle } from "react-full-screen"
+
 interface CameraProps {
   paneWidth: number
 }
@@ -22,6 +24,24 @@ export default function Camera({ paneWidth }: CameraProps) {
   } | null>(null)
   const [reloadInterval, setReloadInterval] = useState(5 * 60 * 1000) // Default to 5 minutes
   const [reloadPercentage, setReloadPercentage] = useState(100)
+  const fullScreenHandle = useFullScreenHandle()
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === "f") {
+        fullScreenHandle.enter().catch((error) => {
+          console.log("error: ", error)
+        })
+      }
+    }
+
+    window.addEventListener("keypress", handleKeyPress)
+
+    // Cleanup - remove the event listener when the component is unmounted
+    return () => {
+      window.removeEventListener("keypress", handleKeyPress)
+    }
+  }, [fullScreenHandle])
 
   const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
@@ -102,31 +122,33 @@ export default function Camera({ paneWidth }: CameraProps) {
   return (
     <>
       <div>
-        {camera && (
-          <>
-            <div className="relative">
-              <Image
-                src={`${url}`}
-                key={imageKey}
-                priority
-                alt="Camera Image"
-                width={1920}
-                height={1080}
-                onLoad={handleImageLoad}
-                onClick={handleImageClick}
-              />
-              <ReloadProgress progress={100 - reloadPercentage} />
-              {imageLocation && pendingImageLocation && (
-                <PendingLocation
-                  paneWidth={paneWidth}
-                  location={pendingImageLocation}
+        <FullScreen handle={fullScreenHandle}>
+          {camera && (
+            <>
+              <div className="relative">
+                <Image
+                  src={`${url}`}
+                  key={imageKey}
+                  priority
+                  alt="Camera Image"
+                  width={1920}
+                  height={1080}
+                  onLoad={handleImageLoad}
+                  onClick={handleImageClick}
                 />
-              )}
-              <BoundingBoxes camera={camera} paneWidth={paneWidth} />
-              <Locations camera={camera} paneWidth={paneWidth} />
-            </div>
-          </>
-        )}
+                <ReloadProgress progress={100 - reloadPercentage} />
+                {imageLocation && pendingImageLocation && (
+                  <PendingLocation
+                    paneWidth={paneWidth}
+                    location={pendingImageLocation}
+                  />
+                )}
+                <BoundingBoxes camera={camera} paneWidth={paneWidth} />
+                <Locations camera={camera} paneWidth={paneWidth} />
+              </div>
+            </>
+          )}
+        </FullScreen>
       </div>
     </>
   )

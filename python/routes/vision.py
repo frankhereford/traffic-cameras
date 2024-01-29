@@ -1,23 +1,18 @@
-from flask import Flask, request, jsonify, send_file
-import logging
-from transformers import DetrImageProcessor, DetrForObjectDetection
-import torch
-from PIL import Image, ImageDraw
-from io import BytesIO
+import io
 import time
 import torch
-from torch_tps import ThinPlateSpline
-import io
 import base64
-import json
-
-from scipy.spatial import ConvexHull
-from matplotlib.path import Path
-import numpy as np
-
-
-import redis
 import pickle
+import logging
+import numpy as np
+from io import BytesIO
+from matplotlib.path import Path
+from PIL import Image, ImageDraw
+from torch_tps import ThinPlateSpline
+from scipy.spatial import ConvexHull
+from transformers import DetrImageProcessor, DetrForObjectDetection
+
+# https://xkcd.com/353/
 
 logging.basicConfig(level=logging.INFO)
 
@@ -39,12 +34,12 @@ def check_point_in_camera_location(camera, point):
     locations = camera.Location
     points = np.array([[location.x, location.y] for location in locations])
 
-    if len(points.shape) > 1 and points.shape[1] >= 2:
+    if len(points) >= 3 and len(points.shape) > 1 and points.shape[1] >= 2:
         hull = ConvexHull(points)
         return is_point_in_hull(hull, point)
     else:
         print(
-            "Cannot create a convex hull because the points do not have at least two dimensions."
+            "Cannot create a convex hull because there are not enough points or the points do not have at least two dimensions."
         )
         return False
 
