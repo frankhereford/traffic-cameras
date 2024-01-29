@@ -5,10 +5,14 @@ import useCameraStore from "~/pages/hooks/useCameraStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import Badge from "@mui/material/Badge"
 import Tooltip from "@mui/material/Tooltip"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 import { api } from "~/utils/api"
 
 export default function RandomNewCamera() {
+  const [isHovered, setIsHovered] = useState(false)
+  const isFocus = useAutocompleteFocus((state) => state.isFocus)
+
   const setCamera = useCameraStore((state) => state.setCamera)
   const {
     data: cameraData,
@@ -55,6 +59,22 @@ export default function RandomNewCamera() {
       }
     }
   }
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "d") {
+        handleClick()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socrataData, cameraData, isFocus])
+
   if (newCameraCount == 0) {
     return <></>
   }
@@ -71,6 +91,20 @@ export default function RandomNewCamera() {
               onClick={handleClick}
             >
               🛰️
+              {isHovered && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    fontSize: "50px",
+                    opacity: 0.15,
+                  }}
+                >
+                  d
+                </span>
+              )}
             </Button>
           </Badge>
         </Tooltip>
