@@ -31,6 +31,14 @@ export const detectionRouter = createTRPCRouter({
         include: { detections: true },
         orderBy: { createdAt: "desc" },
       })
-      return images
+
+      return images.map((image) => ({
+        ...image,
+        detections: image.detections.map((detection) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { picture, ...detectionWithoutPicture } = detection
+          return detectionWithoutPicture
+        }),
+      }))
     }),
 })
