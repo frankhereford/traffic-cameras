@@ -82,7 +82,7 @@ export default function RandomNewCamera() {
   return (
     <>
       {cameraData && socrataData && (
-        <Tooltip title="Save Location">
+        <Tooltip title="Random new camera">
           <Badge badgeContent={newCameraCount} color="primary" max={1000}>
             <Button
               className="mb-4 p-0"
