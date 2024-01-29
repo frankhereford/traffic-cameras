@@ -9,6 +9,7 @@ import SaveLocation from "./Buttons/SaveLocation"
 import ToggleLocations from "./Buttons/ToggleLocations"
 import ResetLocations from "./Buttons/ResetLocations"
 import ToggleHistoricData from "./Buttons/ToggleHistoricData"
+import GitHub from "./Buttons/GitHub"
 
 export default function ToolPanel() {
   return (
@@ -25,6 +26,7 @@ export default function ToolPanel() {
             <ToggleHistoricData />
             <ResetLocations />
             <Logout />
+            <GitHub />
           </div>
           <CameraPicker />
         </div>
