@@ -2,6 +2,7 @@ import React, { useEffect } from "react"
 import { api } from "~/utils/api"
 import { useQueryClient } from "@tanstack/react-query"
 import Detection from "./Detection"
+import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
 
 interface DetectionProps {
   camera: number
@@ -14,6 +15,36 @@ export default function Detections({ camera }: DetectionProps) {
     camera: camera,
   })
 
+  const setBoundingBox = useBoundingBox((state) => state.setBoundingBox)
+
+  useEffect(() => {
+    const validLabels = [
+      "car",
+      "person",
+      "bus",
+      "truck",
+      "bicycle",
+      "motorcycle",
+    ]
+
+    if (detectedObjects.data?.detections) {
+      const validDetections = detectedObjects.data.detections.filter((d) =>
+        validLabels.includes(d.label),
+      )
+
+      const latitudes = validDetections.map((d) => d.latitude).filter(Boolean)
+      const longitudes = validDetections.map((d) => d.longitude).filter(Boolean)
+
+      if (latitudes.length > 0 && longitudes.length > 0) {
+        const xMin = Math.min(...longitudes)
+        const xMax = Math.max(...longitudes)
+        const yMin = Math.min(...latitudes)
+        const yMax = Math.max(...latitudes)
+
+        setBoundingBox(xMin, xMax, yMin, yMax)
+      }
+    }
+  }, [detectedObjects.data?.detections, setBoundingBox])
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
 
@@ -35,14 +66,6 @@ export default function Detections({ camera }: DetectionProps) {
       }
     }
   }, [detectedObjects, queryClient])
-
-  // useEffect(() => {
-  //   console.log(
-  //     "detectedObjects: ",
-  //     JSON.stringify(detectedObjects.data?.detections, null, 2),
-  //     // detectedObjects.data,
-  //   )
-  // }, [detectedObjects])
 
   if (
     !detectedObjects.data ||
