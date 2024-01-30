@@ -16,7 +16,7 @@ export default function ToolPanel() {
     <>
       <Draggable>
         <div 
-          className="top-25 right-25 mr-25 absolute z-50 rounded-lg bg-stone-50 pb-6 pt-6 pr-[25px]"
+          className="top-25 right-25 mr-25 absolute z-50 rounded-lg bg-stone-50 pb-6 pt-6 pr-[20px]"
           style={{ minWidth: '350px', maxWidth: '100%', paddingLeft: '20px' }}
         >
           <div className="flex justify-between space-x-2 flex-wrap">
