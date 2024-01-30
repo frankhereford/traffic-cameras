@@ -274,6 +274,8 @@ def transformedImage(id, db, redis):
         logging.info(f"map_points: {map_points}")
 
         ### start normalization
+        image_coordinates_tensor = None
+        image_corners_tensor = None
         if True:
             tps = ThinPlateSpline(0.5)
 
@@ -286,8 +288,8 @@ def transformedImage(id, db, redis):
 
             if points_to_transform.shape[0] > 0:
                 transformed_xy = tps.transform(points_to_transform)
-                transformed_xy_list = transformed_xy.tolist()
-                logging.info(f"transformed_xy_list: {transformed_xy_list}")
+                image_corners_tensor = transformed_xy.tolist()
+                logging.info(f"transformed_xy_list: {image_corners_tensor}")
 
                 geojson = {
                     "type": "FeatureCollection",
@@ -303,7 +305,7 @@ def transformedImage(id, db, redis):
                             },
                             "properties": {},
                         }
-                        for point in transformed_xy_list
+                        for point in image_corners_tensor
                     ],
                 }
 
@@ -311,7 +313,17 @@ def transformedImage(id, db, redis):
                 geojson_str = json.dumps(geojson)
                 logging.info(f"geojson_str: \n\n{geojson_str}\n\n")
 
+            # Fit the surfaces for the inverse mapping
+            tps_inverse = ThinPlateSpline(0.5)
+            tps_inverse.fit(map_points, cctv_points)
+
+            # Transform the map points back to image coordinate space
+            image_coordinates_tensor = tps_inverse.transform(map_points)
+
         ### end normalization
+
+        logging.info(f"image_coordinates_tensor: {image_coordinates_tensor}")
+        logging.info(f"image_corners_tensor: {image_corners_tensor}")
 
         # Fit the surfaces
         tps.fit(cctv_points, map_points)
