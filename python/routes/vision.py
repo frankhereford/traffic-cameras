@@ -288,8 +288,8 @@ def transformedImage(id, db, redis):
 
             if points_to_transform.shape[0] > 0:
                 transformed_xy = tps.transform(points_to_transform)
-                image_corners_tensor = transformed_xy.tolist()
-                logging.info(f"transformed_xy_list: {image_corners_tensor}")
+                transformed_xy_list = transformed_xy.tolist()
+                logging.info(f"transformed_xy_list: {transformed_xy_list}")
 
                 geojson = {
                     "type": "FeatureCollection",
@@ -305,7 +305,7 @@ def transformedImage(id, db, redis):
                             },
                             "properties": {},
                         }
-                        for point in image_corners_tensor
+                        for point in transformed_xy_list
                     ],
                 }
 
@@ -323,10 +323,9 @@ def transformedImage(id, db, redis):
         ### end normalization
 
         logging.info(f"image_coordinates_tensor: {image_coordinates_tensor}")
-        logging.info(f"image_corners_tensor: {image_corners_tensor}")
 
         # Fit the surfaces
-        tps.fit(cctv_points, map_points)
+        tps.fit(cctv_points, image_coordinates_tensor)
 
         width = 1920
         height = 1080
