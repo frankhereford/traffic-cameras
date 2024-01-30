@@ -416,6 +416,41 @@ def transformedImage(id, db, redis):
         torch_image = torch.tensor(np.array(image), dtype=torch.float32).permute(
             2, 0, 1
         )[None, ...]
+        # Transform the corners of the input image
+        transformed_corners = tps.transform(
+            torch.tensor([[0, 0], [1920, 0], [0, 1080], [1920, 1080]]).float()
+        )
+
+        # Calculate the bounds of the transformed coordinates
+        min_y, _ = torch.min(transformed_corners[:, 0]).int(), 0
+        max_y, _ = torch.max(transformed_corners[:, 0]).int(), 1080
+        min_x, _ = torch.min(transformed_corners[:, 1]).int(), 0
+        max_x, _ = torch.max(transformed_corners[:, 1]).int(), 1920
+
+        # Calculate the size of the output image
+        output_height = max_y - min_y
+        output_width = max_x - min_x
+
+        # Create the 2d meshgrid of indices for output image
+        i = torch.arange(output_height, dtype=torch.float32)
+        j = torch.arange(output_width, dtype=torch.float32)
+
+        ii, jj = torch.meshgrid(i, j, indexing="ij")
+        output_indices = torch.cat(
+            (ii[..., None], jj[..., None]), dim=-1
+        )  # Shape (H, W, 2)
+
+        # Transform it into the input indices
+        input_indices = tps.transform(output_indices.reshape(-1, 2)).reshape(
+            output_height, output_width, 2
+        )
+
+        # Interpolate the resulting image
+        size = torch.tensor((output_height, output_width))
+        grid = 2 * input_indices / size - 1  # Into [-1, 1]
+        grid = torch.flip(
+            grid, (-1,)
+        )  # Grid sample works with x,y coordinates, not i, j
         warped = torch.nn.functional.grid_sample(
             torch_image, grid[None, ...], align_corners=False
         )[0]
@@ -431,7 +466,6 @@ def transformedImage(id, db, redis):
 
         # Go back to the beginning of the BytesIO object
         byte_io.seek(0)
-
         return send_file(byte_io, mimetype="image/jpeg")
 
     return send_file(BytesIO(image_content), mimetype="image/jpeg")
