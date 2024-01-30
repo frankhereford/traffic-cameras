@@ -53,7 +53,7 @@ export default function RandomNewCamera() {
           newSocrataCameras[
             Math.floor(Math.random() * newSocrataCameras.length)
           ]
-        if (randomCamera) {
+        if (randomCamera && !isFocus) {
           setCamera(parseInt(randomCamera.camera_id))
         }
       }
