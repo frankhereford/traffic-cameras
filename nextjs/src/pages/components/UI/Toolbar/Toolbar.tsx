@@ -15,8 +15,11 @@ export default function ToolPanel() {
   return (
     <>
       <Draggable>
-        <div className="top-25 right-25 mr-25 absolute z-50 w-[640px] rounded-lg bg-stone-50 pb-6 pl-[20px] pt-6">
-          <div className="flex justify-center space-x-2">
+        <div 
+          className="top-25 right-25 mr-25 absolute z-50 rounded-lg bg-stone-50 pb-6 pt-6 pr-[25px]"
+          style={{ minWidth: '350px', maxWidth: '100%', paddingLeft: '20px' }}
+        >
+          <div className="flex justify-between space-x-2 flex-wrap">
             <ToggleMapFollow />
             <RandomCamera />
             <RandomNewCamera />

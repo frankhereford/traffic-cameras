@@ -57,7 +57,7 @@ export default function CameraPicker() {
           id="combo-box-demo"
           value={selectedCamera}
           options={cameras}
-          sx={{ width: 600 }}
+          sx={{ flexGrow: 1, minWidth: '350px' }}
           renderInput={(params) => <TextField {...params} label="Camera" />}
           onChange={(event, value) => {
             if (value) {
