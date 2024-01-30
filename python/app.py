@@ -5,6 +5,7 @@ import redis
 from routes.status import status
 from routes.vision import vision
 from routes.image import image
+from routes.vision import transformedImage
 
 app = Flask(__name__)
 
@@ -17,6 +18,11 @@ def status_route():
 @app.route("/image/<int:id>", methods=["GET"])
 def image_route(id):
     return image(id, db, redis)
+
+
+@app.route("/transformedImage/<int:id>", methods=["GET"])
+def transformedImage_route(id):
+    return transformedImage(id, db, redis)
 
 
 def main(mode):
