@@ -11,6 +11,10 @@ from PIL import Image, ImageDraw
 from torch_tps import ThinPlateSpline
 from scipy.spatial import ConvexHull
 from transformers import DetrImageProcessor, DetrForObjectDetection
+import requests
+from flask import send_file
+import matplotlib.pyplot as plt
+import json
 
 # https://xkcd.com/353/
 
@@ -235,3 +239,133 @@ def process_one_image(db, redis):
             "detectionsProcessed": True,
         },
     )
+
+
+def transformedImage(id, db, redis):
+    image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
+    image_key = f"requests:{image_url[8:]}"
+
+    response = redis.get(image_url)
+
+    # Try fetching the image content and status code from the cache
+    cached_response = redis.get(image_url)
+    if cached_response:
+        logging.info("Image found in cache")
+        status_code, image_content = pickle.loads(cached_response)
+    else:
+        logging.info(f"Image not found in cache, downloading from {image_url}")
+        response = requests.get(image_url)
+        status_code, image_content = response.status_code, response.content
+
+        # Cache the status code and image content
+        redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
+
+    camera = db.camera.find_first(where={"coaId": id}, include={"Location": True})
+
+    cctv_points, map_points = extract_points(camera.Location)
+
+    if len(cctv_points) >= 3:
+        tps = ThinPlateSpline(0.5)
+
+        cctv_points = cctv_points.float()
+        map_points = map_points.float()
+
+        logging.info(f"cctv_points: {cctv_points}")
+        logging.info(f"map_points: {map_points}")
+
+        ### start normalization
+        if True:
+            tps = ThinPlateSpline(0.5)
+
+            # Fit the surfaces
+            tps.fit(cctv_points, map_points)
+
+            points_to_transform = torch.tensor(
+                [[0, 0], [1920, 0], [0, 1080], [1920, 1080]]
+            ).float()
+
+            if points_to_transform.shape[0] > 0:
+                transformed_xy = tps.transform(points_to_transform)
+                transformed_xy_list = transformed_xy.tolist()
+                logging.info(f"transformed_xy_list: {transformed_xy_list}")
+
+                geojson = {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [
+                                    point[1],
+                                    point[0],
+                                ],  # Flip latitude and longitude
+                            },
+                            "properties": {},
+                        }
+                        for point in transformed_xy_list
+                    ],
+                }
+
+                # Convert the GeoJSON object to a string
+                geojson_str = json.dumps(geojson)
+                logging.info(f"geojson_str: \n\n{geojson_str}\n\n")
+
+        ### end normalization
+
+        # Fit the surfaces
+        tps.fit(cctv_points, map_points)
+
+        width = 1920
+        height = 1080
+
+        # Create the 2d meshgrid of indices for output image
+        i = torch.arange(height, dtype=torch.float32)
+        j = torch.arange(width, dtype=torch.float32)
+
+        ii, jj = torch.meshgrid(i, j, indexing="ij")
+        output_indices = torch.cat(
+            (ii[..., None], jj[..., None]), dim=-1
+        )  # Shape (H, W, 2)
+        logging.info(f"output_indices.shape: {output_indices.shape}")
+
+        # Transform it into the input indices
+        input_indices = tps.transform(output_indices.reshape(-1, 2)).reshape(
+            height, width, 2
+        )
+
+        logging.info(f"input_indices.shape: {input_indices.shape}")
+
+        size = torch.tensor((height, width))
+
+        logging.info(f"size: {size}")
+
+        image = Image.open(BytesIO(image_content))
+
+        # Interpolate the resulting image
+        grid = 2 * input_indices / size - 1  # Into [-1, 1]
+        grid = torch.flip(
+            grid, (-1,)
+        )  # Grid sample works with x,y coordinates, not i, j
+        torch_image = torch.tensor(np.array(image), dtype=torch.float32).permute(
+            2, 0, 1
+        )[None, ...]
+        warped = torch.nn.functional.grid_sample(
+            torch_image, grid[None, ...], align_corners=False
+        )[0]
+
+        # Convert the Tensor to a PIL image
+        warped_image = Image.fromarray(
+            warped.permute(1, 2, 0).to(torch.uint8).byte().cpu().numpy()
+        )
+
+        # Create a BytesIO object and save the image to it
+        byte_io = io.BytesIO()
+        warped_image.save(byte_io, "JPEG")
+
+        # Go back to the beginning of the BytesIO object
+        byte_io.seek(0)
+
+        return send_file(byte_io, mimetype="image/jpeg")
+
+    return send_file(BytesIO(image_content), mimetype="image/jpeg")
