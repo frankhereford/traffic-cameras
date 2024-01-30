@@ -37,7 +37,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    hostname = "localhost" if args.mode == "detector" else "redis"
+    #hostname = "localhost" if args.mode == "detector" else "redis"
+    hostname = 'redis'
     redis = redis.Redis(host=hostname, port=6379, db=0)
     from prisma import Prisma
 

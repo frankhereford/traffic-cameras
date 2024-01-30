@@ -36,30 +36,30 @@ services:
   # works, but is CPU bound 🐌
   # better is to figure out how to run it locally on the metal
 
-  # detector:
-  #   build:
-  #     context: ./python
-  #   volumes:
-  #     - ./python:/app
-  #   depends_on:
-  #     - postgis
-  #   command: ["python", "app.py", "--mode=detector"]
+  detector:
+    build:
+      context: ./python
+    volumes:
+      - ./python:/app
+    depends_on:
+      - postgis
+    command: ["python", "app.py", "--mode=detector"]
 
   haproxy:
     image: haproxy:latest
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     ports:
-      - 80:80
-      - 3000:3000
+      - 81:80
+      #- 3000:3000
     depends_on:
       - nextjs
       - flask
 
   redis:
     image: redis:latest
-    ports:
-      - 6379:6379
+    # ports:
+    #   - 6379:6379
 
 volumes:
   db_data:
