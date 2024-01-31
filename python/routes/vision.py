@@ -57,7 +57,7 @@ def throttle(func):
         if throttle._last_called is not None:
             time_since_last_call = time.time() - throttle._last_called
             sleep_time = int(round(max(0, 1 - time_since_last_call), 0))
-            logging.info("sleep time: ", sleep_time)
+            logging.info(f"sleep time: {sleep_time} ")
             time.sleep(sleep_time)
         throttle._last_called = time.time()
         return func(*args, **kwargs)
@@ -418,7 +418,7 @@ def transformedImage(id, db, redis):
                 "image": img_str,
             }
 
-            return payload
+            return json.dumps(payload, indent=4)
 
             value = f"<pre>{geojson_str}</pre>"
             value += f"<pre>{gdal_translate_command}</pre>"
