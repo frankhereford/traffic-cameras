@@ -13,6 +13,7 @@ import useShowHistoricData from "~/pages/hooks/useShowHistoricData"
 import Detections from "~/pages/components/Map/Detections/Detections"
 import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
 import HistoricDetections from "~/pages/components/Map/HistoricDetections/HistoricDetections"
+import GeoreferencedImage from "~/pages/components/Map/GeoreferencedImage/GeoreferencedImage"
 
 interface MapProps {
   paneWidth: number
@@ -163,6 +164,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
       {camera && <Locations camera={camera} />}
       {camera && <Detections camera={camera} />}
       {camera && showHistoricData && <HistoricDetections camera={camera} />}
+      {camera && <GeoreferencedImage camera={camera} />}
     </GoogleMap>
   ) : (
     <></>
