@@ -251,7 +251,7 @@ def create_geojson_of_image_borders_in_map_space(transformed_points):
     points.append(points[0])
 
     # Create a GeoJSON FeatureCollection
-    geojson = {
+    geojson_object = {
         "type": "FeatureCollection",
         "features": [
             {
@@ -264,7 +264,7 @@ def create_geojson_of_image_borders_in_map_space(transformed_points):
 
     # Add each point as a separate feature (excluding the last point which is a duplicate of the first)
     for point in points[:-1]:
-        geojson["features"].append(
+        geojson_object["features"].append(
             {
                 "type": "Feature",
                 "properties": {},
@@ -273,9 +273,9 @@ def create_geojson_of_image_borders_in_map_space(transformed_points):
         )
 
     # Convert the GeoJSON object to a string
-    geojson_str = json.dumps(geojson, indent=4)
+    geojson_str = json.dumps(geojson_object, indent=4)
 
-    return geojson_str
+    return (geojson_str, geojson_object)
 
 
 def create_transform_and_process_tensor_of_input_points(
@@ -378,6 +378,9 @@ def transformedImage(id, db, redis):
             gdalinfo_command = f"/usr/bin/gdalinfo {temp_dir}/modified.tif"
             extent = get_image_extent(gdalinfo_command)
             logging.info(f"extent: {extent}")
+            output_geotiff = f"{temp_dir}/modified.tif"
+
+            image = Image.open(output_geotiff)
 
             cctv_points, map_points = extract_points(camera.Location)
 
@@ -397,11 +400,27 @@ def transformedImage(id, db, redis):
             #     f"image_extents_as_geographic_coordinates: {image_extents_as_geographic_coordinates}"
             # )
 
-            geojson = create_geojson_of_image_borders_in_map_space(
+            (
+                geojson_str,
+                geojson_object,
+            ) = create_geojson_of_image_borders_in_map_space(
                 image_extents_as_geographic_coordinates
             )
 
-            value = f"<pre>{geojson}</pre>"
+            # Convert the Pillow image to a base64 string
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+
+            payload = {
+                "extent": extent,
+                "geojson": geojson_object,
+                "image": img_str,
+            }
+
+            return payload
+
+            value = f"<pre>{geojson_str}</pre>"
             value += f"<pre>{gdal_translate_command}</pre>"
             value += f"<pre>{gdalwarp_command}</pre>"
             return value
