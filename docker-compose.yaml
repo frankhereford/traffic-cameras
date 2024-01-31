@@ -36,14 +36,14 @@ services:
   # works, but is CPU bound 🐌
   # better is to figure out how to run it locally on the metal
 
-  # detector:
-  #   build:
-  #     context: ./python
-  #   volumes:
-  #     - ./python:/app
-  #   depends_on:
-  #     - postgis
-  #   command: ["python", "app.py", "--mode=detector"]
+  detector:
+    build:
+      context: ./python
+    volumes:
+      - ./python:/app
+    depends_on:
+      - postgis
+    command: ["python", "app.py", "--mode=detector"]
 
   haproxy:
     image: haproxy:latest
