@@ -15,6 +15,7 @@ import requests
 from flask import send_file
 import matplotlib.pyplot as plt
 import json
+import torch.nn.functional as F
 
 # https://xkcd.com/353/
 
@@ -271,32 +272,25 @@ def create_geojson_of_image_borders_in_map_space(transformed_points):
         )
 
     # Convert the GeoJSON object to a string
-    geojson_str = json.dumps(geojson)
+    geojson_str = json.dumps(geojson, indent=4)
 
     return geojson_str
 
 
-def create_image_space_to_map_space_transform_and_process_array_of_points(
+def create_transform_and_process_tensor_of_input_points(
     image_registration_points, map_registration_points, list_to_process
 ):
-    # Convert list_to_process into a torch tensor and ensure it's float type
-    list_to_process = torch.tensor(list_to_process).float()
-
     # Ensure image_registration_points and map_registration_points are float type
     image_registration_points = image_registration_points.float()
     map_registration_points = map_registration_points.float()
+    list_to_process = list_to_process.float()
 
     # Create the thin plate spline object
     tps = ThinPlateSpline(0.5)
     tps.fit(image_registration_points, map_registration_points)
     transformed_points = tps.transform(list_to_process)
-    # logging.info(f"Transformed points: {transformed_points}")
-    # logging.info(
-    #     f"Geojson: {create_geojson_of_image_borders_in_map_space(transformed_points)}"
-    # )
-    return transformed_points, create_geojson_of_image_borders_in_map_space(
-        transformed_points
-    )
+
+    return transformed_points
 
 
 def transformedImage(id, db, redis):
@@ -322,16 +316,236 @@ def transformedImage(id, db, redis):
 
     cctv_points, map_points = extract_points(camera.Location)
 
+    # logging.info(
+    #     f"Original CCTV points range: X[min,max]={cctv_points[:, 0].min(), cctv_points[:, 0].max()}, Y[min,max]={cctv_points[:, 1].min(), cctv_points[:, 1].max()}"
+    # )
+    logging.info(
+        f"Original Map points range: Lat[min,max]={map_points[:, 0].min(), map_points[:, 0].max()}, Long[min,max]={map_points[:, 1].min(), map_points[:, 1].max()}"
+    )
+
+    # logging.info(f"cctv_points: {cctv_points}")
+
     cctv_points.float()
     map_points.float()
 
-    corners = [(0, 0), (0, 1080), (1920, 1080), (1920, 0)]
+    corners_in_image_space = [(0, 0), (0, 1080), (1920, 1080), (1920, 0)]
+    list_to_process = torch.tensor(corners_in_image_space)
 
-    (
-        image_extents_as_geographic_coordinates,
-        geojson_of_camera_view_area,
-    ) = create_image_space_to_map_space_transform_and_process_array_of_points(
-        cctv_points, map_points, corners
+    image_extents_as_geographic_coordinates = (
+        create_transform_and_process_tensor_of_input_points(
+            cctv_points, map_points, list_to_process
+        )
     )
 
-    return "hi"
+    # logging.info(
+    #     f"image_extents_as_geographic_coordinates: {image_extents_as_geographic_coordinates}"
+    # )
+
+    flipped_cctv_points = torch.flip(cctv_points, [1])
+    # logging.info(f"cctv_points: {cctv_points}")
+    # logging.info(f"flipped_cctv_points: {flipped_cctv_points}")
+
+    # flip the CCTV points because they are X,Y and the map points are latitude, longitude which is Y,X
+    cctv_points = flipped_cctv_points
+
+    # logging.info(f"cctv_points: {cctv_points}")
+    # logging.info(f"map_points: {map_points}")
+
+    geojson = create_geojson_of_image_borders_in_map_space(
+        image_extents_as_geographic_coordinates
+    )
+
+    image_width = 1920
+    image_height = 1080
+
+    # Normalizing cctv_points
+    normalized_cctv_points = cctv_points / torch.tensor([image_height, image_width])
+
+    # Determine min and max for latitude and longitude
+    lat_min, lat_max = map_points[:, 0].min(), map_points[:, 0].max()
+    long_min, long_max = map_points[:, 1].min(), map_points[:, 1].max()
+
+    # Normalize map_points
+    normalized_map_points = torch.empty_like(map_points)
+    normalized_map_points[:, 0] = (map_points[:, 0] - lat_min) / (
+        lat_max - lat_min
+    )  # Normalize latitude
+    normalized_map_points[:, 1] = (map_points[:, 1] - long_min) / (
+        long_max - long_min
+    )  # Normalize longitude
+
+    # logging.info(
+    #     f"Map points normalization: Lat Min={lat_min}, Lat Max={lat_max}, Long Min={long_min}, Long Max={long_max}"
+    # )
+    # logging.info(
+    #     f"Normalized map points (extended sample): {normalized_map_points[:10]}"
+    # )  # Shows first 10 points
+
+    # logging.info(
+    #     f"Normalized CCTV points post-adjustment range: X[min,max]={normalized_cctv_points[:, 0].min(), normalized_cctv_points[:, 0].max()}, Y[min,max]={normalized_cctv_points[:, 1].min(), normalized_cctv_points[:, 1].max()}"
+    # )
+
+    # logging.info(f"Normalized CCTV points (sample): {normalized_cctv_points[:5]}")
+    # logging.info(f"Normalized Map points (sample): {normalized_map_points[:5]}")
+
+    tps = ThinPlateSpline(0.5)
+
+    # Fit the surfaces
+    tps.fit(normalized_cctv_points, normalized_map_points)
+    logging.info(f"TPS fitting completed")
+
+    # Extracted corner coordinates from TPS
+    corner_coords = image_extents_as_geographic_coordinates
+
+    logging.info(f"corner_coords: {corner_coords}")
+
+    # Combine corner_coords and map_points to find overall min and max
+    all_latitudes = torch.cat((corner_coords[:, 0], map_points[:, 0]))
+    all_longitudes = torch.cat((corner_coords[:, 1], map_points[:, 1]))
+
+    overall_lat_min, overall_lat_max = all_latitudes.min(), all_latitudes.max()
+    overall_lon_min, overall_lon_max = all_longitudes.min(), all_longitudes.max()
+
+    # Normalize corner_coords
+    normalized_corner_coords = torch.empty_like(corner_coords)
+    normalized_corner_coords[:, 0] = (corner_coords[:, 0] - overall_lat_min) / (
+        overall_lat_max - overall_lat_min
+    )
+    normalized_corner_coords[:, 1] = (corner_coords[:, 1] - overall_lon_min) / (
+        overall_lon_max - overall_lon_min
+    )
+
+    logging.info(f"Normalized corner_coords: {normalized_corner_coords}")
+    logging.info(f"Normalized Map points (sample): {normalized_map_points[:5]}")
+
+    # Generate latitude and longitude values using normalized_corner_coords
+    lat_min, lat_max = (
+        normalized_corner_coords[:, 0].min(),
+        normalized_corner_coords[:, 0].max(),
+    )
+    lon_min, lon_max = (
+        normalized_corner_coords[:, 1].min(),
+        normalized_corner_coords[:, 1].max(),
+    )
+
+    # Number of points in each dimension
+    num_points_lat = 1000  # Adjust as needed
+    num_points_lon = 1000  # Adjust as needed
+
+    # Generate latitude and longitude values
+    latitudes = torch.linspace(lat_min, lat_max, num_points_lat)
+    longitudes = torch.linspace(lon_min, lon_max, num_points_lon)
+
+    logging.info(f"Generated latitudes range: {latitudes.min()}, {latitudes.max()}")
+    logging.info(f"Generated longitudes range: {longitudes.min()}, {longitudes.max()}")
+
+    # Create a meshgrid
+    lat_grid, lon_grid = torch.meshgrid(latitudes, longitudes, indexing="ij")
+
+    # Flatten the grid
+    geo_grid = torch.stack([lat_grid.flatten(), lon_grid.flatten()], dim=1)
+
+    logging.info(f"Geo grid shape: {geo_grid.shape}")
+    logging.info(f"Geo grid sample points: {geo_grid[:5]}")
+
+    transformed_geo_grid = tps.transform(geo_grid)
+    logging.info(f"Transformed geo grid shape: {transformed_geo_grid.shape}")
+    logging.info(f"Transformed geo grid sample points: {transformed_geo_grid[:5]}")
+
+    # Normalize the transformed grid to [-1, 1]
+    max_height, max_width = (
+        image_height,
+        image_width,
+    )
+
+    transformed_geo_grid_normalized = (
+        transformed_geo_grid * 2 / torch.tensor([max_width, max_height])
+    ) - 1
+
+    transformed_geo_grid_np = transformed_geo_grid.detach().numpy()
+
+    plt.figure(figsize=(8, 8))  # Set the figure size as required
+    plt.scatter(transformed_geo_grid_np[:, 0], transformed_geo_grid_np[:, 1], s=1)
+    plt.title("Scatter plot of transformed geo grid points")
+    plt.xlabel("X coordinate")
+    plt.ylabel("Y coordinate")
+    plt.xlim(-2, 2)  # Set limits to see all points
+    plt.ylim(-2, 2)
+    plt.grid(True)
+
+    # Save the figure
+    plt.savefig("matplotlib.jpg", dpi=300)
+
+    # Close the plot to free up memory
+    plt.close()
+
+    transformed_geo_grid_normalized = torch.flip(
+        transformed_geo_grid_normalized, [1]
+    )  # Flip to match grid_sample's x, y format
+
+    logging.info(
+        f"Transformed geo grid range before clamping: X[min,max]={transformed_geo_grid[:, 0].min(), transformed_geo_grid[:, 0].max()}, Y[min,max]={transformed_geo_grid[:, 1].min(), transformed_geo_grid[:, 1].max()}"
+    )
+
+    # Clamp the normalized grid values to be between -1 and 1
+    transformed_geo_grid_normalized.clamp_(-1, 1)
+    logging.info(
+        f"Clamped transformed_geo_grid_normalized: {transformed_geo_grid_normalized}"
+    )
+
+    logging.info(f"transformed_geo_grid_normalized: {transformed_geo_grid_normalized}")
+
+    # Load and prepare the image
+    image = Image.open(BytesIO(image_content))
+    image_tensor = (
+        torch.tensor(np.array(image), dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
+    )
+
+    # Assuming you are using PyTorch's grid_sample or similar function
+    warped_image_tensor = F.grid_sample(
+        image_tensor,  # your original image tensor
+        transformed_geo_grid_normalized.view(1, num_points_lat, num_points_lon, 2),
+        mode="bilinear",  # or 'nearest', etc.
+        padding_mode="zeros",
+        align_corners=True,
+    )
+
+    # Log some sample values from the warped image
+    logging.info(
+        f"Warped image tensor sample values: {warped_image_tensor[0, :, :5, :5]}"
+    )
+
+    # Convert back to PIL image for viewing
+    warped_image = (
+        warped_image_tensor.squeeze(0).permute(1, 2, 0) * 255
+    ).byte()  # Rescaling back to [0, 255]
+    warped_image_pil = Image.fromarray(warped_image.numpy())
+    warped_image_pil.save("warped_image.jpg")
+
+    # logging.info(f"status_code: {status_code}")
+    # logging.info(f"image_content length: {len(image_content)}")
+    # logging.info(f"camera: {camera}")
+    # logging.info(f"cctv_points (before flip): {cctv_points}")
+    # logging.info(f"map_points: {map_points}")
+    # logging.info(f"normalized_cctv_points: {normalized_cctv_points}")
+    # logging.info(f"normalized_map_points: {normalized_map_points}")
+    # logging.info(f"corner_coords: {corner_coords}")
+    # logging.info(
+    #     f"geo_grid (sample points): {geo_grid[:5]}"
+    # )  # Sample first 5 points for brevity
+    # logging.info(f"transformed_geo_grid (sample points): {transformed_geo_grid[:5]}")
+    # logging.info(
+    #     f"transformed_geo_grid_normalized (sample points): {transformed_geo_grid_normalized[:5]}"
+    # )
+    # logging.info(f"warped_image_tensor shape: {warped_image_tensor.shape}")
+
+    # Create a BytesIO object and save the image to it
+    byte_io = io.BytesIO()
+    warped_image_pil.save(byte_io, "JPEG")
+
+    # Go back to the beginning of the BytesIO object
+    byte_io.seek(0)
+    return send_file(byte_io, mimetype="image/jpeg")
+
+    value = f"<pre>{geojson}</pre>"
+    return value
