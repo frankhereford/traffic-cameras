@@ -1,6 +1,7 @@
 import argparse
 from flask import Flask
 import redis
+from prisma import Prisma
 
 from routes.status import status
 from routes.vision import vision
@@ -45,7 +46,6 @@ if __name__ == "__main__":
 
     hostname = "localhost" if args.mode == "detector" else "redis"
     redis = redis.Redis(host=hostname, port=6379, db=0)
-    from prisma import Prisma
 
     db = Prisma()
     db.connect()
