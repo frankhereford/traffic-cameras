@@ -12,10 +12,11 @@ from torch_tps import ThinPlateSpline
 from scipy.spatial import ConvexHull
 from transformers import DetrImageProcessor, DetrForObjectDetection
 import requests
-from flask import send_file
-import matplotlib.pyplot as plt
 import json
-import torch.nn.functional as F
+import tempfile
+import os
+import subprocess
+import re
 
 # https://xkcd.com/353/
 
@@ -43,7 +44,7 @@ def check_point_in_camera_location(camera, point):
         hull = ConvexHull(points)
         return is_point_in_hull(hull, point)
     else:
-        print(
+        logging.info(
             "Cannot create a convex hull because there are not enough points or the points do not have at least two dimensions."
         )
         return False
@@ -56,7 +57,7 @@ def throttle(func):
         if throttle._last_called is not None:
             time_since_last_call = time.time() - throttle._last_called
             sleep_time = int(round(max(0, 1 - time_since_last_call), 0))
-            print("sleep time: ", sleep_time)
+            logging.info("sleep time: ", sleep_time)
             time.sleep(sleep_time)
         throttle._last_called = time.time()
         return func(*args, **kwargs)
@@ -88,7 +89,7 @@ def process_one_image(db, redis):
     if job is None:
         return
 
-    print(job.hash)
+    logging.info(job.hash)
 
     key = f"images:{job.hash}"
 
@@ -293,6 +294,37 @@ def create_transform_and_process_tensor_of_input_points(
     return transformed_points
 
 
+def generate_gdal_commands(control_points, image_path, temp_dir):
+    gdal_translate_command = "/usr/bin/gdal_translate -of GTiff "
+    for point in control_points:
+        gdal_translate_command += "-gcp {} {} {} {} ".format(
+            point[0][0], point[0][1], point[1][0], point[1][1]
+        )
+    gdal_translate_command += f"{image_path} "
+    gdal_translate_command += f"{temp_dir}/intermediate.tif"
+
+    gdalwarp_command = f"/usr/bin/gdalwarp -r near -tps  -dstalpha -t_srs EPSG:4326 {temp_dir}/intermediate.tif {temp_dir}/modified.tif"
+    return gdal_translate_command, gdalwarp_command
+
+
+def get_image_extent(gdalinfo_command):
+    process = subprocess.Popen(gdalinfo_command, stdout=subprocess.PIPE, shell=True)
+    output, _ = process.communicate()
+    output = output.decode("utf-8")
+    # logging.info(f"gdalinfo output: {output}")
+
+    corners = re.findall(
+        r"Upper Left\s+\(\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\).*\n.*\n.*\nLower Right\s+\(\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\)",
+        output,
+    )
+
+    if corners:
+        min_lon, max_lat, max_lon, min_lat = map(float, corners[0])
+        return min_lon, min_lat, max_lon, max_lat
+
+    return None
+
+
 def transformedImage(id, db, redis):
     image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
     image_key = f"requests:{image_url[8:]}"
@@ -309,243 +341,67 @@ def transformedImage(id, db, redis):
         response = requests.get(image_url)
         status_code, image_content = response.status_code, response.content
 
-        # Cache the status code and image content
-        redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
+        # # Cache the status code and image content
+        # redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
 
-    camera = db.camera.find_first(where={"coaId": id}, include={"Location": True})
+        with tempfile.TemporaryDirectory() as temp_dir:
+            logging.info(f"Temporary directory created at {temp_dir}")
 
-    cctv_points, map_points = extract_points(camera.Location)
+            image = Image.open(BytesIO(image_content))
+            image_path = f"{temp_dir}/{id}.jpg"
+            image.save(image_path)
 
-    # logging.info(
-    #     f"Original CCTV points range: X[min,max]={cctv_points[:, 0].min(), cctv_points[:, 0].max()}, Y[min,max]={cctv_points[:, 1].min(), cctv_points[:, 1].max()}"
-    # )
-    logging.info(
-        f"Original Map points range: Lat[min,max]={map_points[:, 0].min(), map_points[:, 0].max()}, Long[min,max]={map_points[:, 1].min(), map_points[:, 1].max()}"
-    )
+            camera = db.camera.find_first(
+                where={"coaId": id}, include={"Location": True}
+            )
 
-    # logging.info(f"cctv_points: {cctv_points}")
+            control_points = []
+            for location in camera.Location:
+                control_points.append(
+                    (
+                        (location.x, location.y),
+                        (location.longitude, location.latitude),
+                    )
+                )
 
-    cctv_points.float()
-    map_points.float()
+            logging.info(control_points)
+            gdal_translate_command, gdalwarp_command = generate_gdal_commands(
+                control_points, image_path, temp_dir
+            )
 
-    corners_in_image_space = [(0, 0), (0, 1080), (1920, 1080), (1920, 0)]
-    list_to_process = torch.tensor(corners_in_image_space)
+            logging.info(gdal_translate_command)
+            os.system(gdal_translate_command)
 
-    image_extents_as_geographic_coordinates = (
-        create_transform_and_process_tensor_of_input_points(
-            cctv_points, map_points, list_to_process
-        )
-    )
+            logging.info(gdalwarp_command)
+            os.system(gdalwarp_command)
 
-    # logging.info(
-    #     f"image_extents_as_geographic_coordinates: {image_extents_as_geographic_coordinates}"
-    # )
+            gdalinfo_command = f"/usr/bin/gdalinfo {temp_dir}/modified.tif"
+            extent = get_image_extent(gdalinfo_command)
+            logging.info(f"extent: {extent}")
 
-    flipped_cctv_points = torch.flip(cctv_points, [1])
-    # logging.info(f"cctv_points: {cctv_points}")
-    # logging.info(f"flipped_cctv_points: {flipped_cctv_points}")
+            cctv_points, map_points = extract_points(camera.Location)
 
-    # flip the CCTV points because they are X,Y and the map points are latitude, longitude which is Y,X
-    cctv_points = flipped_cctv_points
+            cctv_points.float()
+            map_points.float()
 
-    # logging.info(f"cctv_points: {cctv_points}")
-    # logging.info(f"map_points: {map_points}")
+            corners_in_image_space = [(0, 0), (0, 1080), (1920, 1080), (1920, 0)]
+            list_to_process = torch.tensor(corners_in_image_space)
 
-    geojson = create_geojson_of_image_borders_in_map_space(
-        image_extents_as_geographic_coordinates
-    )
+            image_extents_as_geographic_coordinates = (
+                create_transform_and_process_tensor_of_input_points(
+                    cctv_points, map_points, list_to_process
+                )
+            )
 
-    image_width = 1920
-    image_height = 1080
+            # logging.info(
+            #     f"image_extents_as_geographic_coordinates: {image_extents_as_geographic_coordinates}"
+            # )
 
-    # Normalizing cctv_points
-    normalized_cctv_points = cctv_points / torch.tensor([image_height, image_width])
+            geojson = create_geojson_of_image_borders_in_map_space(
+                image_extents_as_geographic_coordinates
+            )
 
-    # Determine min and max for latitude and longitude
-    lat_min, lat_max = map_points[:, 0].min(), map_points[:, 0].max()
-    long_min, long_max = map_points[:, 1].min(), map_points[:, 1].max()
-
-    # Normalize map_points
-    normalized_map_points = torch.empty_like(map_points)
-    normalized_map_points[:, 0] = (map_points[:, 0] - lat_min) / (
-        lat_max - lat_min
-    )  # Normalize latitude
-    normalized_map_points[:, 1] = (map_points[:, 1] - long_min) / (
-        long_max - long_min
-    )  # Normalize longitude
-
-    # logging.info(
-    #     f"Map points normalization: Lat Min={lat_min}, Lat Max={lat_max}, Long Min={long_min}, Long Max={long_max}"
-    # )
-    # logging.info(
-    #     f"Normalized map points (extended sample): {normalized_map_points[:10]}"
-    # )  # Shows first 10 points
-
-    # logging.info(
-    #     f"Normalized CCTV points post-adjustment range: X[min,max]={normalized_cctv_points[:, 0].min(), normalized_cctv_points[:, 0].max()}, Y[min,max]={normalized_cctv_points[:, 1].min(), normalized_cctv_points[:, 1].max()}"
-    # )
-
-    # logging.info(f"Normalized CCTV points (sample): {normalized_cctv_points[:5]}")
-    # logging.info(f"Normalized Map points (sample): {normalized_map_points[:5]}")
-
-    tps = ThinPlateSpline(0.5)
-
-    # Fit the surfaces
-    tps.fit(normalized_cctv_points, normalized_map_points)
-    logging.info(f"TPS fitting completed")
-
-    # Extracted corner coordinates from TPS
-    corner_coords = image_extents_as_geographic_coordinates
-
-    logging.info(f"corner_coords: {corner_coords}")
-
-    # Combine corner_coords and map_points to find overall min and max
-    all_latitudes = torch.cat((corner_coords[:, 0], map_points[:, 0]))
-    all_longitudes = torch.cat((corner_coords[:, 1], map_points[:, 1]))
-
-    overall_lat_min, overall_lat_max = all_latitudes.min(), all_latitudes.max()
-    overall_lon_min, overall_lon_max = all_longitudes.min(), all_longitudes.max()
-
-    # Normalize corner_coords
-    normalized_corner_coords = torch.empty_like(corner_coords)
-    normalized_corner_coords[:, 0] = (corner_coords[:, 0] - overall_lat_min) / (
-        overall_lat_max - overall_lat_min
-    )
-    normalized_corner_coords[:, 1] = (corner_coords[:, 1] - overall_lon_min) / (
-        overall_lon_max - overall_lon_min
-    )
-
-    logging.info(f"Normalized corner_coords: {normalized_corner_coords}")
-    logging.info(f"Normalized Map points (sample): {normalized_map_points[:5]}")
-
-    # Generate latitude and longitude values using normalized_corner_coords
-    lat_min, lat_max = (
-        normalized_corner_coords[:, 0].min(),
-        normalized_corner_coords[:, 0].max(),
-    )
-    lon_min, lon_max = (
-        normalized_corner_coords[:, 1].min(),
-        normalized_corner_coords[:, 1].max(),
-    )
-
-    # Number of points in each dimension
-    num_points_lat = 1000  # Adjust as needed
-    num_points_lon = 1000  # Adjust as needed
-
-    # Generate latitude and longitude values
-    latitudes = torch.linspace(lat_min, lat_max, num_points_lat)
-    longitudes = torch.linspace(lon_min, lon_max, num_points_lon)
-
-    logging.info(f"Generated latitudes range: {latitudes.min()}, {latitudes.max()}")
-    logging.info(f"Generated longitudes range: {longitudes.min()}, {longitudes.max()}")
-
-    # Create a meshgrid
-    lat_grid, lon_grid = torch.meshgrid(latitudes, longitudes, indexing="ij")
-
-    # Flatten the grid
-    geo_grid = torch.stack([lat_grid.flatten(), lon_grid.flatten()], dim=1)
-
-    logging.info(f"Geo grid shape: {geo_grid.shape}")
-    logging.info(f"Geo grid sample points: {geo_grid[:5]}")
-
-    transformed_geo_grid = tps.transform(geo_grid)
-    logging.info(f"Transformed geo grid shape: {transformed_geo_grid.shape}")
-    logging.info(f"Transformed geo grid sample points: {transformed_geo_grid[:5]}")
-
-    # Normalize the transformed grid to [-1, 1]
-    max_height, max_width = (
-        image_height,
-        image_width,
-    )
-
-    transformed_geo_grid_normalized = (
-        transformed_geo_grid * 2 / torch.tensor([max_width, max_height])
-    ) - 1
-
-    transformed_geo_grid_np = transformed_geo_grid.detach().numpy()
-
-    plt.figure(figsize=(8, 8))  # Set the figure size as required
-    plt.scatter(transformed_geo_grid_np[:, 0], transformed_geo_grid_np[:, 1], s=1)
-    plt.title("Scatter plot of transformed geo grid points")
-    plt.xlabel("X coordinate")
-    plt.ylabel("Y coordinate")
-    plt.xlim(-2, 2)  # Set limits to see all points
-    plt.ylim(-2, 2)
-    plt.grid(True)
-
-    # Save the figure
-    plt.savefig("matplotlib.jpg", dpi=300)
-
-    # Close the plot to free up memory
-    plt.close()
-
-    transformed_geo_grid_normalized = torch.flip(
-        transformed_geo_grid_normalized, [1]
-    )  # Flip to match grid_sample's x, y format
-
-    logging.info(
-        f"Transformed geo grid range before clamping: X[min,max]={transformed_geo_grid[:, 0].min(), transformed_geo_grid[:, 0].max()}, Y[min,max]={transformed_geo_grid[:, 1].min(), transformed_geo_grid[:, 1].max()}"
-    )
-
-    # Clamp the normalized grid values to be between -1 and 1
-    transformed_geo_grid_normalized.clamp_(-1, 1)
-    logging.info(
-        f"Clamped transformed_geo_grid_normalized: {transformed_geo_grid_normalized}"
-    )
-
-    logging.info(f"transformed_geo_grid_normalized: {transformed_geo_grid_normalized}")
-
-    # Load and prepare the image
-    image = Image.open(BytesIO(image_content))
-    image_tensor = (
-        torch.tensor(np.array(image), dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
-    )
-
-    # Assuming you are using PyTorch's grid_sample or similar function
-    warped_image_tensor = F.grid_sample(
-        image_tensor,  # your original image tensor
-        transformed_geo_grid_normalized.view(1, num_points_lat, num_points_lon, 2),
-        mode="bilinear",  # or 'nearest', etc.
-        padding_mode="zeros",
-        align_corners=True,
-    )
-
-    # Log some sample values from the warped image
-    logging.info(
-        f"Warped image tensor sample values: {warped_image_tensor[0, :, :5, :5]}"
-    )
-
-    # Convert back to PIL image for viewing
-    warped_image = (
-        warped_image_tensor.squeeze(0).permute(1, 2, 0) * 255
-    ).byte()  # Rescaling back to [0, 255]
-    warped_image_pil = Image.fromarray(warped_image.numpy())
-    warped_image_pil.save("warped_image.jpg")
-
-    # logging.info(f"status_code: {status_code}")
-    # logging.info(f"image_content length: {len(image_content)}")
-    # logging.info(f"camera: {camera}")
-    # logging.info(f"cctv_points (before flip): {cctv_points}")
-    # logging.info(f"map_points: {map_points}")
-    # logging.info(f"normalized_cctv_points: {normalized_cctv_points}")
-    # logging.info(f"normalized_map_points: {normalized_map_points}")
-    # logging.info(f"corner_coords: {corner_coords}")
-    # logging.info(
-    #     f"geo_grid (sample points): {geo_grid[:5]}"
-    # )  # Sample first 5 points for brevity
-    # logging.info(f"transformed_geo_grid (sample points): {transformed_geo_grid[:5]}")
-    # logging.info(
-    #     f"transformed_geo_grid_normalized (sample points): {transformed_geo_grid_normalized[:5]}"
-    # )
-    # logging.info(f"warped_image_tensor shape: {warped_image_tensor.shape}")
-
-    # Create a BytesIO object and save the image to it
-    byte_io = io.BytesIO()
-    warped_image_pil.save(byte_io, "JPEG")
-
-    # Go back to the beginning of the BytesIO object
-    byte_io.seek(0)
-    return send_file(byte_io, mimetype="image/jpeg")
-
-    value = f"<pre>{geojson}</pre>"
-    return value
+            value = f"<pre>{geojson}</pre>"
+            value += f"<pre>{gdal_translate_command}</pre>"
+            value += f"<pre>{gdalwarp_command}</pre>"
+            return value

@@ -1,7 +1,7 @@
 FROM cnstark/pytorch:2.0.1-py3.10.11-ubuntu22.04
 
 RUN apt-get update && \
-    apt-get install -y curl fontconfig wget vim aptitude
+    apt-get install -y curl fontconfig wget vim aptitude gdal-bin
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs

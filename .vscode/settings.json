@@ -32,6 +32,7 @@
     "dualpane",
     "fontsource",
     "fromarray",
+    "gdalwarp",
     "Georeference",
     "Georeferenced",
     "Georeferencer",
