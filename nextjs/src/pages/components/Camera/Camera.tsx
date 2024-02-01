@@ -108,7 +108,9 @@ export default function Camera({ paneWidth }: CameraProps) {
     event: React.MouseEvent<HTMLImageElement, MouseEvent>,
   ) => {
     const imgElement = event.currentTarget
-    const scaleFactor = imgElement.naturalWidth / imgElement.clientWidth
+    const scaleFactor =
+      (imgElement.naturalWidth / imgElement.clientWidth) *
+      window.devicePixelRatio
     const x = Math.round(event.nativeEvent.offsetX * scaleFactor)
     const y = Math.round(event.nativeEvent.offsetY * scaleFactor)
     if (x === 0 || y === 0) {
