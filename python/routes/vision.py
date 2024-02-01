@@ -329,7 +329,7 @@ def transformedImage(id, db, redis):
     image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
     image_key = f"requests:{image_url[8:]}"
 
-    response = redis.get(image_url)
+    response = redis.get(image_key)
 
     # Try fetching the image content and status code from the cache
     cached_response = redis.get(image_url)
@@ -342,7 +342,7 @@ def transformedImage(id, db, redis):
         status_code, image_content = response.status_code, response.content
 
         # # Cache the status code and image content
-        # redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
+        redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
 
         with tempfile.TemporaryDirectory() as temp_dir:
             logging.info(f"Temporary directory created at {temp_dir}")
