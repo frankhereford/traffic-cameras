@@ -26,12 +26,6 @@ interface TransformedImage {
   image: string
 }
 
-interface OverlayViewStyle {
-  background: string
-  width: string
-  height: string
-}
-
 export default function GeoreferencedImage({
   camera,
 }: GeoreferencedImageProps) {
@@ -77,11 +71,6 @@ export default function GeoreferencedImage({
     }
   }, [transformedImage])
 
-  const getPixelPositionOffset = (width: number, height: number) => ({
-    x: -(width / 2),
-    y: -(height / 2),
-  })
-
   return (
     <>
       {showTransformedImage && transformedImage && bounds && (
@@ -89,7 +78,6 @@ export default function GeoreferencedImage({
           <OverlayView
             mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
             bounds={bounds}
-            // getPixelPositionOffset={getPixelPositionOffset}
           >
             <div
               style={{ height: "100%", width: "100%", background: "#ffffff22" }}
