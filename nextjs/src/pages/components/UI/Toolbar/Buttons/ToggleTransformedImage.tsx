@@ -6,6 +6,7 @@ import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 
 import { api } from "~/utils/api"
+import useMapControls from "~/pages/hooks/useMapControls"
 
 export default function ToggleTransformedImage() {
   const camera = useCameraStore((state) => state.camera)
@@ -16,6 +17,9 @@ export default function ToggleTransformedImage() {
   const setShowTransformedImage = useTransformedImage(
     (state) => state.setShowTransformedImage,
   )
+
+  const zoomTight = useMapControls((state) => state.zoomTight)
+  const setZoomTight = useMapControls((state) => state.setZoomTight)
 
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
@@ -43,6 +47,13 @@ export default function ToggleTransformedImage() {
     },
   )
 
+  const handleClick = () => {
+    if (!zoomTight && !showTransformedImage) {
+      setZoomTight(true)
+    }
+    setShowTransformedImage(!showTransformedImage)
+  }
+
   if (locationCount.isLoading) return <></>
   if (locationCount.isError) return <></>
   if (locationCount.data <= 5) return <></>
@@ -54,7 +65,7 @@ export default function ToggleTransformedImage() {
           className="mb-4 p-0"
           variant="contained"
           style={{ fontSize: "35px", position: "relative" }}
-          onClick={() => setShowTransformedImage(!showTransformedImage)}
+          onClick={handleClick}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
