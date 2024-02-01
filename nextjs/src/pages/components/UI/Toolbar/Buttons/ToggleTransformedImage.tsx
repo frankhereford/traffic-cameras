@@ -5,6 +5,8 @@ import useTransformedImage from "~/pages/hooks/useTransformedImage"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 
+import { api } from "~/utils/api"
+
 export default function ToggleTransformedImage() {
   const camera = useCameraStore((state) => state.camera)
 
@@ -31,6 +33,19 @@ export default function ToggleTransformedImage() {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [showTransformedImage, isFocus, setShowTransformedImage])
+
+  const locationCount = api.location.getLocationCount.useQuery(
+    {
+      camera: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  )
+
+  if (locationCount.isLoading) return <></>
+  if (locationCount.isError) return <></>
+  if (locationCount.data <= 5) return <></>
 
   return (
     camera && (
