@@ -58,7 +58,7 @@ export default function ToggleTransformedImage() {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {showTransformedImage ? "📸" : "💨"}
+          {showTransformedImage ? "📸" : "📐"}
           {isHovered && (
             <span
               style={{
