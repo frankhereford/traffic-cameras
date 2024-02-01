@@ -41,8 +41,8 @@ export default function GeoreferencedImage({
   const { data: transformedImage } = useQuery<TransformedImage>(
     ["transformedImage", camera],
     () =>
-      fetch(`http://localhost/flask/transformedImage/${camera}`).then(
-        (response) => response.json(),
+      fetch(`/flask/transformedImage/${camera}`).then((response) =>
+        response.json(),
       ),
   )
 
