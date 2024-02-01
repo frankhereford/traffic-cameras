@@ -6,7 +6,6 @@ import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 import { api } from "~/utils/api"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
-import { sum } from "lodash"
 
 export default function ToggleHistoricData() {
   const showHistoricData = useShowHistoricData(
