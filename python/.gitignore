@@ -1,2 +1,6 @@
+*points
+*tif
+*jpg
 venv
 __pycache__/
+*xml

@@ -56,7 +56,7 @@ export default function Previous() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "e") {
+      if (event.key === "e" && !isFocus) {
         handleOpen()
       }
     }

@@ -11,6 +11,12 @@ from PIL import Image, ImageDraw
 from torch_tps import ThinPlateSpline
 from scipy.spatial import ConvexHull
 from transformers import DetrImageProcessor, DetrForObjectDetection
+import requests
+import json
+import tempfile
+import os
+import subprocess
+import re
 
 # https://xkcd.com/353/
 
@@ -38,7 +44,7 @@ def check_point_in_camera_location(camera, point):
         hull = ConvexHull(points)
         return is_point_in_hull(hull, point)
     else:
-        print(
+        logging.info(
             "Cannot create a convex hull because there are not enough points or the points do not have at least two dimensions."
         )
         return False
@@ -51,7 +57,7 @@ def throttle(func):
         if throttle._last_called is not None:
             time_since_last_call = time.time() - throttle._last_called
             sleep_time = int(round(max(0, 1 - time_since_last_call), 0))
-            print("sleep time: ", sleep_time)
+            logging.info(f"sleep time: {sleep_time} ")
             time.sleep(sleep_time)
         throttle._last_called = time.time()
         return func(*args, **kwargs)
@@ -83,7 +89,7 @@ def process_one_image(db, redis):
     if job is None:
         return
 
-    print(job.hash)
+    logging.info(job.hash)
 
     key = f"images:{job.hash}"
 
@@ -235,3 +241,186 @@ def process_one_image(db, redis):
             "detectionsProcessed": True,
         },
     )
+
+
+def create_geojson_of_image_borders_in_map_space(transformed_points):
+    # Convert the tensor to a list of lists and reverse each point
+    points = [list(reversed(point)) for point in transformed_points.tolist()]
+
+    # Ensure the first and last points are the same
+    points.append(points[0])
+
+    # Create a GeoJSON FeatureCollection
+    geojson_object = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {"type": "Polygon", "coordinates": [points]},
+            }
+        ],
+    }
+
+    # Add each point as a separate feature (excluding the last point which is a duplicate of the first)
+    for point in points[:-1]:
+        geojson_object["features"].append(
+            {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {"type": "Point", "coordinates": point},
+            }
+        )
+
+    # Convert the GeoJSON object to a string
+    geojson_str = json.dumps(geojson_object, indent=4)
+
+    return (geojson_str, geojson_object)
+
+
+def create_transform_and_process_tensor_of_input_points(
+    image_registration_points, map_registration_points, list_to_process
+):
+    # Ensure image_registration_points and map_registration_points are float type
+    image_registration_points = image_registration_points.float()
+    map_registration_points = map_registration_points.float()
+    list_to_process = list_to_process.float()
+
+    # Create the thin plate spline object
+    tps = ThinPlateSpline(0.5)
+    tps.fit(image_registration_points, map_registration_points)
+    transformed_points = tps.transform(list_to_process)
+
+    return transformed_points
+
+
+def generate_gdal_commands(control_points, image_path, temp_dir):
+    gdal_translate_command = "/usr/bin/gdal_translate -of GTiff "
+    for point in control_points:
+        gdal_translate_command += "-gcp {} {} {} {} ".format(
+            point[0][0], point[0][1], point[1][0], point[1][1]
+        )
+    gdal_translate_command += f"{image_path} "
+    gdal_translate_command += f"{temp_dir}/intermediate.tif"
+
+    gdalwarp_command = f"/usr/bin/gdalwarp -r near -tps  -dstalpha -t_srs EPSG:4326 {temp_dir}/intermediate.tif {temp_dir}/modified.tif"
+    return gdal_translate_command, gdalwarp_command
+
+
+def get_image_extent(gdalinfo_command):
+    process = subprocess.Popen(gdalinfo_command, stdout=subprocess.PIPE, shell=True)
+    output, _ = process.communicate()
+    output = output.decode("utf-8")
+    # logging.info(f"gdalinfo output: {output}")
+
+    corners = re.findall(
+        r"Upper Left\s+\(\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\).*\n.*\n.*\nLower Right\s+\(\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\)",
+        output,
+    )
+
+    if corners:
+        min_lon, max_lat, max_lon, min_lat = map(float, corners[0])
+        return min_lon, min_lat, max_lon, max_lat
+
+    return None
+
+
+def transformedImage(id, db, redis):
+    image_url = f"https://cctv.austinmobility.io/image/{id}.jpg"
+    image_key = f"requests:{image_url[8:]}"
+
+    response = redis.get(image_key)
+
+    # Try fetching the image content and status code from the cache
+    cached_response = redis.get(image_url)
+    if cached_response:
+        logging.info("Image found in cache")
+        status_code, image_content = pickle.loads(cached_response)
+    else:
+        logging.info(f"Image not found in cache, downloading from {image_url}")
+        response = requests.get(image_url)
+        status_code, image_content = response.status_code, response.content
+
+        # # Cache the status code and image content
+        redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            logging.info(f"Temporary directory created at {temp_dir}")
+
+            image = Image.open(BytesIO(image_content))
+            image_path = f"{temp_dir}/{id}.jpg"
+            image.save(image_path)
+
+            camera = db.camera.find_first(
+                where={"coaId": id}, include={"Location": True}
+            )
+
+            control_points = []
+            for location in camera.Location:
+                control_points.append(
+                    (
+                        (location.x, location.y),
+                        (location.longitude, location.latitude),
+                    )
+                )
+
+            logging.info(control_points)
+            gdal_translate_command, gdalwarp_command = generate_gdal_commands(
+                control_points, image_path, temp_dir
+            )
+
+            logging.info(gdal_translate_command)
+            os.system(gdal_translate_command)
+
+            logging.info(gdalwarp_command)
+            os.system(gdalwarp_command)
+
+            gdalinfo_command = f"/usr/bin/gdalinfo {temp_dir}/modified.tif"
+            extent = get_image_extent(gdalinfo_command)
+            logging.info(f"extent: {extent}")
+            output_geotiff = f"{temp_dir}/modified.tif"
+
+            image = Image.open(output_geotiff)
+
+            cctv_points, map_points = extract_points(camera.Location)
+
+            cctv_points.float()
+            map_points.float()
+
+            corners_in_image_space = [(0, 0), (0, 1080), (1920, 1080), (1920, 0)]
+            list_to_process = torch.tensor(corners_in_image_space)
+
+            image_extents_as_geographic_coordinates = (
+                create_transform_and_process_tensor_of_input_points(
+                    cctv_points, map_points, list_to_process
+                )
+            )
+
+            # logging.info(
+            #     f"image_extents_as_geographic_coordinates: {image_extents_as_geographic_coordinates}"
+            # )
+
+            (
+                geojson_str,
+                geojson_object,
+            ) = create_geojson_of_image_borders_in_map_space(
+                image_extents_as_geographic_coordinates
+            )
+
+            # Convert the Pillow image to a base64 string
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+
+            payload = {
+                "extent": extent,
+                "geojson": geojson_object,
+                "image": img_str,
+            }
+
+            return json.dumps(payload, indent=4)
+
+            value = f"<pre>{geojson_str}</pre>"
+            value += f"<pre>{gdal_translate_command}</pre>"
+            value += f"<pre>{gdalwarp_command}</pre>"
+            return value

@@ -13,6 +13,9 @@ import useShowHistoricData from "~/pages/hooks/useShowHistoricData"
 import Detections from "~/pages/components/Map/Detections/Detections"
 import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
 import HistoricDetections from "~/pages/components/Map/HistoricDetections/HistoricDetections"
+import GeoreferencedImage from "~/pages/components/Map/GeoreferencedImage/GeoreferencedImage"
+
+import { api } from "~/utils/api"
 
 interface MapProps {
   paneWidth: number
@@ -129,6 +132,21 @@ function Map({ socrataData, paneWidth }: MapProps) {
     }
   }, [camera, map, data, zoomTight, setPendingMapLocationStore])
 
+  const locationCount = api.location.getLocationCount.useQuery(
+    {
+      camera: camera!,
+    },
+    {
+      enabled: !!camera,
+    },
+  )
+
+  useEffect(() => {
+    if (locationCount.data) {
+      console.log(`Location count: ${locationCount.data}`)
+    }
+  }, [locationCount.data])
+
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
@@ -163,6 +181,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
       {camera && <Locations camera={camera} />}
       {camera && <Detections camera={camera} />}
       {camera && showHistoricData && <HistoricDetections camera={camera} />}
+      {(locationCount.data ?? 0) > 5 && camera && (
+        <GeoreferencedImage camera={camera} />
+      )}
     </GoogleMap>
   ) : (
     <></>
