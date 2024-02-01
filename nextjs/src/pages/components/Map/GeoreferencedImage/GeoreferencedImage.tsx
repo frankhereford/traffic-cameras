@@ -89,7 +89,11 @@ export default function GeoreferencedImage({
             <div
               style={{ height: "100%", width: "100%", background: "#ffffff22" }}
             >
-              {/* <img src={overlaySource!} alt="Georeferenced Image" /> */}
+              <img
+                src={overlaySource!}
+                alt="Georeferenced Image"
+                style={{ objectFit: "fill", height: "100%", width: "100%" }}
+              />{" "}
             </div>
           </OverlayView>
         </>
