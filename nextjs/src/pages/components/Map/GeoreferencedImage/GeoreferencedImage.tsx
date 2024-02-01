@@ -75,12 +75,14 @@ export default function GeoreferencedImage({
     <>
       {showTransformedImage && transformedImage && bounds && (
         <>
-          <OverlayView
-            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-            bounds={bounds}
-          >
+          <OverlayView mapPaneName={OverlayView.MAP_PANE} bounds={bounds}>
             <div
-              style={{ height: "100%", width: "100%", background: "#ffffff22" }}
+              style={{
+                height: "100%",
+                width: "100%",
+                background: "#fff0",
+                outline: "1px dashed #f00f", // my new favorite hex color
+              }}
             >
               <img
                 src={overlaySource!}
