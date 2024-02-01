@@ -8,6 +8,7 @@ import PendingLocation from "./Locations/PendingLocation"
 import ReloadProgress from "./UI/ReloadProgress"
 import Locations from "~/pages/components/Camera/Locations/Locations"
 import { FullScreen, useFullScreenHandle } from "react-full-screen"
+import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 
 interface CameraProps {
   paneWidth: number
@@ -25,10 +26,11 @@ export default function Camera({ paneWidth }: CameraProps) {
   const [reloadInterval, setReloadInterval] = useState(5 * 60 * 1000) // Default to 5 minutes
   const [reloadPercentage, setReloadPercentage] = useState(100)
   const fullScreenHandle = useFullScreenHandle()
+  const isFocus = useAutocompleteFocus((state) => state.isFocus)
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === "f") {
+      if (!isFocus && event.key === "f") {
         fullScreenHandle.enter().catch((error) => {
           console.log("error: ", error)
         })
@@ -41,7 +43,7 @@ export default function Camera({ paneWidth }: CameraProps) {
     return () => {
       window.removeEventListener("keypress", handleKeyPress)
     }
-  }, [fullScreenHandle])
+  }, [fullScreenHandle, isFocus])
 
   const setPendingImageLocationStore = usePendingLocation(
     (state) => state.setPendingImageLocation,
