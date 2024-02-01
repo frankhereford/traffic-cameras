@@ -33,10 +33,12 @@ export default function GeoreferencedImage({
     (state) => state.showTransformedImage,
   )
 
+  const opacity = useTransformedImage((state) => state.opacity)
+
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
   const [overlaySource, setOverlaySource] = useState<string | null>(null)
   const queryClient = useQueryClient()
-  const { data: transformedImage, refetch } = useQuery<TransformedImage>(
+  const { data: transformedImage } = useQuery<TransformedImage>(
     ["transformedImage", camera],
     () =>
       fetch(`http://localhost/flask/transformedImage/${camera}`).then(
@@ -71,6 +73,10 @@ export default function GeoreferencedImage({
     }
   }, [transformedImage])
 
+  // useEffect(() => {
+  //   console.log(`Opacity: ${opacity}`)
+  // }, [opacity])
+
   return (
     <>
       {showTransformedImage && transformedImage && bounds && (
@@ -82,6 +88,7 @@ export default function GeoreferencedImage({
                 width: "100%",
                 background: "#fff0",
                 outline: "1px dashed #f00f", // my new favorite hex color
+                opacity: opacity / 100, // convert opacity to range 0.0-1.0
               }}
             >
               <img

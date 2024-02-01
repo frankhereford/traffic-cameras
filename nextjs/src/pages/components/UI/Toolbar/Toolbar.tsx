@@ -11,6 +11,7 @@ import ResetLocations from "./Buttons/ResetLocations"
 import ToggleHistoricData from "./Buttons/ToggleHistoricData"
 import GitHub from "./Buttons/GitHub"
 import ToggleTransformedImage from "./Buttons/ToggleTransformedImage"
+import TransparencySlider from "./TransparencySlider"
 
 export default function ToolPanel() {
   return (
@@ -33,6 +34,7 @@ export default function ToolPanel() {
             <Logout />
             <GitHub />
           </div>
+          <TransparencySlider />
           <CameraPicker />
         </div>
       </Draggable>
