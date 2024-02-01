@@ -58,6 +58,11 @@ export default function SaveLocation() {
               .catch((error) => {
                 console.log("error: ", error)
               })
+            queryClient
+              .invalidateQueries([["transformedImage", camera]])
+              .catch((error) => {
+                console.log("error: ", error)
+              })
             setShowLocations(true)
           },
         },
