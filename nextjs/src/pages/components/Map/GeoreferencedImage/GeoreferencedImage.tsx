@@ -54,7 +54,7 @@ export default function GeoreferencedImage({
 
   useEffect(() => {
     if (transformedImage) {
-      console.log(JSON.stringify(transformedImage, null, 2))
+      // console.log(JSON.stringify(transformedImage, null, 2))
       setBounds(
         new google.maps.LatLngBounds(
           {
