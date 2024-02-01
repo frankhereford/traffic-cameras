@@ -21,7 +21,6 @@ export default function ToolPanel() {
           className="top-25 right-25 mr-25 absolute z-50 rounded-lg bg-stone-50 pb-6 pr-[20px] pt-6"
           style={{ minWidth: "350px", maxWidth: "100%", paddingLeft: "20px" }}
         >
-          <TransparencySlider />
           <div className="flex flex-wrap justify-between space-x-2">
             <ToggleMapFollow />
             <RandomCamera />
@@ -35,6 +34,7 @@ export default function ToolPanel() {
             <Logout />
             <GitHub />
           </div>
+          <TransparencySlider />
           <CameraPicker />
         </div>
       </Draggable>
