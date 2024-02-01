@@ -73,9 +73,9 @@ export default function GeoreferencedImage({
     }
   }, [transformedImage])
 
-  useEffect(() => {
-    console.log(`Opacity: ${opacity}`)
-  }, [opacity])
+  // useEffect(() => {
+  //   console.log(`Opacity: ${opacity}`)
+  // }, [opacity])
 
   return (
     <>

@@ -41,7 +41,12 @@ export default function TransparencySlider() {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Stack spacing={2} direction="row" sx={{ mb: 1 }} alignItems="center">
-        <Slider aria-label="Volume" value={value} onChange={handleChange} />
+        <Slider
+          aria-label="Volume"
+          value={value}
+          onChange={handleChange}
+          onMouseDown={(e) => e.stopPropagation()}
+        />
       </Stack>
     </Box>
   )
