@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { OverlayView } from "@react-google-maps/api"
+import useTransformedImage from "~/pages/hooks/useTransformedImage"
 
 interface GeoreferencedImageProps {
   camera: number
@@ -34,6 +35,10 @@ interface OverlayViewStyle {
 export default function GeoreferencedImage({
   camera,
 }: GeoreferencedImageProps) {
+  const showTransformedImage = useTransformedImage(
+    (state) => state.showTransformedImage,
+  )
+
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
   const [overlaySource, setOverlaySource] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -79,7 +84,7 @@ export default function GeoreferencedImage({
 
   return (
     <>
-      {transformedImage && bounds && (
+      {showTransformedImage && transformedImage && bounds && (
         <>
           <OverlayView
             mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
