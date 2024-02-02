@@ -21,21 +21,22 @@ export default function ToolPanel() {
           className="top-25 right-25 mr-25 absolute z-50 rounded-lg bg-stone-50 pb-6 pr-[20px] pt-6"
           style={{ minWidth: "350px", maxWidth: "100%", paddingLeft: "20px" }}
         >
-          <div className="flex flex-wrap justify-between space-x-2">
-            <ToggleMapFollow />
-            <RandomCamera />
-            <RandomNewCamera />
-            <Previous />
-            <SaveLocation />
-            <ToggleLocations />
-            <ToggleHistoricData />
-            <ToggleTransformedImage />
-            <ResetLocations />
-            <Logout />
-            <GitHub />
-          </div>
           <TransparencySlider />
           <CameraPicker />
+          <p
+            className="pb-p mb-0 text-right font-sans text-xs text-gray-500"
+            style={{ marginTop: "5px", marginBottom: "10px", height: "5px" }}
+          >
+            🙏🏻 &nbsp;
+            <a
+              href="https://data.austintexas.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-sans underline"
+            >
+              City of Austin, Open Data Portal
+            </a>
+          </p>
         </div>
       </Draggable>
     </>
