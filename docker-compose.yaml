@@ -61,5 +61,11 @@ services:
     ports:
       - 6379:6379
 
+  rtsp:
+    build:
+      context: ./rtsp
+    volumes:
+      - ./colorado/media:/application/media
+
 volumes:
   db_data:
