@@ -61,13 +61,13 @@ services:
     ports:
       - 6379:6379
 
-  rtsp:
+  download:
     build:
-      context: ./rtsp
+      context: ./download
     entrypoint: ["/application/download_and_serve.py", "B0YjuKbVZ5w"]
     volumes:
-      - ./rtsp/media:/application/media
-      - ./rtsp:/application
+      - ./download/media:/application/media
+      - ./download:/application
 
 volumes:
   db_data:
