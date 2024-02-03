@@ -69,5 +69,19 @@ services:
       - ./download/media:/application/media
       - ./download:/application
 
+  media:
+    image: datarhei/restreamer:latest
+    restart: unless-stopped
+    volumes:
+      - ./media/config:/core/config
+      - ./media/data:/core/data
+    ports:
+      - "8080:8080"
+      - "8181:8181"
+      - "1935:1935"
+      - "1936:1936"
+      - "6000:6000/udp"
+      - "554:554/udp"
+
 volumes:
   db_data:

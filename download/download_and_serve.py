@@ -6,7 +6,7 @@ import subprocess
 
 def stream_video(video_id):
     youtube_url = f"https://www.youtube.com/watch?v={video_id}"
-    command = f"yt-dlp -f best {youtube_url} -o - | ffmpeg -i - -f rtsp rtsp://localhost:8554/trafficCamera"
+    command = f"yt-dlp -f best {youtube_url} -o - | ffmpeg -stream_loop -1 -re -i pipe:0 -c:v libx264 -c:a aac -ar 44100 -strict experimental -f flv rtmp://media/f1adde7d-4364-4a62-ba7d-700766d7f4e2.stream"
     subprocess.run(command, shell=True)
 
 
