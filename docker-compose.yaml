@@ -76,6 +76,13 @@ services:
       - ./inference:/app
     env_file:
       - ./inference/.env
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
 
   media:
     image: datarhei/restreamer:latest

@@ -3,3 +3,5 @@ inference==0.9.*
 
 ffmpeg-python==0.2.0
 opencv-python-headless==4.9.0.80
+
+onnxruntime-gpu==1.17.*

@@ -41,7 +41,7 @@ directory = "/app/frames"
 os.makedirs(directory, exist_ok=True)
 
 # Example usage
-hls_url = "http://media:8080/memfs/f1adde7d-4364-4a62-ba7d-700766d7f4e2.m3u8"
+hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
 # for i in range(256):
@@ -55,7 +55,7 @@ bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=4)
 
 i = 0
 for frame in frame_generator:
-    if i >= 25:
+    if i >= 255:
         break
 
     result = model.infer(frame)[0]
