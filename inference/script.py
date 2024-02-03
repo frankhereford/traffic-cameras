@@ -34,11 +34,11 @@ def hls_frame_generator(hls_url):
     process.terminate()
 
 
-# # The directory to be created
-# directory = "/app/frames"
+# The directory to be created
+directory = "/app/frames"
 
-# # Create the directory if it doesn't exist
-# os.makedirs(directory, exist_ok=True)
+# Create the directory if it doesn't exist
+os.makedirs(directory, exist_ok=True)
 
 # Example usage
 hls_url = "http://media:8080/memfs/f1adde7d-4364-4a62-ba7d-700766d7f4e2.m3u8"
@@ -50,3 +50,22 @@ frame_generator = hls_frame_generator(hls_url)
 #     # cv2.imwrite(f"/app/frames/frame_{i}.jpg", frame)
 
 model = get_roboflow_model("yolov8s-640")
+
+bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+
+i = 0
+for frame in frame_generator:
+    if i >= 25:
+        break
+
+    result = model.infer(frame)[0]
+    detections = sv.Detections.from_inference(result)
+
+    annotated_frame = frame.copy()
+    annotated_frame = bounding_box_annotator.annotate(
+        scene=annotated_frame, detections=detections
+    )
+
+    print("frame write out")
+    cv2.imwrite(f"/app/frames/frame_{i}.jpg", annotated_frame)
+    i += 1
