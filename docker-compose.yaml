@@ -64,8 +64,10 @@ services:
   rtsp:
     build:
       context: ./rtsp
+    entrypoint: ["/application/download_and_serve.py", "B0YjuKbVZ5w"]
     volumes:
-      - ./colorado/media:/application/media
+      - ./rtsp/media:/application/media
+      - ./rtsp:/application
 
 volumes:
   db_data:

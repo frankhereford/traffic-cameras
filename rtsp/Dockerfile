@@ -12,9 +12,8 @@ RUN apt-get install -y vim aptitude python3-pip magic-wormhole file ffmpeg
 RUN python3 -m pip install -U yt-dlp vtt_to_srt3 redis moviepy psycopg2-binary
 
 RUN mkdir /application
-COPY . /application/download
-RUN mkdir /application/media
+COPY . /application
 WORKDIR /application/media
 
-#ENTRYPOINT ["/application/download/download_video.py"]
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/application/download_and_serve.py"]
+#ENTRYPOINT ["/bin/bash"]
