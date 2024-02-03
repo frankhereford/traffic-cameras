@@ -35,7 +35,7 @@ def hls_frame_generator(hls_url):
 
 
 # The directory to be created
-directory = "/app/frames"
+directory = "./frames"
 
 # Create the directory if it doesn't exist
 os.makedirs(directory, exist_ok=True)
@@ -67,5 +67,5 @@ for frame in frame_generator:
     )
 
     print("frame write out")
-    cv2.imwrite(f"/app/frames/frame_{i}.jpg", annotated_frame)
+    cv2.imwrite(f"./frames/frame_{i}.jpg", annotated_frame)
     i += 1
