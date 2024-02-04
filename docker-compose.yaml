@@ -64,7 +64,7 @@ services:
   download:
     build:
       context: ./download
-    entrypoint: ["/application/download_and_serve.py", "B0YjuKbVZ5w"]
+    entrypoint: ["/application/download_and_serve.py", "PtChZ0D7tkE"]
     volumes:
       - ./download/media:/application/media
       - ./download:/application
