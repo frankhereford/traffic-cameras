@@ -12,7 +12,7 @@ import torch
 from torch_tps import ThinPlateSpline
 
 import psycopg2.extras
-
+import redis
 
 from utilities.transformation import read_points_file
 from utilities.sql import (
@@ -42,9 +42,10 @@ try:
     cursor.execute("SELECT version();")
     record = cursor.fetchone()
     print("You are connected to - ", record, "\n")
-
 except (Exception, psycopg2.Error) as error:
     print("Error while connecting to PostgreSQL", error)
+
+redis = redis.Redis(host="localhost", port=6379, db=0)
 
 
 def hls_frame_generator(hls_url):
@@ -143,17 +144,32 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
         #     )
         # ]
 
+        speeds = []
         for tracker_id in detections.tracker_id:
-            # print("tracker_id: ", tracker_id)
-            speed = compute_speed(cursor, session, tracker_id)
+            # Try to get the speed from Redis
+            speed = redis.get(f"speed:{session_id}:{tracker_id}")
+            if speed is None:
+                # If the speed is not in Redis, compute it and store it in Redis with a 2 second expiration
+                speed = compute_speed(cursor, session, tracker_id, 20)
+                if speed is not None:
+                    print("fresh speed: ", speed)
+                    redis.set(f"speed:{session_id}:{tracker_id}", speed, ex=2)
+                else:
+                    print("failed speed read")
+                    speeds.append(None)
+                    continue
+            else:
+                # If the speed is in Redis, convert it to a float
+                speed = float(speed)
+            speeds.append(speed)
 
         labels = [
             f"Class: {classes[class_id]} #{tracker_id}"
-            for tracker_id, class_id, point in zip(
-                detections.tracker_id, detections.class_id, points
+            + (f", Speed: {speed:.1f} MPH" if speed is not None else "")
+            for tracker_id, class_id, speed in zip(
+                detections.tracker_id, detections.class_id, speeds
             )
         ]
-
         annotated_frame = frame.copy()
 
         annotated_frame = label_annotator.annotate(

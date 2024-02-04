@@ -8,3 +8,5 @@ opencv-python-headless
 
 torch_tps
 psycopg2-binary
+redis
+

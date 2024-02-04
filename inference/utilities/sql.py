@@ -54,8 +54,57 @@ def create_new_session(cursor):
     return session_id["id"]
 
 
-def compute_speed(cursor, session_id, tracker_id):
-    pass
+def compute_speed(cursor, session_id, tracker_id, frame_look_back=30):
+    return 10
+    cursor.execute(
+        """
+        WITH ranked_detections AS (
+            SELECT 
+                id,
+                timestamp,
+                ST_Transform(location, 2229) as location_transformed,
+                ROW_NUMBER() OVER (ORDER BY timestamp DESC) as rn
+            FROM 
+                detections
+            WHERE 
+                session_id = %s AND 
+                tracker_id = %s
+        )
+        SELECT 
+            ABS(ST_Distance(
+                (SELECT location_transformed FROM ranked_detections WHERE rn = 1),
+                (SELECT location_transformed FROM ranked_detections WHERE rn = %s)
+            )) as distance_in_feet,
+            ABS(EXTRACT(EPOCH FROM (
+                (SELECT timestamp FROM ranked_detections WHERE rn = 1) - 
+                (SELECT timestamp FROM ranked_detections WHERE rn = %s)
+            ))) as time_difference_in_seconds
+        FROM 
+            ranked_detections
+        WHERE 
+            rn IN (1, %s);
+""",
+        (
+            int(session_id),
+            int(tracker_id),
+            frame_look_back,
+            frame_look_back,
+            frame_look_back,
+        ),
+    )
+    result = cursor.fetchone()
+    if (
+        result
+        and "distance_in_feet" in result
+        and "time_difference_in_seconds" in result
+        and result["distance_in_feet"] is not None
+        and result["time_difference_in_seconds"] is not None
+    ):
+        return (
+            result["distance_in_feet"] / float(result["time_difference_in_seconds"])
+        ) * 0.681818
+    else:
+        return None
 
 
 def get_class_id(db, cursor, session_id, class_id, class_name):
