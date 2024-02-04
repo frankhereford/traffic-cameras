@@ -51,12 +51,11 @@ redis = redis.Redis(host="localhost", port=6379, db=0)
 def hls_frame_generator(hls_url):
     # Set up the ffmpeg command to capture the stream
     command = (
-        ffmpeg.input(hls_url, format="hls", loglevel="quiet")
-        .output("pipe:", format="rawvideo", pix_fmt="rgb24")
+        ffmpeg.input(hls_url, format="hls", loglevel="quiet", vcodec="h264_cuvid")
+        .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=15)
         .global_args("-loglevel", "quiet")
         .compile()
     )
-
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     while True:
@@ -75,10 +74,10 @@ def hls_frame_generator(hls_url):
 def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     command = (
         ffmpeg.input(
-            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=30
+            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=15
         )  # Set input specifications
         .output(
-            rtmp_url, format="flv", vcodec="libx264", pix_fmt="yuv420p"
+            rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p"
         )  # Configure output
         .overwrite_output()
         .global_args("-loglevel", "quiet")
@@ -210,7 +209,7 @@ frame_generator = hls_frame_generator(hls_url)
 model = get_roboflow_model("yolov8s-640")
 
 resolution_wy = (1920, 1080)
-byte_track = sv.ByteTrack(frame_rate=30)
+byte_track = sv.ByteTrack(frame_rate=15)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)

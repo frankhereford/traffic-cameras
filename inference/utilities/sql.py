@@ -54,8 +54,7 @@ def create_new_session(cursor):
     return session_id["id"]
 
 
-def compute_speed(cursor, session_id, tracker_id, frame_look_back=30):
-    return 10
+def compute_speed(cursor, session_id, tracker_id, frame_look_back=15):
     cursor.execute(
         """
         WITH ranked_detections AS (
