@@ -109,6 +109,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - db_live_camera_data:/var/lib/postgresql/data
+      - ./live_camera_postgis/seed.sql:/docker-entrypoint-initdb.d/seed.sql
 
 volumes:
   db_data:

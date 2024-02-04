@@ -11,11 +11,12 @@ import subprocess
 import json
 import torch
 from torch_tps import ThinPlateSpline
-import uuid
+
 import psycopg2.extras
-import pytz
+
 
 from utilities.transformation import read_points_file
+from utilities.sql import insert_detection, create_new_session, get_class_id
 
 import psycopg2
 
@@ -66,46 +67,6 @@ def hls_frame_generator(hls_url):
     process.terminate()
 
 
-import datetime
-
-
-def insert_detection(
-    cursor,
-    tracker_id,
-    class_id,
-    image_x,
-    image_y,
-    timestamp,
-    session_id,
-    longitude,
-    latitude,
-):
-
-    insert_query = """
-    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
-    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
-    """
-    # Convert the Unix timestamp to a datetime value
-    timestamp = datetime.datetime.fromtimestamp(timestamp)
-
-    # Convert the timestamp to Central Time
-    central = pytz.timezone("America/Chicago")
-    timestamp = timestamp.astimezone(central)
-
-    record_to_insert = (
-        int(tracker_id),
-        int(image_x),
-        int(image_y),
-        timestamp,
-        session_id,
-        float(longitude),
-        float(latitude),
-        int(class_id),
-    )
-    cursor.execute(insert_query, record_to_insert)
-    db.commit()
-
-
 def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     command = (
         ffmpeg.input(
@@ -133,17 +94,20 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
             classes[prediction.class_id] = prediction.class_name.title()
 
         detections_xy = torch.tensor(points).float()
-
         detections_latlon = tps.transform(detections_xy)
 
         # Insert each detection into the database
         for tracker_id, point, location, class_id in zip(
             detections.tracker_id, points, detections_latlon, detections.class_id
         ):
+            our_class_id = get_class_id(
+                db, cursor, session_id, class_id, classes[class_id]
+            )
             insert_detection(
+                db,
                 cursor,
                 tracker_id,
-                class_id,
+                our_class_id,
                 point[0],
                 point[1],
                 time.time(),
@@ -183,19 +147,6 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
 
     process.stdin.close()
     process.wait()
-
-
-def create_new_session(cursor):
-    # Generate a fresh UUID
-    new_uuid = uuid.uuid4()
-
-    # Insert a new session record and return the id
-    insert_query = """INSERT INTO sessions (uuid) VALUES (%s) RETURNING id;"""
-    cursor.execute(insert_query, (str(new_uuid),))
-
-    # Fetch the id of the newly inserted record
-    session_id = cursor.fetchone()
-    return session_id["id"]
 
 
 cursor = db.cursor()
