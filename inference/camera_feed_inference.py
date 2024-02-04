@@ -9,6 +9,8 @@ import os
 import time
 import subprocess
 import json
+import torch
+from torch_tps import ThinPlateSpline
 
 from utilities.transformation import read_points_file
 
@@ -36,6 +38,16 @@ def hls_frame_generator(hls_url):
     process.terminate()
 
 
+def convert_to_midpoints(tracker_ids, xyxy):
+    midpoints = {}
+    for tracker_id, detection in zip(tracker_ids, xyxy):
+        x1, y1, x2, y2 = detection
+        X = (x1 + x2) / 2
+        Y = y2
+        midpoints[tracker_id] = (int(X.item()), int(Y.item()))
+    return midpoints
+
+
 def stream_frames_to_rtmp(rtmp_url, frame_generator):
     command = (
         ffmpeg.input(
@@ -55,6 +67,9 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
 
+        midpoints = convert_to_midpoints(detections.tracker_id, detections.xyxy)
+        print(midpoints)
+
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
         annotated_frame = frame.copy()
@@ -71,10 +86,11 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     process.wait()
 
 
-coordinates = read_points_file("./gcp/orange_ca.points")
-print(json.dumps(coordinates, indent=4))
+torch.set_printoptions(precision=10)
 
-quit()
+coordinates = read_points_file("./gcp/orange_ca.points")
+tps = ThinPlateSpline(0.5)
+tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
 
 hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
@@ -82,9 +98,9 @@ frame_generator = hls_frame_generator(hls_url)
 
 model = get_roboflow_model("yolov8s-640")
 
-byte_track = sv.ByteTrack(frame_rate=30)
 
 resolution_wy = (1920, 1080)
+byte_track = sv.ByteTrack(frame_rate=30)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)

@@ -6,3 +6,4 @@ inference
 ffmpeg-python
 opencv-python-headless
 
+torch_tps
