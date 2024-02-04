@@ -98,5 +98,17 @@ services:
       - "6000:6000/udp"
       - "554:554/udp"
 
+  live_camera_postgis:
+    image: postgis/postgis
+    ports:
+      - 5431:5432
+    environment:
+      POSTGRES_DB: live_cameras
+      POSTGRES_PASSWORD: cameras
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - db_live_camera_data:/var/lib/postgresql/data
+
 volumes:
   db_data:
+  db_live_camera_data:

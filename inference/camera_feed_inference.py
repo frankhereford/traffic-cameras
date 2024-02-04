@@ -38,16 +38,6 @@ def hls_frame_generator(hls_url):
     process.terminate()
 
 
-def convert_to_midpoints(tracker_ids, xyxy):
-    midpoints = {}
-    for tracker_id, detection in zip(tracker_ids, xyxy):
-        x1, y1, x2, y2 = detection
-        X = (x1 + x2) / 2
-        Y = y2
-        midpoints[tracker_id] = (int(X.item()), int(Y.item()))
-    return midpoints
-
-
 def stream_frames_to_rtmp(rtmp_url, frame_generator):
     command = (
         ffmpeg.input(
@@ -67,17 +57,29 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
 
-        midpoints = convert_to_midpoints(detections.tracker_id, detections.xyxy)
-        print(midpoints)
+        # midpoints = convert_to_midpoints(detections.tracker_id, detections.xyxy)
+        # print(midpoints)
 
-        labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+        points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+        print(points)
+
+        # labels = [f"#{tracker_id} Class: {class_id}" for tracker_id, class_id in zip(detections.tracker_id, detections.class_id)]
 
         annotated_frame = frame.copy()
-        annotated_frame = bounding_box_annotator.annotate(
+
+        annotated_frame = label_annotator.annotate(
+            # scene=annotated_frame, detections=detections, labels=labels
+            scene=annotated_frame,
+            detections=detections,
+        )
+
+        annotated_frame = trace_annotator.annotate(
             scene=annotated_frame, detections=detections
         )
-        annotated_frame = label_annotator.annotate(
-            scene=annotated_frame, detections=detections, labels=labels
+
+        annotated_frame = ellipse_annotator.annotate(
+            scene=annotated_frame,
+            detections=detections,
         )
 
         process.stdin.write(annotated_frame.tobytes())
@@ -105,6 +107,13 @@ thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
 label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness)
+trace_annotator = sv.TraceAnnotator(thickness=thickness)
+ellipse_annotator = sv.EllipseAnnotator(
+    thickness=thickness,
+    # start_angle=0,
+    # end_angle=360,
+)
+# halo_annotator = sv.HaloAnnotator()
 
 rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator)
