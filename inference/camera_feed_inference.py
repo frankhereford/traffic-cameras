@@ -11,8 +11,34 @@ import subprocess
 import json
 import torch
 from torch_tps import ThinPlateSpline
+import uuid
+import psycopg2.extras
 
 from utilities.transformation import read_points_file
+
+import psycopg2
+
+try:
+    db = psycopg2.connect(
+        user="postgres",
+        password="cameras",
+        port="5431",
+        host="localhost",
+        database="live_cameras",
+        cursor_factory=psycopg2.extras.RealDictCursor,
+    )
+
+    cursor = db.cursor()
+    # Print PostgreSQL Connection properties
+    print(db.get_dsn_parameters(), "\n")
+
+    # Print PostgreSQL version
+    cursor.execute("SELECT version();")
+    record = cursor.fetchone()
+    print("You are connected to - ", record, "\n")
+
+except (Exception, psycopg2.Error) as error:
+    print("Error while connecting to PostgreSQL", error)
 
 
 def hls_frame_generator(hls_url):
@@ -57,20 +83,19 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
 
-        # midpoints = convert_to_midpoints(detections.tracker_id, detections.xyxy)
-        # print(midpoints)
-
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
-        print(points)
+        # print(points)
 
         # labels = [f"#{tracker_id} Class: {class_id}" for tracker_id, class_id in zip(detections.tracker_id, detections.class_id)]
+        labels = [f"x: {int(x)}, y: {int(y)}" for [x, y] in points]
 
         annotated_frame = frame.copy()
 
         annotated_frame = label_annotator.annotate(
-            # scene=annotated_frame, detections=detections, labels=labels
             scene=annotated_frame,
             detections=detections,
+            labels=labels,
+            # scene=annotated_frame, detections=detections,
         )
 
         annotated_frame = trace_annotator.annotate(
@@ -87,6 +112,24 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     process.stdin.close()
     process.wait()
 
+
+def create_new_session(cursor):
+    # Generate a fresh UUID
+    new_uuid = uuid.uuid4()
+
+    # Insert a new session record and return the id
+    insert_query = """INSERT INTO sessions (uuid) VALUES (%s) RETURNING id;"""
+    cursor.execute(insert_query, (str(new_uuid),))
+
+    # Fetch the id of the newly inserted record
+    session_id = cursor.fetchone()
+    return session_id["id"]
+
+
+cursor = db.cursor()
+session = create_new_session(cursor)
+
+print("session: ", session)
 
 torch.set_printoptions(precision=10)
 
@@ -113,7 +156,6 @@ ellipse_annotator = sv.EllipseAnnotator(
     # start_angle=0,
     # end_angle=360,
 )
-# halo_annotator = sv.HaloAnnotator()
 
 rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator)
