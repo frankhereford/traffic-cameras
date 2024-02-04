@@ -135,18 +135,19 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
             # Try to get the speed from Redis
             speed = redis.get(f"speed:{session_id}:{tracker_id}")
             if speed is None:
-                # If the speed is not in Redis, compute it and store it in Redis with a 2 second expiration
-                speed = compute_speed(cursor, session, tracker_id, 20)
-                if speed is not None:
-                    print("fresh speed: ", speed)
-                    redis.set(f"speed:{session_id}:{tracker_id}", speed, ex=1)
-                else:
-                    print("failed speed read")
-                    speeds.append(None)
-                    continue
+                # If the speed is not in Redis, compute it and store it in Redis with a 1 second expiration
+                speed = compute_speed(cursor, session, tracker_id, 30)
+                print("fresh speed: ", speed)
+                # Convert None to 'None' before storing in Redis
+                redis.set(
+                    f"speed:{session_id}:{tracker_id}",
+                    speed if speed is not None else "None",
+                    ex=1,
+                )
             else:
-                # If the speed is in Redis, convert it to a float
-                speed = float(speed)
+                # Decode bytes to string and If the speed is in Redis, convert it to a float if it's not 'None'
+                speed = speed.decode("utf-8")
+                speed = float(speed) if speed != "None" else None
             speeds.append(speed)
 
         labels = [
