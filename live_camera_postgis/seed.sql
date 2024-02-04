@@ -36,11 +36,11 @@ SELECT
   detections.class_id,
   classes.class_name,
   ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326) AS path,
-  ST_Length(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229) AS distance,
+  ST_Length(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229)) AS distance,
   EXTRACT(EPOCH FROM (MAX(detections.timestamp) - MIN(detections.timestamp))) AS duration_seconds,
   CASE 
     WHEN EXTRACT(EPOCH FROM (MAX(detections.timestamp) - MIN(detections.timestamp))) > 0 THEN
-    ST_Length(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229)
+    ST_Length(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229))
       /
       EXTRACT(EPOCH FROM (MAX(detections.timestamp) - MIN(detections.timestamp)))
     ELSE
