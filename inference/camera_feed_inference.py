@@ -19,7 +19,6 @@ def hls_frame_generator(hls_url):
         .compile()
     )
 
-    # Start the ffmpeg process
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     while True:
@@ -28,22 +27,13 @@ def hls_frame_generator(hls_url):
         if not in_bytes:
             break
 
-        # Transform the byte read into a numpy array
         frame = np.frombuffer(in_bytes, np.uint8).reshape([1080, 1920, 3])
 
         yield frame
 
-    # Close the process
     process.terminate()
 
 
-# The directory to be created
-directory = "./frames"
-
-# Create the directory if it doesn't exist
-os.makedirs(directory, exist_ok=True)
-
-# Example usage
 hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
