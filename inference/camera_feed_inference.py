@@ -8,7 +8,9 @@ import numpy as np
 import os
 import time
 import subprocess
+import json
 
+from utilities.transformation import read_points_file
 
 
 def hls_frame_generator(hls_url):
@@ -34,26 +36,14 @@ def hls_frame_generator(hls_url):
     process.terminate()
 
 
-hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
-frame_generator = hls_frame_generator(hls_url)
-
-model = get_roboflow_model("yolov8s-640")
-
-byte_track = sv.ByteTrack(frame_rate=30)
-
-resolution_wy = (1920, 1080)
-thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
-text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
-bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
-label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness)
-
-
-
 def stream_frames_to_rtmp(rtmp_url, frame_generator):
     command = (
-        ffmpeg
-        .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='1920x1080', framerate=30)  # Set input specifications
-        .output(rtmp_url, format='flv', vcodec='libx264', pix_fmt='yuv420p')  # Configure output
+        ffmpeg.input(
+            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=30
+        )  # Set input specifications
+        .output(
+            rtmp_url, format="flv", vcodec="libx264", pix_fmt="yuv420p"
+        )  # Configure output
         .overwrite_output()
         .compile()
     )
@@ -65,11 +55,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
 
-        labels = [
-            f"#{tracker_id}"
-            for tracker_id
-            in detections.tracker_id
-        ]
+        labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
         annotated_frame = frame.copy()
         annotated_frame = bounding_box_annotator.annotate(
@@ -84,5 +70,25 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     process.stdin.close()
     process.wait()
 
-rtmp_url = 'rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream'
+
+coordinates = read_points_file("./gcp/orange_ca.points")
+print(json.dumps(coordinates, indent=4))
+
+quit()
+
+
+hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
+frame_generator = hls_frame_generator(hls_url)
+
+model = get_roboflow_model("yolov8s-640")
+
+byte_track = sv.ByteTrack(frame_rate=30)
+
+resolution_wy = (1920, 1080)
+thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
+text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
+bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
+label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness)
+
+rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator)
