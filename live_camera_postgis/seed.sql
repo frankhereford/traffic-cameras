@@ -25,6 +25,28 @@ CREATE TABLE detections (
 
 SELECT AddGeometryColumn ('public','detections','location',4326,'POINT',2);
 
+-- Index on session_id in classes
+CREATE INDEX idx_classes_session_id ON classes(session_id);
+
+-- Index on session_id and class_id in detections
+CREATE INDEX idx_detections_session_id ON detections(session_id);
+CREATE INDEX idx_detections_class_id ON detections(class_id);
+
+-- Spatial index on the geometry column in detections
+CREATE INDEX idx_detections_location ON detections USING GIST(location);
+
+-- B-tree index on timestamp in detections, if you often filter/sort by timestamp
+CREATE INDEX idx_detections_timestamp ON detections(timestamp);
+
+-- B-tree indexes for grouping and window functions
+CREATE INDEX idx_detections_session_id_tracker_id_class_id ON detections(session_id, tracker_id, class_id);
+CREATE INDEX idx_classes_id_class_name ON classes(id, class_name);
+
+-- Compound index on session_id and tracker_id in detections for specific query pattern
+CREATE INDEX idx_detections_session_id_tracker_id ON detections(session_id, tracker_id);
+
+
+
 CREATE OR REPLACE VIEW tracked_paths AS
 SELECT
   MIN(detections.id) AS id,
