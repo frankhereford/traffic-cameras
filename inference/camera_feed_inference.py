@@ -13,6 +13,7 @@ import torch
 from torch_tps import ThinPlateSpline
 import uuid
 import psycopg2.extras
+import pytz
 
 from utilities.transformation import read_points_file
 
@@ -69,14 +70,28 @@ import datetime
 
 
 def insert_detection(
-    cursor, tracker_id, image_x, image_y, timestamp, session_id, longitude, latitude
+    cursor,
+    tracker_id,
+    class_id,
+    image_x,
+    image_y,
+    timestamp,
+    session_id,
+    longitude,
+    latitude,
 ):
+
     insert_query = """
-    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location) 
-    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326))
+    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
+    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
     """
     # Convert the Unix timestamp to a datetime value
     timestamp = datetime.datetime.fromtimestamp(timestamp)
+
+    # Convert the timestamp to Central Time
+    central = pytz.timezone("America/Chicago")
+    timestamp = timestamp.astimezone(central)
+
     record_to_insert = (
         int(tracker_id),
         int(image_x),
@@ -85,6 +100,7 @@ def insert_detection(
         session_id,
         float(longitude),
         float(latitude),
+        int(class_id),
     )
     cursor.execute(insert_query, record_to_insert)
     db.commit()
@@ -105,28 +121,29 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
 
     process = subprocess.Popen(command, stdin=subprocess.PIPE)
 
+    classes = {}
+
     for frame in frame_generator:
         result = model.infer(frame)[0]
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
 
-        print(detections.class_id)
+        for prediction in result.predictions:
+            classes[prediction.class_id] = prediction.class_name.title()
 
-        # print(points)
         detections_xy = torch.tensor(points).float()
-        # print(detections_xy)
 
         detections_latlon = tps.transform(detections_xy)
-        # print(detections_latlon)
 
         # Insert each detection into the database
-        for tracker_id, point, location in zip(
-            detections.tracker_id, points, detections_latlon
+        for tracker_id, point, location, class_id in zip(
+            detections.tracker_id, points, detections_latlon, detections.class_id
         ):
             insert_detection(
                 cursor,
                 tracker_id,
+                class_id,
                 point[0],
                 point[1],
                 time.time(),
@@ -138,7 +155,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
         # labels = [f"#{tracker_id} Class: {class_id}" for tracker_id, class_id in zip(detections.tracker_id, detections.class_id)]
         # labels = [f"x: {int(x)}, y: {int(y)}" for [x, y] in points]
         labels = [
-            f"#{tracker_id} Class: {class_id}, x: {int(point[0])}, y: {int(point[1])}"
+            f"Class: {classes[class_id]} #{tracker_id}, x: {int(point[0])}, y: {int(point[1])}"
             for tracker_id, class_id, point in zip(
                 detections.tracker_id, detections.class_id, points
             )
@@ -197,7 +214,6 @@ hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3
 frame_generator = hls_frame_generator(hls_url)
 
 model = get_roboflow_model("yolov8s-640")
-
 
 resolution_wy = (1920, 1080)
 byte_track = sv.ByteTrack(frame_rate=30)

@@ -99,7 +99,8 @@ services:
       - "554:554/udp"
 
   live_camera_postgis:
-    image: postgis/postgis
+    build:
+      context: ./live_camera_postgis
     ports:
       - 5431:5432
     environment:
