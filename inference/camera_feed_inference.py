@@ -101,19 +101,6 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
         detections_xy = torch.tensor(points).float()
         detections_latlon = tps.transform(detections_xy)
 
-        # print(detections_latlon)
-
-        # for tracker_id, [longitude, latitude] in zip(
-        #     detections.tracker_id, detections_latlon
-        # ):
-        #     coordinate_history[tracker_id].append(
-        #         {
-        #             "time": time.time(),
-        #             "longitude": float(longitude),
-        #             "latitude": float(latitude),
-        #         }
-        #     )
-
         # Insert each detection into the database
         for tracker_id, point, location, class_id in zip(
             detections.tracker_id, points, detections_latlon, detections.class_id
@@ -152,7 +139,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
                 speed = compute_speed(cursor, session, tracker_id, 20)
                 if speed is not None:
                     print("fresh speed: ", speed)
-                    redis.set(f"speed:{session_id}:{tracker_id}", speed, ex=2)
+                    redis.set(f"speed:{session_id}:{tracker_id}", speed, ex=1)
                 else:
                     print("failed speed read")
                     speeds.append(None)
@@ -213,7 +200,7 @@ byte_track = sv.ByteTrack(frame_rate=15)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
-label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness)
+label_annotator = sv.LabelAnnotator(text_scale=1, text_thickness=2)
 trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=60)
 ellipse_annotator = sv.EllipseAnnotator(
     thickness=thickness,
