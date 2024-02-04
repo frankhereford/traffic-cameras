@@ -1,6 +1,8 @@
 import supervision as sv
 from inference.models.utils import get_roboflow_model
 
+# from collections import defaultdict, deque
+
 import ffmpeg
 import subprocess
 import numpy as np
@@ -13,7 +15,12 @@ import psycopg2.extras
 
 
 from utilities.transformation import read_points_file
-from utilities.sql import insert_detection, create_new_session, get_class_id
+from utilities.sql import (
+    insert_detection,
+    create_new_session,
+    get_class_id,
+    compute_speed,
+)
 
 import psycopg2
 
@@ -80,6 +87,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     process = subprocess.Popen(command, stdin=subprocess.PIPE)
 
     classes = {}
+    # coordinate_history = defaultdict(lambda: deque(maxlen=30))
 
     for frame in frame_generator:
         result = model.infer(frame)[0]
@@ -92,6 +100,19 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
 
         detections_xy = torch.tensor(points).float()
         detections_latlon = tps.transform(detections_xy)
+
+        # print(detections_latlon)
+
+        # for tracker_id, [longitude, latitude] in zip(
+        #     detections.tracker_id, detections_latlon
+        # ):
+        #     coordinate_history[tracker_id].append(
+        #         {
+        #             "time": time.time(),
+        #             "longitude": float(longitude),
+        #             "latitude": float(latitude),
+        #         }
+        #     )
 
         # Insert each detection into the database
         for tracker_id, point, location, class_id in zip(
@@ -115,8 +136,19 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
 
         # labels = [f"#{tracker_id} Class: {class_id}" for tracker_id, class_id in zip(detections.tracker_id, detections.class_id)]
         # labels = [f"x: {int(x)}, y: {int(y)}" for [x, y] in points]
+        # labels = [
+        #     f"Class: {classes[class_id]} #{tracker_id}, x: {int(point[0])}, y: {int(point[1])}"
+        #     for tracker_id, class_id, point in zip(
+        #         detections.tracker_id, detections.class_id, points
+        #     )
+        # ]
+
+        for tracker_id in detections.tracker_id:
+            # print("tracker_id: ", tracker_id)
+            speed = compute_speed(cursor, session, tracker_id)
+
         labels = [
-            f"Class: {classes[class_id]} #{tracker_id}, x: {int(point[0])}, y: {int(point[1])}"
+            f"Class: {classes[class_id]} #{tracker_id}"
             for tracker_id, class_id, point in zip(
                 detections.tracker_id, detections.class_id, points
             )
@@ -128,7 +160,6 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
             scene=annotated_frame,
             detections=detections,
             labels=labels,
-            # scene=annotated_frame, detections=detections,
         )
 
         annotated_frame = trace_annotator.annotate(
@@ -157,7 +188,6 @@ coordinates = read_points_file("./gcp/orange_ca.points")
 tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
-
 hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
@@ -169,7 +199,7 @@ thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
 label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness)
-trace_annotator = sv.TraceAnnotator(thickness=thickness)
+trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=60)
 ellipse_annotator = sv.EllipseAnnotator(
     thickness=thickness,
     # start_angle=0,

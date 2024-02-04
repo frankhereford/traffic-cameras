@@ -54,6 +54,10 @@ def create_new_session(cursor):
     return session_id["id"]
 
 
+def compute_speed(cursor, session_id, tracker_id):
+    pass
+
+
 def get_class_id(db, cursor, session_id, class_id, class_name):
     # Check if the record exists
     cursor.execute(
