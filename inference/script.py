@@ -49,6 +49,10 @@ frame_generator = hls_frame_generator(hls_url)
 #     # Save the frame as a JPEG file
 #     # cv2.imwrite(f"/app/frames/frame_{i}.jpg", frame)
 
+resolution_wy = (1920, 1080)
+thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
+
+
 model = get_roboflow_model("yolov8s-640")
 
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=4)

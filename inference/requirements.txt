@@ -1,7 +1,8 @@
-supervision==0.18.*
-inference==0.9.*
+artifacts-keyring
+onnxruntime-gpu
+supervision
+inference
 
-ffmpeg-python==0.2.0
-opencv-python-headless==4.9.0.80
+ffmpeg-python
+opencv-python-headless
 
-onnxruntime-gpu==1.17.*
