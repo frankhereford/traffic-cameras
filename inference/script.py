@@ -6,6 +6,9 @@ import ffmpeg
 import subprocess
 import numpy as np
 import os
+import time
+import subprocess
+
 
 
 def hls_frame_generator(hls_url):
@@ -44,32 +47,67 @@ os.makedirs(directory, exist_ok=True)
 hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
-# for i in range(256):
-#     frame = next(frame_generator)
-#     # Save the frame as a JPEG file
-#     # cv2.imwrite(f"/app/frames/frame_{i}.jpg", frame)
-
 resolution_wy = (1920, 1080)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
-
 
 model = get_roboflow_model("yolov8s-640")
 
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=4)
 
-i = 0
-for frame in frame_generator:
-    if i >= 255:
-        break
+# frame_number = 0
+# start_time = time.time()
 
-    result = model.infer(frame)[0]
-    detections = sv.Detections.from_inference(result)
+# for frame in frame_generator:
+#     current_time = time.time()
+#     elapsed_time = current_time - start_time
+#     fps = frame_number / elapsed_time if elapsed_time > 0 else 0
+#     print("Frame: ", frame_number, "FPS: ", fps)
+#     frame_number += 1
 
-    annotated_frame = frame.copy()
-    annotated_frame = bounding_box_annotator.annotate(
-        scene=annotated_frame, detections=detections
+#     result = model.infer(frame)[0]
+#     detections = sv.Detections.from_inference(result)
+
+#     annotated_frame = frame.copy()
+#     annotated_frame = bounding_box_annotator.annotate(
+#         scene=annotated_frame, detections=detections
+#     )
+
+    # print("frame write out")
+    # cv2.imwrite(f"./frames/frame_{i}.jpg", annotated_frame)
+
+
+
+def stream_frames_to_rtmp(rtmp_url, frame_generator):
+    # FFmpeg command for streaming to RTMP
+    command = (
+        ffmpeg
+        .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='1920x1080', framerate=30)  # Set input specifications
+        .output(rtmp_url, format='flv', vcodec='libx264', pix_fmt='yuv420p')  # Configure output
+        .overwrite_output()
+        .compile()
     )
 
-    print("frame write out")
-    cv2.imwrite(f"./frames/frame_{i}.jpg", annotated_frame)
-    i += 1
+    # Start the FFmpeg process for streaming
+    process = subprocess.Popen(command, stdin=subprocess.PIPE)
+
+    for frame in frame_generator:
+        # Process the frame (your existing processing logic)
+        # ...
+
+        result = model.infer(frame)[0]
+        detections = sv.Detections.from_inference(result)
+
+        annotated_frame = frame.copy()
+        annotated_frame = bounding_box_annotator.annotate(
+            scene=annotated_frame, detections=detections
+        )
+
+        # Write the annotated frame to FFmpeg's stdin
+        process.stdin.write(annotated_frame.tobytes())
+
+    # Close the FFmpeg process
+    process.stdin.close()
+    process.wait()
+
+rtmp_url = 'rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream'
+stream_frames_to_rtmp(rtmp_url, frame_generator)
