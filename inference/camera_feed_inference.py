@@ -46,6 +46,7 @@ def hls_frame_generator(hls_url):
     command = (
         ffmpeg.input(hls_url, format="hls", loglevel="quiet")
         .output("pipe:", format="rawvideo", pix_fmt="rgb24")
+        .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -64,7 +65,32 @@ def hls_frame_generator(hls_url):
     process.terminate()
 
 
-def stream_frames_to_rtmp(rtmp_url, frame_generator):
+import datetime
+
+
+def insert_detection(
+    cursor, tracker_id, image_x, image_y, timestamp, session_id, longitude, latitude
+):
+    insert_query = """
+    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location) 
+    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326))
+    """
+    # Convert the Unix timestamp to a datetime value
+    timestamp = datetime.datetime.fromtimestamp(timestamp)
+    record_to_insert = (
+        int(tracker_id),
+        int(image_x),
+        int(image_y),
+        timestamp,
+        session_id,
+        float(longitude),
+        float(latitude),
+    )
+    cursor.execute(insert_query, record_to_insert)
+    db.commit()
+
+
+def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     command = (
         ffmpeg.input(
             "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=30
@@ -73,6 +99,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             rtmp_url, format="flv", vcodec="libx264", pix_fmt="yuv420p"
         )  # Configure output
         .overwrite_output()
+        .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -82,12 +109,40 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         result = model.infer(frame)[0]
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
-
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+
+        print(detections.class_id)
+
         # print(points)
+        detections_xy = torch.tensor(points).float()
+        # print(detections_xy)
+
+        detections_latlon = tps.transform(detections_xy)
+        # print(detections_latlon)
+
+        # Insert each detection into the database
+        for tracker_id, point, location in zip(
+            detections.tracker_id, points, detections_latlon
+        ):
+            insert_detection(
+                cursor,
+                tracker_id,
+                point[0],
+                point[1],
+                time.time(),
+                session_id,
+                location[0],
+                location[1],
+            )
 
         # labels = [f"#{tracker_id} Class: {class_id}" for tracker_id, class_id in zip(detections.tracker_id, detections.class_id)]
-        labels = [f"x: {int(x)}, y: {int(y)}" for [x, y] in points]
+        # labels = [f"x: {int(x)}, y: {int(y)}" for [x, y] in points]
+        labels = [
+            f"#{tracker_id} Class: {class_id}, x: {int(point[0])}, y: {int(point[1])}"
+            for tracker_id, class_id, point in zip(
+                detections.tracker_id, detections.class_id, points
+            )
+        ]
 
         annotated_frame = frame.copy()
 
@@ -158,4 +213,4 @@ ellipse_annotator = sv.EllipseAnnotator(
 )
 
 rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
-stream_frames_to_rtmp(rtmp_url, frame_generator)
+stream_frames_to_rtmp(rtmp_url, frame_generator, session, tps)
