@@ -14,6 +14,11 @@ from torch_tps import ThinPlateSpline
 import psycopg2.extras
 import redis
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from utilities.transformation import read_points_file
 from utilities.sql import (
     insert_detection,
@@ -26,12 +31,12 @@ import psycopg2
 
 try:
     db = psycopg2.connect(
-        user="postgres",
-        password="cameras",
-        port="5431",
-        host="localhost",
-        database="live_cameras",
-        cursor_factory=psycopg2.extras.RealDictCursor,
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    port=os.getenv("DB_PORT"),
+    host=os.getenv("DB_HOST"),
+    database=os.getenv("DB_NAME"),
+    cursor_factory=psycopg2.extras.RealDictCursor,
     )
 
     cursor = db.cursor()
@@ -52,7 +57,7 @@ def hls_frame_generator(hls_url):
     # Set up the ffmpeg command to capture the stream
     command = (
         ffmpeg.input(hls_url, format="hls", loglevel="quiet", vcodec="h264_cuvid")
-        .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=30)
+        .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=15)
         # .global_args("-loglevel", "quiet")
         .global_args("-re")
         .compile()
@@ -75,11 +80,11 @@ def hls_frame_generator(hls_url):
 def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     command = (
         ffmpeg.input(
-            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=30
+            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=15
         )  
-        # .filter('fps', fps=15, round='down')  # Add fps filter
         .output(
-            rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p"
+            rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p", r=15,
+            video_bitrate="1M", maxrate="1M", bufsize="500k", g=48
         )  # Configure output
         .overwrite_output()
         .compile()
@@ -208,7 +213,7 @@ frame_generator = hls_frame_generator(hls_url)
 model = get_roboflow_model("yolov8s-640")
 
 resolution_wy = (1920, 1080)
-byte_track = sv.ByteTrack(frame_rate=30)
+byte_track = sv.ByteTrack(frame_rate=15)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
