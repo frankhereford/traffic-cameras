@@ -10,3 +10,4 @@ torch_tps
 psycopg2-binary
 redis
 
+python-dotenv
