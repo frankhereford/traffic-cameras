@@ -80,7 +80,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
             rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p"
         )  # Configure output
         .overwrite_output()
-        .global_args("-loglevel", "quiet")
+        # .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -93,6 +93,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
         result = model.infer(frame)[0]
         detections = sv.Detections.from_inference(result)
         detections = byte_track.update_with_detections(detections)
+        detections = smoother.update_with_detections(detections)
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
 
         for prediction in result.predictions:
@@ -137,7 +138,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
             if speed is None:
                 # If the speed is not in Redis, compute it and store it in Redis with a 1 second expiration
                 speed = compute_speed(cursor, session, tracker_id, 30)
-                print("fresh speed: ", speed)
+                # print("fresh speed: ", speed)
                 # Convert None to 'None' before storing in Redis
                 redis.set(
                     f"speed:{session_id}:{tracker_id}",
@@ -208,6 +209,7 @@ ellipse_annotator = sv.EllipseAnnotator(
     # start_angle=0,
     # end_angle=360,
 )
+smoother = sv.DetectionsSmoother()
 
 rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator, session, tps)
