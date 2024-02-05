@@ -52,8 +52,9 @@ def hls_frame_generator(hls_url):
     # Set up the ffmpeg command to capture the stream
     command = (
         ffmpeg.input(hls_url, format="hls", loglevel="quiet", vcodec="h264_cuvid")
-        .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=15)
-        .global_args("-loglevel", "quiet")
+        .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=30)
+        # .global_args("-loglevel", "quiet")
+        .global_args("-re")
         .compile()
     )
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -74,13 +75,13 @@ def hls_frame_generator(hls_url):
 def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     command = (
         ffmpeg.input(
-            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=15
-        )  # Set input specifications
+            "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=30
+        )  
+        # .filter('fps', fps=15, round='down')  # Add fps filter
         .output(
             rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p"
         )  # Configure output
         .overwrite_output()
-        # .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -201,13 +202,13 @@ coordinates = read_points_file("./gcp/orange_ca.points")
 tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
-hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
+hls_url = "http://10.0.3.228:8080/memfs/efc78c06-05db-4f8c-92b3-bff7621b8c87.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
 model = get_roboflow_model("yolov8s-640")
 
 resolution_wy = (1920, 1080)
-byte_track = sv.ByteTrack(frame_rate=15)
+byte_track = sv.ByteTrack(frame_rate=30)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
@@ -220,5 +221,5 @@ ellipse_annotator = sv.EllipseAnnotator(
 )
 smoother = sv.DetectionsSmoother()
 
-rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
+rtmp_url = "rtmp://10.0.3.228/2a031f19-5b70-4d02-9c71-5b45aec56bd7.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator, session, tps)
