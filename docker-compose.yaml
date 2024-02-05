@@ -111,6 +111,13 @@ services:
       - db_live_camera_data:/var/lib/postgresql/data
       - ./live_camera_postgis/seed.sql:/docker-entrypoint-initdb.d/seed.sql
 
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - 3000:3000
+    env_file:
+      - ./metabase/.env
+
 volumes:
   db_data:
   db_live_camera_data:
