@@ -103,6 +103,15 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
         detections_latlon = tps.transform(detections_xy)
 
         # Insert each detection into the database
+        if (
+            detections.tracker_id is None
+            or points is None
+            or detections_latlon is None
+            or detections.class_id is None
+        ):
+            # Handle the error, e.g. continue to the next iteration of the loop
+            continue
+
         for tracker_id, point, location, class_id in zip(
             detections.tracker_id, points, detections_latlon, detections.class_id
         ):
