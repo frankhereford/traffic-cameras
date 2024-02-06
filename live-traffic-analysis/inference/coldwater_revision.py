@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+
 import os
 import time
 import redis
 import torch
 import ffmpeg
+import random
 import requests
 import psycopg2
 import subprocess
@@ -24,18 +27,18 @@ from utilities.sql import (
     compute_speed,
 )
 
-fps = 20
+fps = 10
 
 load_dotenv()
 
 try:
     db = psycopg2.connect(
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    port=os.getenv("DB_PORT"),
-    host=os.getenv("DB_HOST"),
-    database=os.getenv("DB_NAME"),
-    cursor_factory=psycopg2.extras.RealDictCursor,
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        port=os.getenv("DB_PORT"),
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        cursor_factory=psycopg2.extras.RealDictCursor,
     )
 
     cursor = db.cursor()
@@ -50,6 +53,7 @@ except (Exception, psycopg2.Error) as error:
     print("Error while connecting to PostgreSQL", error)
 
 redis = redis.Redis(host="localhost", port=6379, db=0)
+
 
 def hls_frame_generator(hls_url):
     # Set up the ffmpeg command to capture the stream
@@ -74,17 +78,67 @@ def hls_frame_generator(hls_url):
 
     process.terminate()
 
+
+def generate_boolean_list(length):
+    return [random.random() <= 1 for _ in range(length)]
+
+
+def build_keep_list_tensor(data_obj, center_points):
+    xyxy_tensor = data_obj.xyxy
+    computed_center_points = (xyxy_tensor[:, :2] + xyxy_tensor[:, 2:4]) / 2
+
+    # Initialize an array for the boolean values
+    bool_array = []
+    for cp in computed_center_points:
+        bool_value = True
+        for center_x, center_y, distance_threshold in center_points:
+            center_tensor = torch.tensor(
+                [center_x, center_y], device=xyxy_tensor.device
+            )
+            dist_to_center = torch.norm(center_tensor - cp)
+            if dist_to_center < distance_threshold:
+                bool_value = False
+                break
+        bool_array.append(bool_value)
+
+    return bool_array
+
+
+def filter_tensors(data_obj, keep_list):
+    # Ensuring all tensors in the object are of the same length as keep_list
+    for attr in vars(data_obj):
+        tensor = getattr(data_obj, attr)
+        if torch.is_tensor(tensor) and len(tensor) != len(keep_list):
+            raise ValueError("Tensor and keep_list lengths do not match.")
+
+    for attr in vars(data_obj):
+        tensor = getattr(data_obj, attr)
+        if torch.is_tensor(tensor):
+            # Filtering the tensor
+            filtered_tensor = tensor[torch.tensor(keep_list)]
+            setattr(data_obj, attr, filtered_tensor)
+
+    return data_obj
+
+
 def stream_frames_to_rtmp(rtmp_url, frame_generator):
     command = (
         ffmpeg.input(
             "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=fps
-        )  
+        )
         .output(
-            rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p", r=fps,
-            video_bitrate="2M", maxrate="5M", bufsize="1000k", g=48
+            rtmp_url,
+            format="flv",
+            vcodec="h264_nvenc",
+            pix_fmt="yuv420p",
+            r=fps,
+            video_bitrate="2M",
+            maxrate="5M",
+            bufsize="1000k",
+            g=48,
         )  # Configure output
         .overwrite_output()
-        .global_args("-loglevel", "quiet")
+        # .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -96,18 +150,39 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     queued_inserts = 0
     for frame in frame_generator:
 
-        result = model(frame,  verbose=False)[0]
+        result = model(frame, verbose=False)[0]
+
+        street_light_distance = 30
+
+        center_points_to_avoid = [
+            (1704, 479, street_light_distance),
+            (1616, 441, street_light_distance),
+            (1523, 426, street_light_distance),
+            (1706, 660, 150),  # lower right flags
+            (40, 434, 25),  # clock
+            (177, 483, 50),  # trash cans near clock
+            (944, 389, street_light_distance),
+            (453, 435, street_light_distance),
+            (460, 458, street_light_distance),
+            (875, 579, street_light_distance),
+            (1043, 588, street_light_distance),
+        ]
+        keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
+        result.boxes = filter_tensors(result.boxes, keep_list)
+
+        # result = [result for result in results.xyxy if should_keep(result)]
+
+        # print(result.boxes)
+
         detections = sv.Detections.from_ultralytics(result)
         detections = byte_track.update_with_detections(detections)
-        detections = smoother.update_with_detections(detections)
+        # detections = smoother.update_with_detections(detections)
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
-
 
         detections_xy = torch.tensor(points).float()
         detections_latlon = tps.transform(detections_xy)
 
         annotated_frame = frame.copy()
-
 
         if not (
             detections.tracker_id is None
@@ -115,7 +190,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             or detections_latlon is None
             or detections.class_id is None
         ):
-            
+
             for tracker_id, point, location, class_id in zip(
                 detections.tracker_id, points, detections_latlon, detections.class_id
             ):
@@ -133,7 +208,9 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                     location[1],
                 )
                 queued_inserts += 1
-            if queued_inserts >= 100:
+            queue_size = 100
+            if queued_inserts >= queue_size:
+                # print(f"Inserting {queued_inserts} detections")
                 insert_detections(db, cursor)
                 queued_inserts = 0
 
@@ -157,14 +234,17 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                     speed = float(speed) if speed != "None" else None
                 speeds.append(speed)
 
-            labels = [
-                # f"Class: {classes[class_id]} #{tracker_id}"
+            class_labels = [
                 f"{result.names[class_id].title()} #{tracker_id}"
-                + (f", Speed: {speed:.1f} MPH" if speed is not None else "")
-                for tracker_id, class_id, speed in zip(
-                    detections.tracker_id, detections.class_id, speeds
+                for tracker_id, class_id in zip(
+                    detections.tracker_id, detections.class_id
                 )
             ]
+            speed_labels = [
+                (f"{speed:.1f} MPH" if speed is not None else "calculating...")
+                for speed in speeds
+            ]
+
             annotated_frame = frame.copy()
 
             annotated_frame = round_box_annotator.annotate(
@@ -172,22 +252,20 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 detections=detections,
             )
 
-            annotated_frame = dot_annotator.annotate(
+            annotated_frame = class_label_annotator.annotate(
                 scene=annotated_frame,
                 detections=detections,
+                labels=class_labels,
             )
-
-
-            annotated_frame = label_annotator.annotate(
+            annotated_frame = speed_label_annotator.annotate(
                 scene=annotated_frame,
                 detections=detections,
-                labels=labels,
+                labels=speed_labels,
             )
 
             annotated_frame = trace_annotator.annotate(
                 scene=annotated_frame, detections=detections
             )
-
 
         process.stdin.write(annotated_frame.tobytes())
 
@@ -195,7 +273,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     process.wait()
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 coordinates = read_points_file("./gcp/coldwater_mi.points")
 tps = ThinPlateSpline(0.5)
@@ -207,9 +285,24 @@ byte_track = sv.ByteTrack(frame_rate=15)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 round_box_annotator = sv.RoundBoxAnnotator(thickness=2)
-dot_annotator = sv.DotAnnotator(position=sv.Position.BOTTOM_CENTER, radius=5, color=sv.Color(r=0, g=0, b=0))
-label_annotator = sv.LabelAnnotator(text_scale=.5, text_thickness=1)
-trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=20, position=sv.Position.CENTER)
+dot_annotator = sv.DotAnnotator(
+    position=sv.Position.BOTTOM_CENTER, radius=5, color=sv.Color(r=0, g=0, b=0)
+)
+class_label_annotator = sv.LabelAnnotator(
+    text_scale=0.5,
+    text_thickness=1,
+    text_position=sv.Position.TOP_CENTER,
+    text_color=sv.Color(r=0, g=0, b=0),
+)
+speed_label_annotator = sv.LabelAnnotator(
+    text_scale=0.5,
+    text_thickness=1,
+    text_position=sv.Position.BOTTOM_CENTER,
+    text_color=sv.Color(r=0, g=0, b=0),
+)
+trace_annotator = sv.TraceAnnotator(
+    thickness=thickness, trace_length=20, position=sv.Position.CENTER
+)
 ellipse_annotator = sv.EllipseAnnotator(
     thickness=thickness,
     # start_angle=0,
@@ -218,10 +311,8 @@ ellipse_annotator = sv.EllipseAnnotator(
 smoother = sv.DetectionsSmoother()
 
 
-
 hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
 rtmp_url = "rtmp://10.0.3.228/8495ebad-db94-44fb-9a05-45ac7630933a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator)
-
