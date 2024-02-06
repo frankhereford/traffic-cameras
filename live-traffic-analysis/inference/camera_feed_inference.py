@@ -203,11 +203,11 @@ print("session: ", session)
 
 torch.set_printoptions(precision=10)
 
-coordinates = read_points_file("./gcp/orange_ca.points")
+coordinates = read_points_file("./gcp/coldwater_mi.points")
 tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
-hls_url = "http://10.0.3.228:8080/memfs/efc78c06-05db-4f8c-92b3-bff7621b8c87.m3u8"
+hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
 model = get_roboflow_model("yolov8s-640")
@@ -226,5 +226,5 @@ ellipse_annotator = sv.EllipseAnnotator(
 )
 smoother = sv.DetectionsSmoother()
 
-rtmp_url = "rtmp://10.0.3.228/2a031f19-5b70-4d02-9c71-5b45aec56bd7.stream"
+rtmp_url = "rtmp://10.0.3.228/8495ebad-db94-44fb-9a05-45ac7630933a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator, session, tps)
