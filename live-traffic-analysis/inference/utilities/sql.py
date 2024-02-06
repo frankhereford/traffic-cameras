@@ -2,10 +2,10 @@ import pytz
 import datetime
 import uuid
 
+records_to_insert = []
 
-def insert_detection(
-    db,
-    cursor,
+
+def prepare_detection(
     tracker_id,
     class_id,
     image_x,
@@ -15,11 +15,6 @@ def insert_detection(
     longitude,
     latitude,
 ):
-
-    insert_query = """
-    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
-    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
-    """
     # Convert the Unix timestamp to a datetime value
     timestamp = datetime.datetime.fromtimestamp(timestamp)
 
@@ -37,8 +32,54 @@ def insert_detection(
         float(latitude),
         int(class_id),
     )
-    cursor.execute(insert_query, record_to_insert)
+    records_to_insert.append(record_to_insert)
+
+def insert_detections(db, cursor):
+    insert_query = """
+    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
+    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
+    """
+    cursor.executemany(insert_query, records_to_insert)
     db.commit()
+    # Clear the records list
+    records_to_insert.clear()
+
+# def insert_detection(
+#     db,
+#     cursor,
+#     tracker_id,
+#     class_id,
+#     image_x,
+#     image_y,
+#     timestamp,
+#     session_id,
+#     longitude,
+#     latitude,
+# ):
+
+#     insert_query = """
+#     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
+#     VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
+#     """
+#     # Convert the Unix timestamp to a datetime value
+#     timestamp = datetime.datetime.fromtimestamp(timestamp)
+
+#     # Convert the timestamp to Central Time
+#     central = pytz.timezone("America/Chicago")
+#     timestamp = timestamp.astimezone(central)
+
+#     record_to_insert = (
+#         int(tracker_id),
+#         int(image_x),
+#         int(image_y),
+#         timestamp,
+#         session_id,
+#         float(longitude),
+#         float(latitude),
+#         int(class_id),
+#     )
+#     cursor.execute(insert_query, record_to_insert)
+#     db.commit()
 
 
 def create_new_session(cursor):

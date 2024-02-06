@@ -14,9 +14,11 @@ from dotenv import load_dotenv
 from torch_tps import ThinPlateSpline
 from utilities.transformation import read_points_file
 from inference.models.utils import get_roboflow_model
+from ultralytics import YOLO
 
 from utilities.sql import (
-    insert_detection,
+    prepare_detection,
+    insert_detections,
     create_new_session,
     get_class_id,
     compute_speed,
@@ -90,18 +92,20 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     cursor = db.cursor()
     session = create_new_session(cursor)
 
-
+    queued_inserts = 0
     classes = {}
     for frame in frame_generator:
 
-        result = model.infer(frame)[0]
-        detections = sv.Detections.from_inference(result)
+        # result = model.infer(frame)[0]
+        # detections = sv.Detections.from_inference(result)
+        result = model(frame,  verbose=False)[0]
+        detections = sv.Detections.from_ultralytics(result)
         detections = byte_track.update_with_detections(detections)
         detections = smoother.update_with_detections(detections)
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
 
-        for prediction in result.predictions:
-            classes[prediction.class_id] = prediction.class_name.title()
+        # for prediction in result.predictions:
+        #     classes[prediction.class_id] = prediction.class_name.title()
 
         detections_xy = torch.tensor(points).float()
         detections_latlon = tps.transform(detections_xy)
@@ -120,11 +124,9 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 detections.tracker_id, points, detections_latlon, detections.class_id
             ):
                 our_class_id = get_class_id(
-                    db, cursor, session, class_id, classes[class_id]
+                    db, cursor, session, int(class_id), str(class_id)
                 )
-                insert_detection(
-                    db,
-                    cursor,
+                prepare_detection(
                     tracker_id,
                     our_class_id,
                     point[0],
@@ -134,6 +136,10 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                     location[0],
                     location[1],
                 )
+                queued_inserts += 1
+            if queued_inserts >= 100:
+                insert_detections(db, cursor)
+                queued_inserts = 0
 
             speeds = []
             for tracker_id in detections.tracker_id:
@@ -156,13 +162,25 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 speeds.append(speed)
 
             labels = [
-                f"Class: {classes[class_id]} #{tracker_id}"
+                # f"Class: {classes[class_id]} #{tracker_id}"
+                f"Class: {class_id} #{tracker_id}"
                 + (f", Speed: {speed:.1f} MPH" if speed is not None else "")
                 for tracker_id, class_id, speed in zip(
                     detections.tracker_id, detections.class_id, speeds
                 )
             ]
             annotated_frame = frame.copy()
+
+            annotated_frame = round_box_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+            )
+
+            annotated_frame = dot_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+            )
+
 
             annotated_frame = label_annotator.annotate(
                 scene=annotated_frame,
@@ -174,10 +192,10 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 scene=annotated_frame, detections=detections
             )
 
-            annotated_frame = ellipse_annotator.annotate(
-                scene=annotated_frame,
-                detections=detections,
-            )
+            # annotated_frame = ellipse_annotator.annotate(
+            #     scene=annotated_frame,
+            #     detections=detections,
+            # )
 
 
 
@@ -198,14 +216,16 @@ coordinates = read_points_file("./gcp/coldwater_mi.points")
 tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
-model = get_roboflow_model("yolov8s-640")
+# model = get_roboflow_model("yolov8s-640")
+model = YOLO("yolov8n.pt")
 resolution_wy = (1920, 1080)
 byte_track = sv.ByteTrack(frame_rate=15)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
-bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
+round_box_annotator = sv.RoundBoxAnnotator(thickness=thickness)
+dot_annotator = sv.DotAnnotator(position=sv.Position.BOTTOM_CENTER, radius=10)
 label_annotator = sv.LabelAnnotator(text_scale=1, text_thickness=2)
-trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=60)
+trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=20, position=sv.Position.BOTTOM_CENTER)
 ellipse_annotator = sv.EllipseAnnotator(
     thickness=thickness,
     # start_angle=0,
