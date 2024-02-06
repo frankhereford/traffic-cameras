@@ -23,7 +23,7 @@ CREATE TABLE detections (
     image_y FLOAT not null
 );
 
-SELECT AddGeometryColumn ('public','detections','location',4326,'POINT',2);
+SELECT AddGeometryColumn ('public','detections','location',2253,'POINT',2);
 
 -- Index on session_id in classes
 CREATE INDEX idx_classes_session_id ON classes(session_id);
@@ -56,13 +56,13 @@ SELECT
   detections.tracker_id,
   detections.class_id,
   classes.class_name,
-  ST_ChaikinSmoothing(ST_Simplify(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229), 5),3) AS path,
-  ST_Length(ST_ChaikinSmoothing(ST_Simplify(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229), 5),3)) AS distance,
+  ST_ChaikinSmoothing(ST_Simplify(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 2253), 5),3) AS path,
+  ST_Length(ST_ChaikinSmoothing(ST_Simplify(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 2253), 5),3)) AS distance,
   EXTRACT(EPOCH FROM (MAX(detections.timestamp) - MIN(detections.timestamp))) AS duration_seconds,
   CASE 
     WHEN EXTRACT(EPOCH FROM (MAX(detections.timestamp) - MIN(detections.timestamp))) > 0 then
     0.681818 *
-    ST_Length(ST_ChaikinSmoothing(ST_Simplify(ST_Transform(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 4326), 2229), 5),3))
+    ST_Length(ST_ChaikinSmoothing(ST_Simplify(ST_SetSRID(ST_MakeLine(ST_Force2D(detections.location::geometry) ORDER BY detections.timestamp), 2253), 5),3))
       /
       EXTRACT(EPOCH FROM (MAX(detections.timestamp) - MIN(detections.timestamp)))
     ELSE
