@@ -8,6 +8,7 @@ services:
     ports:
       - 80:80
       - 443:443
+      - 444:444
   #   depends_on:
   #     - nextjs
   #     - flask
@@ -20,7 +21,7 @@ services:
   download:
     build:
       context: ./download
-    entrypoint: ["/application/download_and_serve.py", "PtChZ0D7tkE"]
+    entrypoint: ["/application/download_and_serve.py", "ByED80IKdIU"]
     volumes:
       - ./download/media:/application/media
       - ./download:/application
