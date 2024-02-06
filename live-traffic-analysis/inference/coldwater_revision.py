@@ -1,4 +1,5 @@
 import os
+import time
 import redis
 import torch
 import ffmpeg
@@ -8,8 +9,18 @@ import subprocess
 import numpy as np
 from PIL import Image
 import psycopg2.extras
+import supervision as sv
 from dotenv import load_dotenv
-# from transformers import DetrImageProcessor, DetrForObjectDetection
+from torch_tps import ThinPlateSpline
+from utilities.transformation import read_points_file
+from inference.models.utils import get_roboflow_model
+
+from utilities.sql import (
+    insert_detection,
+    create_new_session,
+    get_class_id,
+    compute_speed,
+)
 
 fps = 30
 
@@ -76,18 +87,100 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
 
     process = subprocess.Popen(command, stdin=subprocess.PIPE)
 
+    cursor = db.cursor()
+    session = create_new_session(cursor)
 
+
+    classes = {}
     for frame in frame_generator:
 
-        # image = Image.frombytes('RGB', (1920, 1080), frame, 'raw')
-        # # print("Image dimensions:", image.size)
+        result = model.infer(frame)[0]
+        detections = sv.Detections.from_inference(result)
+        detections = byte_track.update_with_detections(detections)
+        detections = smoother.update_with_detections(detections)
+        points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
 
-        # inputs = processor(images=image, return_tensors="pt")
-        # inputs = inputs.to(device)
-        # outputs = model(**inputs)
+        for prediction in result.predictions:
+            classes[prediction.class_id] = prediction.class_name.title()
 
+        detections_xy = torch.tensor(points).float()
+        detections_latlon = tps.transform(detections_xy)
 
         annotated_frame = frame.copy()
+
+
+        if not (
+            detections.tracker_id is None
+            or points is None
+            or detections_latlon is None
+            or detections.class_id is None
+        ):
+            
+            for tracker_id, point, location, class_id in zip(
+                detections.tracker_id, points, detections_latlon, detections.class_id
+            ):
+                our_class_id = get_class_id(
+                    db, cursor, session, class_id, classes[class_id]
+                )
+                insert_detection(
+                    db,
+                    cursor,
+                    tracker_id,
+                    our_class_id,
+                    point[0],
+                    point[1],
+                    time.time(),
+                    session,
+                    location[0],
+                    location[1],
+                )
+
+            speeds = []
+            for tracker_id in detections.tracker_id:
+                # Try to get the speed from Redis
+                speed = redis.get(f"speed:{session}:{tracker_id}")
+                if speed is None:
+                    # If the speed is not in Redis, compute it and store it in Redis with a 1 second expiration
+                    speed = compute_speed(cursor, session, tracker_id, 30)
+                    # print("fresh speed: ", speed)
+                    # Convert None to 'None' before storing in Redis
+                    redis.set(
+                        f"speed:{session}:{tracker_id}",
+                        speed if speed is not None else "None",
+                        ex=1,
+                    )
+                else:
+                    # Decode bytes to string and If the speed is in Redis, convert it to a float if it's not 'None'
+                    speed = speed.decode("utf-8")
+                    speed = float(speed) if speed != "None" else None
+                speeds.append(speed)
+
+            labels = [
+                f"Class: {classes[class_id]} #{tracker_id}"
+                + (f", Speed: {speed:.1f} MPH" if speed is not None else "")
+                for tracker_id, class_id, speed in zip(
+                    detections.tracker_id, detections.class_id, speeds
+                )
+            ]
+            annotated_frame = frame.copy()
+
+            annotated_frame = label_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+                labels=labels,
+            )
+
+            annotated_frame = trace_annotator.annotate(
+                scene=annotated_frame, detections=detections
+            )
+
+            annotated_frame = ellipse_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+            )
+
+
+
 
 
 
@@ -96,11 +189,31 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     process.stdin.close()
     process.wait()
 
+
+
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50", revision="no_timm")
-# model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50", revision="no_timm")
-# model = model.to(device)
+coordinates = read_points_file("./gcp/coldwater_mi.points")
+tps = ThinPlateSpline(0.5)
+tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
+
+model = get_roboflow_model("yolov8s-640")
+resolution_wy = (1920, 1080)
+byte_track = sv.ByteTrack(frame_rate=15)
+thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
+text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
+bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
+label_annotator = sv.LabelAnnotator(text_scale=1, text_thickness=2)
+trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=60)
+ellipse_annotator = sv.EllipseAnnotator(
+    thickness=thickness,
+    # start_angle=0,
+    # end_angle=360,
+)
+smoother = sv.DetectionsSmoother()
+
+
 
 
 hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
