@@ -24,7 +24,7 @@ from utilities.sql import (
     compute_speed,
 )
 
-fps = 30
+fps = 20
 
 load_dotenv()
 
@@ -84,6 +84,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             video_bitrate="2M", maxrate="5M", bufsize="1000k", g=48
         )  # Configure output
         .overwrite_output()
+        .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -93,19 +94,14 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
     session = create_new_session(cursor)
 
     queued_inserts = 0
-    classes = {}
     for frame in frame_generator:
 
-        # result = model.infer(frame)[0]
-        # detections = sv.Detections.from_inference(result)
         result = model(frame,  verbose=False)[0]
         detections = sv.Detections.from_ultralytics(result)
         detections = byte_track.update_with_detections(detections)
         detections = smoother.update_with_detections(detections)
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
 
-        # for prediction in result.predictions:
-        #     classes[prediction.class_id] = prediction.class_name.title()
 
         detections_xy = torch.tensor(points).float()
         detections_latlon = tps.transform(detections_xy)
@@ -124,7 +120,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 detections.tracker_id, points, detections_latlon, detections.class_id
             ):
                 our_class_id = get_class_id(
-                    db, cursor, session, int(class_id), str(class_id)
+                    db, cursor, session, int(class_id), result.names[class_id]
                 )
                 prepare_detection(
                     tracker_id,
@@ -163,7 +159,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
 
             labels = [
                 # f"Class: {classes[class_id]} #{tracker_id}"
-                f"Class: {class_id} #{tracker_id}"
+                f"{result.names[class_id].title()} #{tracker_id}"
                 + (f", Speed: {speed:.1f} MPH" if speed is not None else "")
                 for tracker_id, class_id, speed in zip(
                     detections.tracker_id, detections.class_id, speeds
@@ -192,22 +188,11 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 scene=annotated_frame, detections=detections
             )
 
-            # annotated_frame = ellipse_annotator.annotate(
-            #     scene=annotated_frame,
-            #     detections=detections,
-            # )
-
-
-
-
-
 
         process.stdin.write(annotated_frame.tobytes())
 
     process.stdin.close()
     process.wait()
-
-
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -216,23 +201,21 @@ coordinates = read_points_file("./gcp/coldwater_mi.points")
 tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
-# model = get_roboflow_model("yolov8s-640")
-model = YOLO("yolov8n.pt")
+model = YOLO("yolov8m.pt")
 resolution_wy = (1920, 1080)
 byte_track = sv.ByteTrack(frame_rate=15)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
-round_box_annotator = sv.RoundBoxAnnotator(thickness=thickness)
-dot_annotator = sv.DotAnnotator(position=sv.Position.BOTTOM_CENTER, radius=10)
-label_annotator = sv.LabelAnnotator(text_scale=1, text_thickness=2)
-trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=20, position=sv.Position.BOTTOM_CENTER)
+round_box_annotator = sv.RoundBoxAnnotator(thickness=2)
+dot_annotator = sv.DotAnnotator(position=sv.Position.BOTTOM_CENTER, radius=5, color=sv.Color(r=0, g=0, b=0))
+label_annotator = sv.LabelAnnotator(text_scale=.5, text_thickness=1)
+trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=20, position=sv.Position.CENTER)
 ellipse_annotator = sv.EllipseAnnotator(
     thickness=thickness,
     # start_angle=0,
     # end_angle=360,
 )
 smoother = sv.DetectionsSmoother()
-
 
 
 
