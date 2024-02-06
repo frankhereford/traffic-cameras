@@ -18,7 +18,7 @@ def insert_detection(
 
     insert_query = """
     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
-    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
+    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
     """
     # Convert the Unix timestamp to a datetime value
     timestamp = datetime.datetime.fromtimestamp(timestamp)
@@ -61,7 +61,7 @@ def compute_speed(cursor, session_id, tracker_id, frame_look_back=15):
             SELECT 
                 id,
                 timestamp,
-                ST_Transform(location, 2229) as location_transformed,
+                ST_Transform(location, 2253) as location_transformed,
                 ROW_NUMBER() OVER (ORDER BY timestamp DESC) as rn
             FROM 
                 detections
