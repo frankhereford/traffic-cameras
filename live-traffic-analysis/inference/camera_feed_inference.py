@@ -14,6 +14,11 @@ from torch_tps import ThinPlateSpline
 import psycopg2.extras
 import redis
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from utilities.transformation import read_points_file
 from utilities.sql import (
     insert_detection,
@@ -26,12 +31,12 @@ import psycopg2
 
 try:
     db = psycopg2.connect(
-        user="postgres",
-        password="cameras",
-        port="5431",
-        host="localhost",
-        database="live_cameras",
-        cursor_factory=psycopg2.extras.RealDictCursor,
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    port=os.getenv("DB_PORT"),
+    host=os.getenv("DB_HOST"),
+    database=os.getenv("DB_NAME"),
+    cursor_factory=psycopg2.extras.RealDictCursor,
     )
 
     cursor = db.cursor()
@@ -53,7 +58,8 @@ def hls_frame_generator(hls_url):
     command = (
         ffmpeg.input(hls_url, format="hls", loglevel="quiet", vcodec="h264_cuvid")
         .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=15)
-        .global_args("-loglevel", "quiet")
+        # .global_args("-loglevel", "quiet")
+        .global_args("-re")
         .compile()
     )
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -75,12 +81,12 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator, session_id, tps):
     command = (
         ffmpeg.input(
             "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=15
-        )  # Set input specifications
+        )  
         .output(
-            rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p"
+            rtmp_url, format="flv", vcodec="h264_nvenc", pix_fmt="yuv420p", r=15,
+            video_bitrate="1M", maxrate="1M", bufsize="500k", g=48
         )  # Configure output
         .overwrite_output()
-        # .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -197,11 +203,11 @@ print("session: ", session)
 
 torch.set_printoptions(precision=10)
 
-coordinates = read_points_file("./gcp/orange_ca.points")
+coordinates = read_points_file("./gcp/coldwater_mi.points")
 tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
-hls_url = "http://10.10.10.97:8080/memfs/8bd9ac69-e88e-4f6c-a054-5a4176d597e3.m3u8"
+hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
 model = get_roboflow_model("yolov8s-640")
@@ -220,5 +226,5 @@ ellipse_annotator = sv.EllipseAnnotator(
 )
 smoother = sv.DetectionsSmoother()
 
-rtmp_url = "rtmp://10.10.10.97/ebb55a3f-2eee-4070-b556-6da4aed2a92a.stream"
+rtmp_url = "rtmp://10.0.3.228/8495ebad-db94-44fb-9a05-45ac7630933a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator, session, tps)
