@@ -31,7 +31,7 @@ const maxZoom = 20
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Map({ socrataData, paneWidth }: MapProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
+  const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY ?? "",
   })
@@ -83,7 +83,14 @@ function Map({ socrataData, paneWidth }: MapProps) {
         map.fitBounds(bounds)
       }
     }
-  }, [map, boundingBoxXMin, boundingBoxXMax, boundingBoxYMin, boundingBoxYMax])
+  }, [
+    map,
+    boundingBoxXMin,
+    boundingBoxXMax,
+    boundingBoxYMin,
+    boundingBoxYMax,
+    zoomTight,
+  ])
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } = useGetSocrataData()
@@ -113,9 +120,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
         (item) => parseInt(item.camera_id, 10) === camera,
       )
 
-      if (cameraData ?? cameraData!.location.coordinates) {
-        const latitude = cameraData!.location.coordinates[1]
-        const longitude = cameraData!.location.coordinates[0]
+      if (cameraData?.location?.coordinates) {
+        const latitude = cameraData.location.coordinates[1]
+        const longitude = cameraData.location.coordinates[0]
 
         const location = new google.maps.LatLng(latitude!, longitude)
         if (zoomTight) {

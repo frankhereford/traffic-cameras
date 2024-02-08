@@ -1,0 +1,13 @@
+artifacts-keyring
+onnxruntime-gpu
+supervision
+inference
+
+ffmpeg-python
+opencv-python-headless
+
+torch_tps
+psycopg2-binary
+redis
+
+python-dotenv
