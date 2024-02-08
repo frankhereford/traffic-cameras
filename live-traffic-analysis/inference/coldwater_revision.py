@@ -152,20 +152,25 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
 
         result = model(frame, verbose=False)[0]
 
-        street_light_distance = 30
-
         center_points_to_avoid = [
-            (1704, 479, street_light_distance),
-            (1616, 441, street_light_distance),
-            (1523, 426, street_light_distance),
-            (1706, 660, 150),  # lower right flags
-            (40, 434, 25),  # clock
-            (177, 483, 50),  # trash cans near clock
-            (944, 389, street_light_distance),
-            (453, 435, street_light_distance),
-            (460, 458, street_light_distance),
-            (875, 579, street_light_distance),
-            (1043, 588, street_light_distance),
+            # (1704, 479, street_light_distance),
+            # (1616, 441, street_light_distance),
+            # (1523, 426, street_light_distance),
+            # (1706, 660, 150),  # lower right flags
+            # (40, 434, 25),  # clock
+            # (177, 483, 50),  # trash cans near clock
+            # (944, 389, street_light_distance),
+            # (453, 435, street_light_distance),
+            # (460, 458, street_light_distance),
+            # (875, 579, street_light_distance),
+            # (1043, 588, street_light_distance),
+            (1368, 371, 15),  # bank atm
+            (1814, 672, 15),  # lower-right flag
+            (1700, 458, 15),  # right street closest light
+            (1610, 437, 15),  # right street middle light
+            (1770, 674, 15),  # lower right flag
+            (496, 490, 15),  # left street light, closest
+            (1833, 413, 15),  # right street far street light near the pole
         ]
         keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
         result.boxes = filter_tensors(result.boxes, keep_list)
@@ -176,8 +181,9 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
 
         detections = sv.Detections.from_ultralytics(result)
         detections = byte_track.update_with_detections(detections)
-        # detections = smoother.update_with_detections(detections)
+        detections = smoother.update_with_detections(detections)
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+        center_points = detections.get_anchors_coordinates(anchor=sv.Position.CENTER)
 
         detections_xy = torch.tensor(points).float()
         detections_latlon = tps.transform(detections_xy)
@@ -235,11 +241,12 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 speeds.append(speed)
 
             class_labels = [
-                f"{result.names[class_id].title()} #{tracker_id}"
-                for tracker_id, class_id in zip(
-                    detections.tracker_id, detections.class_id
+                f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
+                for tracker_id, class_id, point in zip(
+                    detections.tracker_id, detections.class_id, center_points
                 )
             ]
+
             speed_labels = [
                 (f"{speed:.1f} MPH" if speed is not None else "calculating...")
                 for speed in speeds
@@ -281,7 +288,7 @@ tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
 model = YOLO("yolov8m.pt")
 resolution_wy = (1920, 1080)
-byte_track = sv.ByteTrack(frame_rate=15)
+byte_track = sv.ByteTrack(frame_rate=fps)
 thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
 text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
 round_box_annotator = sv.RoundBoxAnnotator(thickness=2)
@@ -308,7 +315,7 @@ ellipse_annotator = sv.EllipseAnnotator(
     # start_angle=0,
     # end_angle=360,
 )
-smoother = sv.DetectionsSmoother()
+smoother = sv.DetectionsSmoother(length=3)
 
 
 hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
