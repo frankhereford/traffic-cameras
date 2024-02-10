@@ -158,11 +158,15 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             (496, 490, 15),  # left street light, closest
             (1833, 413, 15),  # right street far street light near the pole
             (667, 739, 15),  # lower left light
+            (640, 729, 15),  # lower left light
+            (38, 432, 10),  # clock
+            (637, 731, 25),  # light lower left
+            (375, 442, 20),
+            (1044, 580, 20),
+            (945, 396, 20),
         ]
         keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
         result.boxes = filter_tensors(result.boxes, keep_list)
-
-        result = [result for result in results.xyxy if should_keep(result)]
 
         # print(result.boxes)
 
