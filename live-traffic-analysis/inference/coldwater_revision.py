@@ -6,7 +6,6 @@ import redis
 import torch
 import ffmpeg
 import random
-import requests
 import psycopg2
 import subprocess
 import numpy as np
