@@ -25,6 +25,7 @@
     "geospatial",
     "jcrc",
     "jsonify",
+    "kmeans",
     "latlon",
     "lucide",
     "mapcameralocations",
