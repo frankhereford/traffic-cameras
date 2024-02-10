@@ -164,11 +164,21 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             (375, 442, 20),
             (1044, 580, 20),
             (945, 396, 20),
+            (668, 718, 20),
+            (1526, 428, 10),
+            (1740, 649, 15),
+            ## parked cars now,
+            (718, 348, 5),
+            (682, 329, 5),
+            (587, 290, 5),
+            (558, 272, 5),
+            (501, 246, 5),
+            (607, 303, 5),
+            (754, 361, 5),
+            (640, 317, 5),
         ]
         keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
         result.boxes = filter_tensors(result.boxes, keep_list)
-
-        # print(result.boxes)
 
         detections = sv.Detections.from_ultralytics(result)
         detections = byte_track.update_with_detections(detections)
@@ -287,14 +297,16 @@ dot_annotator = sv.DotAnnotator(
     position=sv.Position.BOTTOM_CENTER, radius=5, color=sv.Color(r=0, g=0, b=0)
 )
 class_label_annotator = sv.LabelAnnotator(
-    text_scale=0.5,
+    text_scale=0.3,
     text_thickness=1,
+    text_padding=2,
     text_position=sv.Position.TOP_CENTER,
     text_color=sv.Color(r=0, g=0, b=0),
 )
 speed_label_annotator = sv.LabelAnnotator(
-    text_scale=0.5,
+    text_scale=0.3,
     text_thickness=1,
+    text_padding=2,
     text_position=sv.Position.BOTTOM_CENTER,
     text_color=sv.Color(r=0, g=0, b=0),
 )
