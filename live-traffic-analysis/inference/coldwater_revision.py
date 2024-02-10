@@ -12,11 +12,13 @@ import numpy as np
 from PIL import Image
 import psycopg2.extras
 import supervision as sv
+from ultralytics import YOLO
 from dotenv import load_dotenv
 from torch_tps import ThinPlateSpline
 from utilities.transformation import read_points_file
-from inference.models.utils import get_roboflow_model
-from ultralytics import YOLO
+
+# from torch.profiler import profile, record_function, ProfilerActivity
+
 
 from utilities.sql import (
     prepare_detection,
@@ -119,6 +121,7 @@ def filter_tensors(data_obj, keep_list):
 
 
 def stream_frames_to_rtmp(rtmp_url, frame_generator):
+    # quit_at_frame = 5
     command = (
         ffmpeg.input(
             "pipe:", format="rawvideo", pix_fmt="rgb24", s="1920x1080", framerate=fps
@@ -276,6 +279,9 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             )
 
         process.stdin.write(annotated_frame.tobytes())
+        # quit_at_frame -= 1
+        # if quit_at_frame <= 0:
+        #     return
 
     process.stdin.close()
     process.wait()
@@ -321,8 +327,22 @@ ellipse_annotator = sv.EllipseAnnotator(
 smoother = sv.DetectionsSmoother(length=3)
 
 
+ZONE_IN_POLYGONS = [
+    np.array([[592, 282], [900, 282], [900, 82], [592, 82]]),
+]
+
+
 hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
 rtmp_url = "rtmp://10.0.3.228/8495ebad-db94-44fb-9a05-45ac7630933a.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator)
+
+# with profile(
+#     activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True
+# ) as prof:
+#     stream_frames_to_rtmp(rtmp_url, frame_generator)
+
+# print("\n\n\n")
+# print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+# print("done")
