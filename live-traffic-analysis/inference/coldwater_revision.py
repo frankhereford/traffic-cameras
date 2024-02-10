@@ -41,10 +41,8 @@ try:
     )
 
     cursor = db.cursor()
-    # Print PostgreSQL Connection properties
     print(db.get_dsn_parameters(), "\n")
 
-    # Print PostgreSQL version
     cursor.execute("SELECT version();")
     record = cursor.fetchone()
     print("You are connected to - ", record, "\n")
@@ -151,28 +149,18 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
 
         result = model(frame, verbose=False)[0]
 
-        center_points_to_avoid = [
-            # (1704, 479, street_light_distance),
-            # (1616, 441, street_light_distance),
-            # (1523, 426, street_light_distance),
-            # (1706, 660, 150),  # lower right flags
-            # (40, 434, 25),  # clock
-            # (177, 483, 50),  # trash cans near clock
-            # (944, 389, street_light_distance),
-            # (453, 435, street_light_distance),
-            # (460, 458, street_light_distance),
-            # (875, 579, street_light_distance),
-            # (1043, 588, street_light_distance),
-            (1368, 371, 15),  # bank atm
-            (1814, 672, 15),  # lower-right flag
-            (1700, 458, 15),  # right street closest light
-            (1610, 437, 15),  # right street middle light
-            (1770, 674, 15),  # lower right flag
-            (496, 490, 15),  # left street light, closest
-            (1833, 413, 15),  # right street far street light near the pole
-        ]
-        keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
-        result.boxes = filter_tensors(result.boxes, keep_list)
+        # center_points_to_avoid = [
+        #     (1368, 371, 15),  # bank atm
+        #     (1814, 672, 15),  # lower-right flag
+        #     (1700, 458, 15),  # right street closest light
+        #     (1610, 437, 15),  # right street middle light
+        #     (1770, 674, 15),  # lower right flag
+        #     (496, 490, 15),  # left street light, closest
+        #     (1833, 413, 15),  # right street far street light near the pole
+        #     (667, 739, 15),  # lower left light
+        # ]
+        # keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
+        # result.boxes = filter_tensors(result.boxes, keep_list)
 
         # result = [result for result in results.xyxy if should_keep(result)]
 
