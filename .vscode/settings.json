@@ -45,6 +45,7 @@
     "pointpairmarker",
     "postprocessor",
     "printoptions",
+    "pytz",
     "rawvideo",
     "rtmp",
     "runtimes",
