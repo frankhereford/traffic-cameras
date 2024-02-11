@@ -15,7 +15,9 @@ import supervision as sv
 from ultralytics import YOLO
 from dotenv import load_dotenv
 from torch_tps import ThinPlateSpline
+from typing import Dict, List, Set, Tuple
 from utilities.transformation import read_points_file
+from utilities.detectionsmanager import DetectionsManager
 
 # from torch.profiler import profile, record_function, ProfilerActivity
 
@@ -43,11 +45,11 @@ try:
     )
 
     cursor = db.cursor()
-    print(db.get_dsn_parameters(), "\n")
+    # print(db.get_dsn_parameters(), "\n")
 
-    cursor.execute("SELECT version();")
-    record = cursor.fetchone()
-    print("You are connected to - ", record, "\n")
+    # cursor.execute("SELECT version();")
+    # record = cursor.fetchone()
+    # print("You are connected to - ", record, "\n")
 except (Exception, psycopg2.Error) as error:
     print("Error while connecting to PostgreSQL", error)
 
@@ -59,7 +61,7 @@ def hls_frame_generator(hls_url):
     command = (
         ffmpeg.input(hls_url, format="hls", loglevel="quiet", vcodec="h264_cuvid")
         .output("pipe:", format="rawvideo", pix_fmt="rgb24", r=fps)
-        # .global_args("-loglevel", "quiet")
+        .global_args("-loglevel", "quiet")
         .global_args("-re")
         .compile()
     )
@@ -120,6 +122,21 @@ def filter_tensors(data_obj, keep_list):
     return data_obj
 
 
+def initiate_polygon_zones(
+    polygons: List[np.ndarray],
+    frame_resolution_wh: Tuple[int, int],
+    triggering_position: sv.Position = sv.Position.CENTER,
+) -> List[sv.PolygonZone]:
+    return [
+        sv.PolygonZone(
+            polygon=polygon,
+            frame_resolution_wh=frame_resolution_wh,
+            triggering_position=triggering_position,
+        )
+        for polygon in polygons
+    ]
+
+
 def stream_frames_to_rtmp(rtmp_url, frame_generator):
     # quit_at_frame = 5
     command = (
@@ -138,7 +155,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             g=48,
         )  # Configure output
         .overwrite_output()
-        # .global_args("-loglevel", "quiet")
+        .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -146,6 +163,8 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
 
     cursor = db.cursor()
     session = create_new_session(cursor)
+
+    detection_manager = DetectionsManager()
 
     queued_inserts = 0
     for frame in frame_generator:
@@ -170,15 +189,9 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             (668, 718, 20),
             (1526, 428, 10),
             (1740, 649, 15),
+            (1762, 733, 20),
+            # (),
             ## parked cars now,
-            (718, 348, 5),
-            (682, 329, 5),
-            (587, 290, 5),
-            (558, 272, 5),
-            (501, 246, 5),
-            (607, 303, 5),
-            (754, 361, 5),
-            (640, 317, 5),
         ]
         keep_list = build_keep_list_tensor(result.boxes, center_points_to_avoid)
         result.boxes = filter_tensors(result.boxes, keep_list)
@@ -186,6 +199,16 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections = sv.Detections.from_ultralytics(result)
         detections = byte_track.update_with_detections(detections)
         detections = smoother.update_with_detections(detections)
+
+        detections_in_zones = []
+        for zone in zones:
+            detections_in_zone = detections[zone.trigger(detections=detections)]
+            detections_in_zones.append(detections_in_zone)
+
+        detection_manager.update(detections, detections_in_zones)
+
+        # detections = sv.Detections.merge(detections_in_zones)
+
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
         center_points = detections.get_anchors_coordinates(anchor=sv.Position.CENTER)
 
@@ -193,6 +216,13 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections_latlon = tps.transform(detections_xy)
 
         annotated_frame = frame.copy()
+
+        for i, zone in enumerate(zones):
+            annotated_frame = sv.draw_polygon(
+                scene=annotated_frame,
+                polygon=zone.polygon,
+                color=COLORS.colors[i],
+            )
 
         if not (
             detections.tracker_id is None
@@ -256,8 +286,6 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                 for speed in speeds
             ]
 
-            annotated_frame = frame.copy()
-
             annotated_frame = round_box_annotator.annotate(
                 scene=annotated_frame,
                 detections=detections,
@@ -294,14 +322,56 @@ tps = ThinPlateSpline(0.5)
 tps.fit(coordinates["image_coordinates"], coordinates["map_coordinates"])
 
 model = YOLO("yolov8m.pt")
-resolution_wy = (1920, 1080)
-byte_track = sv.ByteTrack(frame_rate=fps)
-thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wy)
-text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wy)
-round_box_annotator = sv.RoundBoxAnnotator(thickness=2)
-dot_annotator = sv.DotAnnotator(
-    position=sv.Position.BOTTOM_CENTER, radius=5, color=sv.Color(r=0, g=0, b=0)
+
+# COLORS = sv.Color.DEFAULT
+COLORS = sv.ColorPalette.DEFAULT
+
+DETECTION_ZONES = [
+    np.array(
+        [
+            [715, 964],
+            [1639, 832],
+            [1814, 923],
+            [796, 1076],
+        ]
+    ),
+    np.array(
+        [
+            [242, 670],
+            [315, 884],
+            [129, 911],
+            [105, 681],
+        ]
+    ),
+    np.array(
+        [
+            [464, 595],
+            [433, 520],
+            [982, 496],
+            [1078, 545],
+        ]
+    ),
+    np.array(
+        [
+            [1349, 581],
+            [1472, 570],
+            [1779, 720],
+            [1691, 733],
+        ]
+    ),
+]
+
+resolution_wh = (1920, 1080)
+
+zones = initiate_polygon_zones(
+    DETECTION_ZONES, resolution_wh, sv.Position.BOTTOM_CENTER
 )
+
+byte_track = sv.ByteTrack(frame_rate=fps)
+thickness = sv.calculate_dynamic_line_thickness(resolution_wh=resolution_wh)
+text_scale = sv.calculate_dynamic_text_scale(resolution_wh=resolution_wh)
+round_box_annotator = sv.RoundBoxAnnotator(thickness=2)
+
 class_label_annotator = sv.LabelAnnotator(
     text_scale=0.3,
     text_thickness=1,
@@ -319,17 +389,8 @@ speed_label_annotator = sv.LabelAnnotator(
 trace_annotator = sv.TraceAnnotator(
     thickness=thickness, trace_length=20, position=sv.Position.CENTER
 )
-ellipse_annotator = sv.EllipseAnnotator(
-    thickness=thickness,
-    # start_angle=0,
-    # end_angle=360,
-)
-smoother = sv.DetectionsSmoother(length=3)
 
-
-ZONE_IN_POLYGONS = [
-    np.array([[592, 282], [900, 282], [900, 82], [592, 82]]),
-]
+smoother = sv.DetectionsSmoother(length=2)
 
 
 hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"

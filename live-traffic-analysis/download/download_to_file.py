@@ -6,7 +6,7 @@ import subprocess
 
 def stream_video(video_id):
     youtube_url = f"https://www.youtube.com/watch?v={video_id}"
-    command = f"yt-dlp -f best {youtube_url} -o -o 'media/%(id)s.%(ext)s'"
+    command = f"yt-dlp {youtube_url} -o 'media/%(id)s.%(ext)s'"
     subprocess.run(command, shell=True)
 
 
