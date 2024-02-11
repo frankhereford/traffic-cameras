@@ -159,7 +159,8 @@ class VideoProcessor:
             if location is not None
         ]
 
-        if len(locations_tuples) > 0:
+        # print("Future locations tuples: ", locations_tuples)
+        if locations_tuples is not None and len(locations_tuples) > 0:
             # Convert the list of tuples into a torch tensor
             prediction_tensor = torch.tensor(locations_tuples)
             # print("Future locations tensor: ", prediction_tensor)
