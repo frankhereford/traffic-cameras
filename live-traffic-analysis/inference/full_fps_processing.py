@@ -7,6 +7,7 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 import os
+import redis
 
 
 def main(input_file, output_file, db):
@@ -17,23 +18,6 @@ def main(input_file, output_file, db):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process some files.")
-
-    parser.add_argument(
-        "-i",
-        "--input",
-        default="../download/media/ByED80IKdIU.mp4",
-        help="Input file name",
-    )
-
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    default_output = f"./output_media/{timestamp}.mp4"
-
-    parser.add_argument(
-        "-o", "--output", default=default_output, help="Output file name"
-    )
-
-    args = parser.parse_args()
 
     load_dotenv()
 
@@ -47,13 +31,38 @@ if __name__ == "__main__":
             cursor_factory=psycopg2.extras.RealDictCursor,
         )
 
-        cursor = db.cursor()
-        # print(db.get_dsn_parameters(), "\n")
+        # cursor = db.cursor()
 
-        # cursor.execute("SELECT version();")
-        # record = cursor.fetchone()
-        # print("You are connected to - ", record, "\n")
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL", error)
 
+    r = redis.Redis(host="localhost", port=6379, db=0)
+
+    parser = argparse.ArgumentParser(description="Process some files.")
+
+    last_downloaded_video = r.get("last-downloaded-video")
+    if last_downloaded_video is not None:
+        last_downloaded_video = last_downloaded_video.decode("utf-8")
+
+    input = f"./input_media/{last_downloaded_video}"
+
+    parser.add_argument(
+        "-i",
+        "--input",
+        default=input,
+        help="Input file name",
+    )
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    output_filename = f"{last_downloaded_video[:-4]}-{timestamp}.mp4"
+    default_output = f"./output_media/processed-media/{output_filename}"
+
+    parser.add_argument(
+        "-o", "--output", default=default_output, help="Output file name"
+    )
+
+    args = parser.parse_args()
+
     main(args.input, args.output, db)
+
+    r.set("last-processed-video", output_filename)
