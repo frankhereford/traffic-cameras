@@ -46,44 +46,6 @@ def insert_detections(db, cursor):
     records_to_insert.clear()
 
 
-# def insert_detection(
-#     db,
-#     cursor,
-#     tracker_id,
-#     class_id,
-#     image_x,
-#     image_y,
-#     timestamp,
-#     session_id,
-#     longitude,
-#     latitude,
-# ):
-
-#     insert_query = """
-#     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id)
-#     VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
-#     """
-#     # Convert the Unix timestamp to a datetime value
-#     timestamp = datetime.datetime.fromtimestamp(timestamp)
-
-#     # Convert the timestamp to Central Time
-#     central = pytz.timezone("America/Chicago")
-#     timestamp = timestamp.astimezone(central)
-
-#     record_to_insert = (
-#         int(tracker_id),
-#         int(image_x),
-#         int(image_y),
-#         timestamp,
-#         session_id,
-#         float(longitude),
-#         float(latitude),
-#         int(class_id),
-#     )
-#     cursor.execute(insert_query, record_to_insert)
-#     db.commit()
-
-
 def create_new_session(cursor):
     # Generate a fresh UUID
     new_uuid = uuid.uuid4()
