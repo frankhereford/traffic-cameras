@@ -3,18 +3,24 @@
 import argparse
 import subprocess
 import datetime
+import signal
+import time
+
+target_video_length = 60
 
 
-import datetime
+def send_sigint_to_process(process):
+    process.send_signal(signal.SIGINT)
 
 
 def download_video(video_id):
     youtube_url = f"https://www.youtube.com/watch?v={video_id}"
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    output_filename = f"media/media-from-camera/{video_id}-{timestamp}.mp4"
-    print("output_filename:", output_filename)
-    # command = f'yt-dlp {youtube_url} -o {output_filename} --postprocessor-args "-ss 00:00:00 -t 00:01:00"'
-    # subprocess.run(command, shell=True)
+    output_filename = f"media/{video_id}-{timestamp}.mp4"
+    command = f"timeout --signal=SIGINT {target_video_length}s yt-dlp {youtube_url} -o {output_filename}"
+
+    # Start the subprocess
+    process = subprocess.Popen(command, shell=True)
 
 
 if __name__ == "__main__":
@@ -24,4 +30,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    download_video(args.video_id)
+    while True:
+        download_video(args.video_id)
+        print("back from download_video()")
+        time.sleep(target_video_length + 5)

@@ -23,7 +23,7 @@ services:
       context: ./download
     entrypoint: ["/application/download_and_serve.py", "ByED80IKdIU"]
     volumes:
-      - ./download/media:/application/media
+      - /home/frank/efs/live-traffic/:/application/media
       - ./download:/application
 
   inference:
