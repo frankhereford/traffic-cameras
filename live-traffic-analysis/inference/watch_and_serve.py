@@ -100,12 +100,8 @@ fps = 30
 
 # Example usage:
 watcher = FolderWatcher("./output_media/")
-print(watcher.get_current_file())
-print(watcher.get_current_file())
-print(watcher.get_current_file())
-print(watcher.get_current_file())
-print(watcher.get_current_file())
-
+while watcher.get_current_file() is None:
+    time.sleep(1)
 
 rtmp_url = "rtmp://10.0.3.228/8495ebad-db94-44fb-9a05-45ac7630933a.stream"
 
@@ -134,6 +130,7 @@ process = subprocess.Popen(command, stdin=subprocess.PIPE)
 while True:
     frame_count = 0
     current_file = watcher.get_current_file()
+    print("Current file:", current_file)
     path = "./output_media/" + current_file
     generator = mp4_frame_generator(path)
     start_time = time.time()
@@ -142,10 +139,7 @@ while True:
         if frame_count % 30 == 0:  # Check every 100 frames
             new_file = watcher.get_current_file()
             if new_file != current_file:  # If the current file has changed
-                current_file = new_file
-                path = "./output_media/" + current_file
-                generator = mp4_frame_generator(path)  # Get a new generator
-                frame_count = 0  # Reset the frame count
+                break
 
         annotated_frame = frame.copy()
         process.stdin.write(annotated_frame.tobytes())
