@@ -5,7 +5,6 @@ from tqdm import tqdm
 from utilities.transformation import read_points_file
 from torch_tps import ThinPlateSpline
 import torch
-import time
 from datetime import datetime, timedelta
 import re
 import redis
@@ -49,8 +48,28 @@ class VideoProcessor:
         self.model = YOLO("yolov8m.pt")
         self.tracker = sv.ByteTrack()
         self.video_info = sv.VideoInfo.from_video_path(self.source_video_path)
-        self.box_annotator = sv.BoxAnnotator(color=COLORS)
-        self.smoother = sv.DetectionsSmoother(length=5)
+        self.box_annotator = sv.BoxCornerAnnotator(color=COLORS)
+        self.trace_annotator = sv.TraceAnnotator(
+            thickness=2, trace_length=30, position=sv.Position.BOTTOM_CENTER
+        )
+
+        self.class_label_annotator = sv.LabelAnnotator(
+            text_scale=0.5,
+            text_thickness=1,
+            text_padding=2,
+            text_position=sv.Position.TOP_CENTER,
+            text_color=sv.Color(r=0, g=0, b=0),
+        )
+
+        self.speed_label_annotator = sv.LabelAnnotator(
+            text_scale=0.5,
+            text_thickness=1,
+            text_padding=2,
+            text_position=sv.Position.BOTTOM_CENTER,
+            text_color=sv.Color(r=0, g=0, b=0),
+        )
+
+        self.smoother = sv.DetectionsSmoother(length=3)
 
         self.db = db
         self.cursor = self.db.cursor()
@@ -193,26 +212,6 @@ class VideoProcessor:
                 insert_detections(self.db, self.cursor)
                 self.queued_inserts = 0
 
-            speeds = []
-            for tracker_id in detections.tracker_id:
-                # Try to get the speed from Redis
-                speed = self.redis.get(f"speed:{self.session}:{tracker_id}")
-                if speed is None:
-                    # If the speed is not in Redis, compute it and store it in Redis with a 1 second expiration
-                    speed = compute_speed(self.cursor, self.session, tracker_id, 30)
-                    # print("fresh speed: ", speed)
-                    # Convert None to 'None' before storing in Redis
-                    self.redis.set(
-                        f"speed:{self.session}:{tracker_id}",
-                        speed if speed is not None else "None",
-                        ex=1,
-                    )
-                else:
-                    # Decode bytes to string and If the speed is in Redis, convert it to a float if it's not 'None'
-                    speed = speed.decode("utf-8")
-                    speed = float(speed) if speed != "None" else None
-                speeds.append(speed)
-
         self.frame_number += 1
         one_thirtieth_second_in_microseconds = int(1_000_000 / 30)
         self.video_datetime += timedelta(
@@ -241,7 +240,44 @@ class VideoProcessor:
                 )
             ]
 
-            annotated_frame = self.box_annotator.annotate(
-                annotated_frame, detections, labels=class_labels
+            speeds = []
+            for tracker_id in detections.tracker_id:
+                # Try to get the speed from Redis
+                speed = self.redis.get(f"speed:{self.session}:{tracker_id}")
+                if speed is None:
+                    # If the speed is not in Redis, compute it and store it in Redis with a 1 second expiration
+                    speed = compute_speed(self.cursor, self.session, tracker_id, 30)
+                    # print("fresh speed: ", speed)
+                    # Convert None to 'None' before storing in Redis
+                    self.redis.set(
+                        f"speed:{self.session}:{tracker_id}",
+                        speed if speed is not None else "None",
+                        ex=1,
+                    )
+                else:
+                    # Decode bytes to string and If the speed is in Redis, convert it to a float if it's not 'None'
+                    speed = speed.decode("utf-8")
+                    speed = float(speed) if speed != "None" else None
+                speeds.append(speed)
+
+            speed_labels = [
+                (f"{speed:.1f} MPH" if speed is not None else "calculating...")
+                for speed in speeds
+            ]
+
+            annotated_frame = self.box_annotator.annotate(annotated_frame, detections)
+            annotated_frame = self.trace_annotator.annotate(annotated_frame, detections)
+
+            annotated_frame = self.class_label_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+                labels=class_labels,
             )
+
+            annotated_frame = self.speed_label_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+                labels=speed_labels,
+            )
+
         return annotated_frame
