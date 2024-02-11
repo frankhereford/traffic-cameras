@@ -6,6 +6,9 @@ from utilities.transformation import read_points_file
 from torch_tps import ThinPlateSpline
 import torch
 import time
+from datetime import datetime, timedelta
+import re
+import redis
 
 from utilities.sql import (
     prepare_detection,
@@ -23,6 +26,23 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class VideoProcessor:
     def __init__(self, input, output, db):
         self.source_video_path = input
+
+        # Extract the date and time from the file path using regex
+        match = re.search(r"(\d{8})-(\d{6})", self.source_video_path)
+        if match:
+            date_str = match.group(1)
+            time_str = match.group(2)
+
+            # Combine date and time strings
+            datetime_str = date_str + time_str
+
+            # Parse the combined string into a datetime object
+            self.video_datetime = datetime.strptime(datetime_str, "%Y%m%d%H%M%S")
+
+            print("Parsed datetime:", self.video_datetime)
+        else:
+            print("Date and time pattern not found in the file path")
+
         self.output_video_path = output
         if not self.source_video_path or not self.output_video_path:
             raise ValueError("Input and output video paths are required.")
@@ -34,7 +54,7 @@ class VideoProcessor:
 
         self.db = db
         self.cursor = self.db.cursor()
-        self.queue_size = 100
+        self.queue_size = 5
         self.queued_inserts = 0
         self.cursor.execute("TRUNCATE sessions CASCADE")
         db.commit()
@@ -48,6 +68,10 @@ class VideoProcessor:
             self.coordinates["image_coordinates"], self.coordinates["map_coordinates"]
         )
 
+        self.frame_number = 0
+
+        self.redis = redis.Redis(host="localhost", port=6379, db=0)
+
     def process_video(self):
         frame_generator = sv.get_video_frames_generator(
             source_path=self.source_video_path
@@ -58,30 +82,6 @@ class VideoProcessor:
                 for frame in tqdm(frame_generator, total=self.video_info.total_frames):
                     annotated_frame = self.process_frame(frame)
                     sink.write_frame(annotated_frame)
-
-    def annotate_frame(
-        self, frame: np.ndarray, detections: sv.Detections, result
-    ) -> np.ndarray:
-
-        # labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
-
-        center_points = detections.get_anchors_coordinates(anchor=sv.Position.CENTER)
-
-        annotated_frame = frame.copy()
-
-        if not (detections.tracker_id is None or detections.class_id is None):
-
-            class_labels = [
-                f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
-                for tracker_id, class_id, point in zip(
-                    detections.tracker_id, detections.class_id, center_points
-                )
-            ]
-
-            annotated_frame = self.box_annotator.annotate(
-                annotated_frame, detections, labels=class_labels
-            )
-        return annotated_frame
 
     def build_keep_list_tensor(self, data_obj, center_points):
         xyxy_tensor = data_obj.xyxy
@@ -145,7 +145,8 @@ class VideoProcessor:
             (871, 594, 10),
             (1041, 584, 10),
             (1194, 571, 10),
-            ## parked cars now,
+            (1081, 401, 10),
+            (488, 245, 10),
         ]
         keep_list = self.build_keep_list_tensor(result.boxes, center_points_to_avoid)
         result.boxes = self.filter_tensors(result.boxes, keep_list)
@@ -180,7 +181,8 @@ class VideoProcessor:
                     our_class_id,
                     point[0],
                     point[1],
-                    time.time(),
+                    # time.time(),  # FIXME this needs to get computed off frame number
+                    self.video_datetime.timestamp(),
                     self.session,
                     location[0],
                     location[1],
@@ -191,4 +193,55 @@ class VideoProcessor:
                 insert_detections(self.db, self.cursor)
                 self.queued_inserts = 0
 
+            speeds = []
+            for tracker_id in detections.tracker_id:
+                # Try to get the speed from Redis
+                speed = self.redis.get(f"speed:{self.session}:{tracker_id}")
+                if speed is None:
+                    # If the speed is not in Redis, compute it and store it in Redis with a 1 second expiration
+                    speed = compute_speed(self.cursor, self.session, tracker_id, 30)
+                    # print("fresh speed: ", speed)
+                    # Convert None to 'None' before storing in Redis
+                    self.redis.set(
+                        f"speed:{self.session}:{tracker_id}",
+                        speed if speed is not None else "None",
+                        ex=1,
+                    )
+                else:
+                    # Decode bytes to string and If the speed is in Redis, convert it to a float if it's not 'None'
+                    speed = speed.decode("utf-8")
+                    speed = float(speed) if speed != "None" else None
+                speeds.append(speed)
+
+        self.frame_number += 1
+        one_thirtieth_second_in_microseconds = int(1_000_000 / 30)
+        self.video_datetime += timedelta(
+            microseconds=one_thirtieth_second_in_microseconds
+        )
+        # print(f"Frame time: {self.video_datetime}")
+
         return self.annotate_frame(frame, detections, result)
+
+    def annotate_frame(
+        self, frame: np.ndarray, detections: sv.Detections, result
+    ) -> np.ndarray:
+
+        # labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+
+        center_points = detections.get_anchors_coordinates(anchor=sv.Position.CENTER)
+
+        annotated_frame = frame.copy()
+
+        if not (detections.tracker_id is None or detections.class_id is None):
+
+            class_labels = [
+                f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
+                for tracker_id, class_id, point in zip(
+                    detections.tracker_id, detections.class_id, center_points
+                )
+            ]
+
+            annotated_frame = self.box_annotator.annotate(
+                annotated_frame, detections, labels=class_labels
+            )
+        return annotated_frame

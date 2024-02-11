@@ -62,7 +62,7 @@ if __name__ == "__main__":
     process = subprocess.Popen(command, stdin=subprocess.PIPE)
 
     while True:
-        print("\n\n\n\nNew Video Time\n\n\n\n")
+        print("\nNew Video Time\n")
         last_processed_video = r.get("last-processed-video")
         if last_processed_video is not None:
             last_processed_video = last_processed_video.decode("utf-8")
@@ -74,14 +74,13 @@ if __name__ == "__main__":
         for frame in generator:
             frame_count += 1
             if frame_count % 30 == 0:
-                # print("\n\n\n\nChecking for new video\n\n\n\n")
                 last_processed_video_check = r.get("last-processed-video")
                 if last_processed_video_check is not None:
                     last_processed_video_check = last_processed_video_check.decode(
                         "utf-8"
                     )
                 if last_processed_video_check != last_processed_video:
-                    print("\n\n\n\nBreaking for new video\n\n\n\n")
+                    print("\nBreaking for new video\n")
                     break
 
             annotated_frame = frame.copy()

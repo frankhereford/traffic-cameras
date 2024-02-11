@@ -190,6 +190,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             (1526, 428, 10),
             (1740, 649, 15),
             (1762, 733, 20),
+            (1081, 400, 10),
             # (),
             ## parked cars now,
         ]
