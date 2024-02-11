@@ -30,7 +30,7 @@ class VideoProcessor:
         self.tracker = sv.ByteTrack()
         self.video_info = sv.VideoInfo.from_video_path(self.source_video_path)
         self.box_annotator = sv.BoxAnnotator(color=COLORS)
-        self.smoother = sv.DetectionsSmoother(length=2)
+        self.smoother = sv.DetectionsSmoother(length=5)
 
         self.db = db
         self.cursor = self.db.cursor()
@@ -63,21 +63,24 @@ class VideoProcessor:
         self, frame: np.ndarray, detections: sv.Detections, result
     ) -> np.ndarray:
 
-        labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+        # labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
 
         center_points = detections.get_anchors_coordinates(anchor=sv.Position.CENTER)
 
-        class_labels = [
-            f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
-            for tracker_id, class_id, point in zip(
-                detections.tracker_id, detections.class_id, center_points
-            )
-        ]
-
         annotated_frame = frame.copy()
-        annotated_frame = self.box_annotator.annotate(
-            annotated_frame, detections, labels=class_labels
-        )
+
+        if not (detections.tracker_id is None or detections.class_id is None):
+
+            class_labels = [
+                f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
+                for tracker_id, class_id, point in zip(
+                    detections.tracker_id, detections.class_id, center_points
+                )
+            ]
+
+            annotated_frame = self.box_annotator.annotate(
+                annotated_frame, detections, labels=class_labels
+            )
         return annotated_frame
 
     def build_keep_list_tensor(self, data_obj, center_points):
@@ -141,7 +144,7 @@ class VideoProcessor:
             (497, 488, 10),
             (871, 594, 10),
             (1041, 584, 10),
-            (1194, 752, 10),
+            (1194, 571, 10),
             ## parked cars now,
         ]
         keep_list = self.build_keep_list_tensor(result.boxes, center_points_to_avoid)
