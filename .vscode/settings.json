@@ -10,6 +10,7 @@
     "coldwater",
     "correlatedpoint",
     "cuvid",
+    "detectionsmanager",
     "Detr",
     "devs",
     "dotenv",
