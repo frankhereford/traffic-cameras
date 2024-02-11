@@ -34,6 +34,7 @@ def prepare_detection(
     )
     records_to_insert.append(record_to_insert)
 
+
 def insert_detections(db, cursor):
     insert_query = """
     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
@@ -43,6 +44,7 @@ def insert_detections(db, cursor):
     db.commit()
     # Clear the records list
     records_to_insert.clear()
+
 
 # def insert_detection(
 #     db,
@@ -58,7 +60,7 @@ def insert_detections(db, cursor):
 # ):
 
 #     insert_query = """
-#     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
+#     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id)
 #     VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
 #     """
 #     # Convert the Unix timestamp to a datetime value
