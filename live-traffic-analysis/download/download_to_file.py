@@ -7,7 +7,8 @@ import signal
 import time
 import redis
 
-target_video_length = 30
+target_video_length = 300
+factor_for_waiting = 3
 
 
 def send_sigint_to_process(process):
@@ -46,5 +47,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     while True:
         download_video(args.video_id)
-        print("sleeping: ", (target_video_length * 10) + 5)
-        time.sleep((target_video_length * 10) + 5)
+        print("sleeping: ", (target_video_length * factor_for_waiting) + 5)
+        time.sleep((target_video_length * factor_for_waiting) + 5)
