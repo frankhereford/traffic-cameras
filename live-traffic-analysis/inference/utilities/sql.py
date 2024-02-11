@@ -46,6 +46,36 @@ def insert_detections(db, cursor):
     records_to_insert.clear()
 
 
+def get_future_locations_for_trackers(cursor, session_id, tracker_ids):
+    # Ensure that tracker_ids is a list
+    if tracker_ids is None:
+        tracker_ids = []
+
+    results = []
+
+    for tracker_id in tracker_ids:
+        # Define the SQL query
+        query = f"""
+            SELECT st_x(p.future_location) as x, st_y(p.future_location) as y
+            FROM predictions p
+            WHERE p.session_id = {session_id} AND p.tracker_id = {tracker_id}
+            ORDER BY p.timestamp DESC
+            LIMIT 1;
+        """
+
+        # Execute the query and fetch the result
+        cursor.execute(query)
+        result = cursor.fetchone()
+
+        # If a result was found, add it to the results list, otherwise add None
+        if result is not None:
+            results.append(result)
+        else:
+            results.append(None)
+
+    return results
+
+
 def create_new_session(cursor):
     # Generate a fresh UUID
     new_uuid = uuid.uuid4()

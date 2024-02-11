@@ -393,7 +393,6 @@ trace_annotator = sv.TraceAnnotator(
 
 smoother = sv.DetectionsSmoother(length=2)
 
-
 hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 

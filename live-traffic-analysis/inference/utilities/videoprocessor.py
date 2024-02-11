@@ -15,6 +15,7 @@ from utilities.sql import (
     create_new_session,
     get_class_id,
     compute_speed,
+    get_future_locations_for_trackers,
 )
 
 COLORS = sv.ColorPalette.default()
@@ -86,6 +87,10 @@ class VideoProcessor:
         self.tps.fit(
             self.coordinates["image_coordinates"], self.coordinates["map_coordinates"]
         )
+        self.reverse_tps = ThinPlateSpline(0.5)
+        self.reverse_tps.fit(
+            self.coordinates["map_coordinates"], self.coordinates["image_coordinates"]
+        )
 
         self.frame_number = 0
 
@@ -137,6 +142,43 @@ class VideoProcessor:
                 setattr(data_obj, attr, filtered_tensor)
 
         return data_obj
+
+    def transform_into_image_space(self, future_locations):
+
+        image_space_future_locations = future_locations
+
+        none_indices = [
+            i for i, location in enumerate(future_locations) if location is None
+        ]
+
+        # Build locations_tuples, excluding None elements
+        locations_tuples = [
+            (location["x"], location["y"])
+            for location in future_locations
+            if location is not None
+        ]
+
+        if len(locations_tuples) > 0:
+            # Convert the list of tuples into a torch tensor
+            prediction_tensor = torch.tensor(locations_tuples)
+            # print("Future locations tensor: ", prediction_tensor)
+
+            image_space_prediction_tensor = self.reverse_tps.transform(
+                prediction_tensor
+            )
+            # print(
+            #     "Image space future locations tensor: ", image_space_prediction_tensor
+            # )
+
+            image_space_future_locations = [
+                tuple(location) for location in image_space_prediction_tensor.tolist()
+            ]
+
+            for index in none_indices:
+                image_space_future_locations.insert(index, None)
+
+        # print("Image space future locations tuples: ", image_space_future_locations)
+        return image_space_future_locations
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         result = self.model(frame, verbose=False)[0]
@@ -212,6 +254,14 @@ class VideoProcessor:
                 insert_detections(self.db, self.cursor)
                 self.queued_inserts = 0
 
+        future_locations = get_future_locations_for_trackers(
+            self.cursor, self.session, detections.tracker_id
+        )
+
+        # print("future locations: ", future_locations)
+        image_space_future_locations = self.transform_into_image_space(future_locations)
+        # print("image space future locations: ", image_space_future_locations)
+
         self.frame_number += 1
         one_thirtieth_second_in_microseconds = int(1_000_000 / 30)
         self.video_datetime += timedelta(
@@ -219,10 +269,12 @@ class VideoProcessor:
         )
         # print(f"Frame time: {self.video_datetime}")
 
-        return self.annotate_frame(frame, detections, result)
+        return self.annotate_frame(
+            frame, detections, result, image_space_future_locations
+        )
 
     def annotate_frame(
-        self, frame: np.ndarray, detections: sv.Detections, result
+        self, frame: np.ndarray, detections: sv.Detections, result, future_locations
     ) -> np.ndarray:
 
         # labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
@@ -234,7 +286,8 @@ class VideoProcessor:
         if not (detections.tracker_id is None or detections.class_id is None):
 
             class_labels = [
-                f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
+                # f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
+                f"{result.names[class_id].title()} #{tracker_id}"
                 for tracker_id, class_id, point in zip(
                     detections.tracker_id, detections.class_id, center_points
                 )
