@@ -15,6 +15,7 @@
     "dotenv",
     "dtype",
     "dualpane",
+    "executemany",
     "fontsource",
     "fromarray",
     "frombuffer",
