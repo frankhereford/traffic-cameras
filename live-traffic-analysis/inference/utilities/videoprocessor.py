@@ -8,6 +8,7 @@ import torch
 from datetime import datetime, timedelta
 import re
 import redis
+from PIL import Image, ImageDraw
 
 from utilities.sql import (
     prepare_detection,
@@ -332,5 +333,26 @@ class VideoProcessor:
                 detections=detections,
                 labels=speed_labels,
             )
+
+            image = Image.fromarray(annotated_frame)
+
+            # Create a draw object
+            draw = ImageDraw.Draw(image)
+
+            # Define the radius of the circles
+            radius = 5
+
+            # Iterate over the future_locations list
+            for location in future_locations:
+                if location is not None:
+                    # Calculate the bounding box of the circle
+                    upper_left = (location[0] - radius, location[1] - radius)
+                    lower_right = (location[0] + radius, location[1] + radius)
+
+                    # Draw a red circle
+                    draw.ellipse([upper_left, lower_right], fill="red")
+
+            # Convert the PIL image back to a numpy array
+            annotated_frame = np.array(image)
 
         return annotated_frame
