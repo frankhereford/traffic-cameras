@@ -8,7 +8,8 @@ import torch
 from datetime import datetime, timedelta
 import re
 import redis
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
+import pytz
 
 from utilities.sql import (
     prepare_detection,
@@ -83,6 +84,7 @@ CENTER_POINTS_TO_AVOID = [
     (1194, 571, 10),
     (1081, 401, 10),
     (488, 245, 10),
+    (1449, 142, 10),
 ]
 
 
@@ -321,8 +323,8 @@ class VideoProcessor:
         if not (detections.tracker_id is None or detections.class_id is None):
 
             class_labels = [
-                # f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
-                f"{result.names[class_id].title()} #{tracker_id}"
+                f"{result.names[class_id].title()} #{tracker_id} (X: {int(point[0])}, Y: {int(point[1])})"
+                # f"{result.names[class_id].title()} #{tracker_id}"
                 for tracker_id, class_id, point in zip(
                     detections.tracker_id, detections.class_id, center_points
                 )
@@ -391,6 +393,20 @@ class VideoProcessor:
 
         image = Image.fromarray(annotated_frame)
         draw = ImageDraw.Draw(image)
+
+        # Convert the datetime object from UTC to Central Time
+        central = pytz.timezone("US/Central")
+        video_datetime_central = self.video_datetime.astimezone(central)
+
+        datetime_str = video_datetime_central.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+        font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size=18
+        )
+
+        # Draw the datetime string onto the image
+        draw.text((10, 10), datetime_str, fill="white", font=font)
+
         for center_point in CENTER_POINTS_TO_AVOID:
             # Calculate the bounding box of the circle
             upper_left = (
@@ -403,7 +419,7 @@ class VideoProcessor:
             )
 
             # Draw a red circle
-            draw.ellipse([upper_left, lower_right], outline="red")
+            draw.ellipse([upper_left, lower_right], outline="blue")
         annotated_frame = np.array(image)
 
         return annotated_frame

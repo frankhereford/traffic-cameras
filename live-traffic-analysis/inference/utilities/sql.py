@@ -55,21 +55,24 @@ def get_future_locations_for_trackers(cursor, session_id, tracker_ids):
 
     for tracker_id in tracker_ids:
         # Define the SQL query
-        # query = f"""
-        #     SELECT st_x(p.future_location) as x, st_y(p.future_location) as y
-        #     FROM predictions p
-        #     WHERE p.session_id = {session_id} AND p.tracker_id = {tracker_id}
-        #     ORDER BY p.timestamp DESC
-        #     LIMIT 1;
-        # """
-
         query = f"""
-            SELECT st_x(p.location_future) as x, st_y(p.location_future) as y
-            FROM predictions_snapped p
+            SELECT st_x(p.future_location) as x, st_y(p.future_location) as y
+            FROM predictions p
             WHERE p.session_id = {session_id} AND p.tracker_id = {tracker_id}
             ORDER BY p.timestamp DESC
             LIMIT 1;
         """
+
+        # moving back to the predictions and not snapped to quicken up this query
+        # to not depend on the view of tracks
+
+        # query = f"""
+        #     SELECT st_x(p.location_future) as x, st_y(p.location_future) as y
+        #     FROM predictions_snapped p
+        #     WHERE p.session_id = {session_id} AND p.tracker_id = {tracker_id}
+        #     ORDER BY p.timestamp DESC
+        #     LIMIT 1;
+        # """
 
         # Execute the query and fetch the result
         cursor.execute(query)
