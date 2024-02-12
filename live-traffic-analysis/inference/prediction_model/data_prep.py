@@ -12,6 +12,8 @@ from torch.utils.data import Dataset, DataLoader
 
 SEGMENT_LENGTH = 30
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class VehicleTrajectoryDataset(Dataset):
     def __init__(self, tracks):
