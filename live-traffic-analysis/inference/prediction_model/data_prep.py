@@ -11,6 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
 
 SEGMENT_LENGTH = 30
+PREDICTION_DISTANCE = 30
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -27,12 +28,13 @@ class VehicleTrajectoryDataset(Dataset):
         track_length = len(track)
 
         # If the track is longer than SEGMENT_LENGTH, randomly select a segment
-        if track_length > SEGMENT_LENGTH:
-            start = random.randint(0, track_length - SEGMENT_LENGTH)
+        if track_length > SEGMENT_LENGTH + PREDICTION_DISTANCE:
+            start = random.randint(
+                0, track_length - SEGMENT_LENGTH - PREDICTION_DISTANCE
+            )
             segment = track[start : start + SEGMENT_LENGTH]
         else:
             segment = track
-
         # Split the segment into input and target
         return torch.tensor(segment[:-1]), torch.tensor(segment[1:])
 
@@ -70,7 +72,7 @@ WHERE
 GROUP BY 
     detections.session_id, detections.tracker_id, paths.distance
 HAVING 
-    COUNT(*) >= {SEGMENT_LENGTH}
+    COUNT(*) > ({SEGMENT_LENGTH} + {PREDICTION_DISTANCE})
 ORDER BY 
     paths.distance DESC, detections.session_id DESC, detections.tracker_id;
 """
