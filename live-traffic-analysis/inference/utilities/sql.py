@@ -34,6 +34,7 @@ def prepare_detection(
     )
     records_to_insert.append(record_to_insert)
 
+
 def insert_detections(db, cursor):
     insert_query = """
     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
@@ -44,42 +45,43 @@ def insert_detections(db, cursor):
     # Clear the records list
     records_to_insert.clear()
 
-# def insert_detection(
-#     db,
-#     cursor,
-#     tracker_id,
-#     class_id,
-#     image_x,
-#     image_y,
-#     timestamp,
-#     session_id,
-#     longitude,
-#     latitude,
-# ):
 
-#     insert_query = """
-#     INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id) 
-#     VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s)
-#     """
-#     # Convert the Unix timestamp to a datetime value
-#     timestamp = datetime.datetime.fromtimestamp(timestamp)
+def get_future_locations_for_trackers(cursor, session_id, tracker_ids):
+    # Ensure that tracker_ids is a list
+    if tracker_ids is None:
+        tracker_ids = []
 
-#     # Convert the timestamp to Central Time
-#     central = pytz.timezone("America/Chicago")
-#     timestamp = timestamp.astimezone(central)
+    results = []
 
-#     record_to_insert = (
-#         int(tracker_id),
-#         int(image_x),
-#         int(image_y),
-#         timestamp,
-#         session_id,
-#         float(longitude),
-#         float(latitude),
-#         int(class_id),
-#     )
-#     cursor.execute(insert_query, record_to_insert)
-#     db.commit()
+    for tracker_id in tracker_ids:
+        # Define the SQL query
+        # query = f"""
+        #     SELECT st_x(p.future_location) as x, st_y(p.future_location) as y
+        #     FROM predictions p
+        #     WHERE p.session_id = {session_id} AND p.tracker_id = {tracker_id}
+        #     ORDER BY p.timestamp DESC
+        #     LIMIT 1;
+        # """
+
+        query = f"""
+            SELECT st_x(p.location_future) as x, st_y(p.location_future) as y
+            FROM predictions_snapped p
+            WHERE p.session_id = {session_id} AND p.tracker_id = {tracker_id}
+            ORDER BY p.timestamp DESC
+            LIMIT 1;
+        """
+
+        # Execute the query and fetch the result
+        cursor.execute(query)
+        result = cursor.fetchone()
+
+        # If a result was found, add it to the results list, otherwise add None
+        if result is not None and result["x"] is not None and result["y"] is not None:
+            results.append(result)
+        else:
+            results.append(None)
+
+    return results
 
 
 def create_new_session(cursor):
