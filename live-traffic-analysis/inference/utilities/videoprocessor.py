@@ -23,6 +23,68 @@ COLORS = sv.ColorPalette.default()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+DETECTION_ZONES = [
+    np.array(
+        [
+            [715, 964],
+            [1639, 832],
+            [1814, 923],
+            [796, 1076],
+        ]
+    ),
+    np.array(
+        [
+            [242, 670],
+            [315, 884],
+            [129, 911],
+            [105, 681],
+        ]
+    ),
+    np.array(
+        [
+            [464, 595],
+            [433, 520],
+            [982, 496],
+            [1078, 545],
+        ]
+    ),
+    np.array(
+        [
+            [1349, 581],
+            [1472, 570],
+            [1779, 720],
+            [1691, 733],
+        ]
+    ),
+]
+
+CENTER_POINTS_TO_AVOID = [
+    (1368, 371, 15),  # bank atm
+    (1814, 672, 15),  # lower-right flag
+    (1700, 458, 15),  # right street closest light
+    (1610, 437, 15),  # right street middle light
+    (1770, 674, 15),  # lower right flag
+    (496, 490, 15),  # left street light, closest
+    (1833, 413, 15),  # right street far street light near the pole
+    (667, 739, 15),  # lower left light
+    (640, 729, 15),  # lower left light
+    (38, 432, 10),  # clock
+    (637, 731, 25),  # light lower left
+    (375, 442, 20),
+    (1044, 580, 20),
+    (945, 396, 20),
+    (668, 718, 20),
+    (1526, 428, 10),
+    (1740, 649, 15),
+    (1762, 733, 20),
+    (497, 488, 10),
+    (871, 594, 10),
+    (1041, 584, 10),
+    (1194, 571, 10),
+    (1081, 401, 10),
+    (488, 245, 10),
+]
+
 
 class VideoProcessor:
     def __init__(self, input, output, db):
@@ -77,8 +139,8 @@ class VideoProcessor:
         self.cursor = self.db.cursor()
         self.queue_size = 5
         self.queued_inserts = 0
-        self.cursor.execute("TRUNCATE sessions CASCADE")
-        db.commit()
+        # self.cursor.execute("TRUNCATE sessions CASCADE")
+        # db.commit()
 
         self.session = create_new_session(self.cursor)
         db.commit()
@@ -168,9 +230,6 @@ class VideoProcessor:
             image_space_prediction_tensor = self.reverse_tps.transform(
                 prediction_tensor
             )
-            # print(
-            #     "Image space future locations tensor: ", image_space_prediction_tensor
-            # )
 
             image_space_future_locations = [
                 tuple(location) for location in image_space_prediction_tensor.tolist()
@@ -185,33 +244,7 @@ class VideoProcessor:
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         result = self.model(frame, verbose=False)[0]
 
-        center_points_to_avoid = [
-            (1368, 371, 15),  # bank atm
-            (1814, 672, 15),  # lower-right flag
-            (1700, 458, 15),  # right street closest light
-            (1610, 437, 15),  # right street middle light
-            (1770, 674, 15),  # lower right flag
-            (496, 490, 15),  # left street light, closest
-            (1833, 413, 15),  # right street far street light near the pole
-            (667, 739, 15),  # lower left light
-            (640, 729, 15),  # lower left light
-            (38, 432, 10),  # clock
-            (637, 731, 25),  # light lower left
-            (375, 442, 20),
-            (1044, 580, 20),
-            (945, 396, 20),
-            (668, 718, 20),
-            (1526, 428, 10),
-            (1740, 649, 15),
-            (1762, 733, 20),
-            (497, 488, 10),
-            (871, 594, 10),
-            (1041, 584, 10),
-            (1194, 571, 10),
-            (1081, 401, 10),
-            (488, 245, 10),
-        ]
-        keep_list = self.build_keep_list_tensor(result.boxes, center_points_to_avoid)
+        keep_list = self.build_keep_list_tensor(result.boxes, CENTER_POINTS_TO_AVOID)
         result.boxes = self.filter_tensors(result.boxes, keep_list)
 
         detections = sv.Detections.from_ultralytics(result)
@@ -355,5 +388,22 @@ class VideoProcessor:
 
             # Convert the PIL image back to a numpy array
             annotated_frame = np.array(image)
+
+        image = Image.fromarray(annotated_frame)
+        draw = ImageDraw.Draw(image)
+        for center_point in CENTER_POINTS_TO_AVOID:
+            # Calculate the bounding box of the circle
+            upper_left = (
+                center_point[0] - center_point[2],
+                center_point[1] - center_point[2],
+            )
+            lower_right = (
+                center_point[0] + center_point[2],
+                center_point[1] + center_point[2],
+            )
+
+            # Draw a red circle
+            draw.ellipse([upper_left, lower_right], outline="red")
+        annotated_frame = np.array(image)
 
         return annotated_frame
