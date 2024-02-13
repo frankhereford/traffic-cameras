@@ -12,6 +12,8 @@ import torch.optim as optim
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import train_test_split
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +35,7 @@ class VehicleTrajectoryDataset(Dataset):
         return len(self.tracks)
 
     def __getitem__(self, idx):
-        logging.info(f"Getting item {idx}...")
+        # logging.info(f"Getting item {idx}...")
         track = self.tracks[idx]
         track_length = len(track)
 
@@ -127,22 +129,28 @@ ORDER BY
         # print(normalized_track)
         normalized_tracks.append(normalized_track)
 
-    logging.info("Initializing the dataset with the normalized tracks...")
-    # Initialize the dataset with the normalized tracks
-    dataset = VehicleTrajectoryDataset(normalized_tracks)
+    # Split the normalized_tracks into training and temporary datasets (combining validation and testing)
+    train_tracks, temp_tracks = train_test_split(
+        normalized_tracks, test_size=0.3, random_state=42
+    )
 
-    logging.info("Creating DataLoader...")
-    # DataLoader can now be used with this dataset
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    # Split the temporary dataset into validation and testing datasets
+    val_tracks, test_tracks = train_test_split(
+        temp_tracks, test_size=0.5, random_state=42
+    )
 
-    # # Example: Iterate over the DataLoader
-    # for inputs, targets in dataloader:
-    # print("Input:", inputs)
-    # print("Target:", targets)
-    # print("Input shape:", inputs.shape)
-    # print("Target shape:", targets.shape)
+    train_dataset = VehicleTrajectoryDataset(train_tracks)
+    val_dataset = VehicleTrajectoryDataset(val_tracks)
+    test_dataset = VehicleTrajectoryDataset(test_tracks)
 
-logging.info(f"data loader length: {len(dataloader)}")
+    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+
+logging.info(f"train_dataloader length: {len(train_dataloader)}")
+logging.info(f"val_dataloader length: {len(val_dataloader)}")
+logging.info(f"test_dataloader length: {len(test_dataloader)}")
 
 
 class VehicleLSTM(nn.Module):
@@ -169,18 +177,18 @@ class VehicleLSTM(nn.Module):
         # Predict the next position for each time step
         out = self.fc(out)  # Applying the fully connected layer to all time steps
 
-        return out[:, -1, :]  # Returning the prediction for the next time step only
+        return out  # Returning the prediction for all time steps
 
 
-# Fetch a single batch from the DataLoader
-dataiter = iter(dataloader)
-if len(dataloader) > 0:
-    sample_inputs, sample_targets = next(dataiter)
-    # Print the shape of the inputs and targets
-    logging.info(f"Shape of input batch: {sample_inputs.shape}")
-    logging.info(f"Shape of target batch: {sample_targets.shape}")
-else:
-    logging.error("DataLoader is empty.")
+# # Fetch a single batch from the DataLoader
+# dataiter = iter(dataloader)
+# if len(dataloader) > 0:
+#     sample_inputs, sample_targets = next(dataiter)
+#     # Print the shape of the inputs and targets
+#     logging.info(f"Shape of input batch: {sample_inputs.shape}")
+#     logging.info(f"Shape of target batch: {sample_targets.shape}")
+# else:
+#     logging.error("DataLoader is empty.")
 
 # Define the parameters for the LSTM model
 input_size = 3  # X, Y, timestamp
@@ -201,3 +209,78 @@ criterion = nn.MSELoss()
 
 # Optimizer (Adam is a good default)
 optimizer = optim.Adam(vehicle_lstm_model.parameters(), lr=0.001)
+
+
+# Number of epochs
+num_epochs = 10
+
+for epoch in range(num_epochs):
+    running_loss = 0.0
+
+    for i, data in enumerate(train_dataloader, 0):
+        # Get the inputs; data is a list of [inputs, targets]
+        inputs, targets = data
+        inputs, targets = inputs.float().to(device), targets.float().to(
+            device
+        )  # Convert to float32
+
+        # Zero the parameter gradients
+        optimizer.zero_grad()
+
+        # Forward pass
+        outputs = vehicle_lstm_model(inputs)
+
+        # Calculate the loss
+        loss = criterion(outputs, targets)
+
+        # Backward pass and optimize
+        loss.backward()
+        optimizer.step()
+
+        # Print statistics
+        running_loss += loss.item()
+        if i % 100 == 99:  # Print every 100 mini-batches
+            logging.info(
+                "[%d, %5d] loss: %.3f" % (epoch + 1, i + 1, running_loss / 100)
+            )
+            running_loss = 0.0
+
+logging.info("Finished Training")
+
+torch.save(vehicle_lstm_model.state_dict(), "vehicle_lstm_model.pth")
+
+
+# Assuming you have a validation dataloader (val_dataloader)
+vehicle_lstm_model.eval()  # Set the model to evaluation mode
+
+with torch.no_grad():
+    val_loss = 0.0
+    for i, data in enumerate(val_dataloader, 0):
+        inputs, targets = data
+        inputs, targets = inputs.float().to(device), targets.float().to(device)
+
+        outputs = vehicle_lstm_model(inputs)
+        loss = criterion(outputs, targets)
+        val_loss += loss.item()
+
+    average_val_loss = val_loss / len(val_dataloader)
+    logging.info(f"Validation Loss: {average_val_loss:.3f}")
+
+
+vehicle_lstm_model.eval()  # Set the model to evaluation mode
+
+test_loss = 0.0
+with torch.no_grad():
+    for i, data in enumerate(test_dataloader, 0):
+        inputs, targets = data
+        inputs, targets = inputs.float().to(device), targets.float().to(device)
+
+        # Forward pass: compute predicted outputs by passing inputs to the model
+        outputs = vehicle_lstm_model(inputs)
+
+        # Calculate the loss
+        loss = criterion(outputs, targets)
+        test_loss += loss.item()
+
+average_test_loss = test_loss / len(test_dataloader)
+logging.info(f"Test Loss: {average_test_loss:.3f}")
