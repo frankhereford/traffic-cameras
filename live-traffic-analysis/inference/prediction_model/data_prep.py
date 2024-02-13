@@ -13,16 +13,20 @@ from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+import joblib
+from libraries.vehiclelstm import VehicleLSTM
+from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-
-SEGMENT_LENGTH = 30
-PREDICTION_DISTANCE = 30
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+# Function to save the scaler
+def save_scaler(scaler, path):
+    joblib.dump(scaler, path)
 
 
 class VehicleTrajectoryDataset(Dataset):
@@ -148,36 +152,13 @@ ORDER BY
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 
+# Apply this function after training your model and scaler
+save_scaler(min_max_scaler, "scaler.save")
+
+
 logging.info(f"train_dataloader length: {len(train_dataloader)}")
 logging.info(f"val_dataloader length: {len(val_dataloader)}")
 logging.info(f"test_dataloader length: {len(test_dataloader)}")
-
-
-class VehicleLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size):
-        super(VehicleLSTM, self).__init__()
-
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        # LSTM layer
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-
-        # Fully connected layer to predict the next position
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        # Initialize hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-
-        # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))
-
-        # Predict the next position for each time step
-        out = self.fc(out)  # Applying the fully connected layer to all time steps
-
-        return out  # Returning the prediction for all time steps
 
 
 # # Fetch a single batch from the DataLoader
@@ -249,7 +230,6 @@ logging.info("Finished Training")
 
 torch.save(vehicle_lstm_model.state_dict(), "vehicle_lstm_model.pth")
 
-
 # Assuming you have a validation dataloader (val_dataloader)
 vehicle_lstm_model.eval()  # Set the model to evaluation mode
 
@@ -284,3 +264,15 @@ with torch.no_grad():
 
 average_test_loss = test_loss / len(test_dataloader)
 logging.info(f"Test Loss: {average_test_loss:.3f}")
+
+# Later, during prediction, load the scaler
+# min_max_scaler = load_scaler("scaler.save")
+
+
+# # Modify the predict function to include denormalization
+# def predict(model, input_data, scaler):
+#     processed_input = preprocess_input(input_data, scaler)
+#     with torch.no_grad():
+#         output = model(processed_input)
+#     denormalized_output = denormalize(output.numpy(), scaler)
+#     return denormalized_output
