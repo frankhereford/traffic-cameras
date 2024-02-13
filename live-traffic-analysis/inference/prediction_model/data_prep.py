@@ -5,10 +5,12 @@ import torch
 import random
 import psycopg2
 import numpy as np
+import torch.nn as nn
 import psycopg2.extras
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
+
 
 SEGMENT_LENGTH = 30
 PREDICTION_DISTANCE = 30
@@ -120,9 +122,53 @@ ORDER BY
     # DataLoader can now be used with this dataset
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-    # Example: Iterate over the DataLoader
-    for inputs, targets in dataloader:
-        print("Input:", inputs)
-        print("Target:", targets)
+    # # Example: Iterate over the DataLoader
+    # for inputs, targets in dataloader:
+    # print("Input:", inputs)
+    # print("Target:", targets)
+    # print("Input shape:", inputs.shape)
+    # print("Target shape:", targets.shape)
 
     print("data loader length", len(dataloader))
+
+
+class VehicleLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output_size):
+        super(VehicleLSTM, self).__init__()
+
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+
+        # LSTM layer
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+
+        # Fully connected layer to predict the next position
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        # Initialize hidden and cell states
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+
+        # Forward propagate LSTM
+        out, _ = self.lstm(x, (h0, c0))
+
+        # Predict the next position for each time step
+        out = self.fc(out)  # Applying the fully connected layer to all time steps
+
+        return out[:, -1, :]  # Returning the prediction for the next time step only
+
+
+# Define the parameters for the LSTM model
+input_size = 3  # X, Y, timestamp
+hidden_size = 128  # This can be adjusted
+num_layers = 2  # Number of LSTM layers
+output_size = 3  # Predicting X, Y, timestamp
+
+# Instantiate the model
+vehicle_lstm_model = VehicleLSTM(input_size, hidden_size, num_layers, output_size).to(
+    device
+)
+
+# Print the model structure (optional)
+print(vehicle_lstm_model)
