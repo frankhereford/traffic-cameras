@@ -3,13 +3,18 @@
 import os
 import torch
 import random
+import logging
 import psycopg2
 import numpy as np
 import torch.nn as nn
 import psycopg2.extras
+import torch.optim as optim
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import Dataset, DataLoader
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
 
 SEGMENT_LENGTH = 30
@@ -20,24 +25,25 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class VehicleTrajectoryDataset(Dataset):
     def __init__(self, tracks):
-        self.tracks = tracks
+        logging.info("Initializing VehicleTrajectoryDataset...")
+        self.tracks = [track for track in tracks if len(track) >= SEGMENT_LENGTH]
+        logging.info(f"Filtered {len(self.tracks)} tracks of sufficient length.")
 
     def __len__(self):
         return len(self.tracks)
 
     def __getitem__(self, idx):
+        logging.info(f"Getting item {idx}...")
         track = self.tracks[idx]
         track_length = len(track)
 
-        # If the track is longer than SEGMENT_LENGTH, randomly select a segment
-        if track_length > SEGMENT_LENGTH + PREDICTION_DISTANCE:
-            start = random.randint(
-                0, track_length - SEGMENT_LENGTH - PREDICTION_DISTANCE
-            )
+        if track_length > SEGMENT_LENGTH:
+            start = random.randint(0, track_length - SEGMENT_LENGTH)
             segment = track[start : start + SEGMENT_LENGTH]
         else:
+            # For tracks exactly equal to SEGMENT_LENGTH
             segment = track
-        # Split the segment into input and target
+
         return torch.tensor(segment[:-1]), torch.tensor(segment[1:])
 
 
@@ -74,7 +80,7 @@ WHERE
 GROUP BY 
     detections.session_id, detections.tracker_id, paths.distance
 HAVING 
-    COUNT(*) > ({SEGMENT_LENGTH} + {PREDICTION_DISTANCE})
+    COUNT(*) > ({SEGMENT_LENGTH} + {PREDICTION_DISTANCE} + 5)
 ORDER BY 
     paths.distance DESC, detections.session_id DESC, detections.tracker_id;
 """
@@ -87,7 +93,9 @@ ORDER BY
     normalized_tracks = []
 
     # Now you can work with the results
-    for row in results:
+    logging.info(f"Processing {len(results)} tracks...")
+    for i, row in enumerate(results):
+        # logging.info(f"Processing row {i+1} of {len(results)}...")
         track = list(
             zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
         )
@@ -100,8 +108,11 @@ ORDER BY
         min_max_scaler = MinMaxScaler()
 
         # Fit and transform
+        # logging.info("Scaling x coordinates...")
         x_coords_scaled = min_max_scaler.fit_transform(x_coords)
+        # logging.info("Scaling y coordinates...")
         y_coords_scaled = min_max_scaler.fit_transform(y_coords)
+        # logging.info("Scaling timestamps...")
         timestamps_scaled = min_max_scaler.fit_transform(timestamps)
 
         # Combine back into normalized tracks
@@ -116,9 +127,11 @@ ORDER BY
         # print(normalized_track)
         normalized_tracks.append(normalized_track)
 
+    logging.info("Initializing the dataset with the normalized tracks...")
     # Initialize the dataset with the normalized tracks
     dataset = VehicleTrajectoryDataset(normalized_tracks)
 
+    logging.info("Creating DataLoader...")
     # DataLoader can now be used with this dataset
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
@@ -129,7 +142,7 @@ ORDER BY
     # print("Input shape:", inputs.shape)
     # print("Target shape:", targets.shape)
 
-    print("data loader length", len(dataloader))
+logging.info(f"data loader length: {len(dataloader)}")
 
 
 class VehicleLSTM(nn.Module):
@@ -159,6 +172,16 @@ class VehicleLSTM(nn.Module):
         return out[:, -1, :]  # Returning the prediction for the next time step only
 
 
+# Fetch a single batch from the DataLoader
+dataiter = iter(dataloader)
+if len(dataloader) > 0:
+    sample_inputs, sample_targets = next(dataiter)
+    # Print the shape of the inputs and targets
+    logging.info(f"Shape of input batch: {sample_inputs.shape}")
+    logging.info(f"Shape of target batch: {sample_targets.shape}")
+else:
+    logging.error("DataLoader is empty.")
+
 # Define the parameters for the LSTM model
 input_size = 3  # X, Y, timestamp
 hidden_size = 128  # This can be adjusted
@@ -170,5 +193,11 @@ vehicle_lstm_model = VehicleLSTM(input_size, hidden_size, num_layers, output_siz
     device
 )
 
-# Print the model structure (optional)
-print(vehicle_lstm_model)
+logging.info(vehicle_lstm_model)
+
+
+# Loss function
+criterion = nn.MSELoss()
+
+# Optimizer (Adam is a good default)
+optimizer = optim.Adam(vehicle_lstm_model.parameters(), lr=0.001)
