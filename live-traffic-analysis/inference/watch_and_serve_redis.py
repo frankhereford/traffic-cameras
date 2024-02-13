@@ -49,8 +49,8 @@ if __name__ == "__main__":
             vcodec="h264_nvenc",
             pix_fmt="yuv420p",
             r=fps,
-            video_bitrate="1M",
-            maxrate="2M",
+            video_bitrate="2M",
+            maxrate="5M",
             bufsize="1000k",
             g=48,
         )  # Configure output
