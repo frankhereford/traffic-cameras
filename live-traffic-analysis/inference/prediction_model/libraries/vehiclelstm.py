@@ -18,9 +18,13 @@ class VehicleLSTM(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        # Initialize hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+        # Initialize hidden and cell states with the same dtype as x
+        h0 = torch.zeros(
+            self.num_layers, x.size(0), self.hidden_size, dtype=x.dtype
+        ).to(device)
+        c0 = torch.zeros(
+            self.num_layers, x.size(0), self.hidden_size, dtype=x.dtype
+        ).to(device)
 
         # Forward propagate LSTM
         out, _ = self.lstm(x, (h0, c0))
