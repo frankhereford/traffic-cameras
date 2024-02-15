@@ -11,10 +11,11 @@ import psycopg2.extras
 import torch.optim as optim
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 import joblib
 from libraries.vehiclelstm import VehicleLSTM
+from libraries.vehicletrajectorydataset import VehicleTrajectoryDataset
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
 
@@ -27,30 +28,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Function to save the scaler
 def save_scaler(scaler, path):
     joblib.dump(scaler, path)
-
-
-class VehicleTrajectoryDataset(Dataset):
-    def __init__(self, tracks):
-        logging.info("Initializing VehicleTrajectoryDataset...")
-        self.tracks = [track for track in tracks if len(track) >= SEGMENT_LENGTH]
-        logging.info(f"Filtered {len(self.tracks)} tracks of sufficient length.")
-
-    def __len__(self):
-        return len(self.tracks)
-
-    def __getitem__(self, idx):
-        # logging.info(f"Getting item {idx}...")
-        track = self.tracks[idx]
-        track_length = len(track)
-
-        if track_length > SEGMENT_LENGTH:
-            start = random.randint(0, track_length - SEGMENT_LENGTH)
-            segment = track[start : start + SEGMENT_LENGTH]
-        else:
-            # For tracks exactly equal to SEGMENT_LENGTH
-            segment = track
-
-        return torch.tensor(segment[:-1]), torch.tensor(segment[1:])
 
 
 if __name__ == "__main__":
@@ -70,31 +47,56 @@ if __name__ == "__main__":
         print("Error while connecting to PostgreSQL", error)
 
     query = f"""
-SELECT 
-    detections.session_id, 
-    detections.tracker_id, 
-    ARRAY_AGG(ST_X(detections.location) ORDER BY detections.timestamp) as x_coords,
-    ARRAY_AGG(ST_Y(detections.location) ORDER BY detections.timestamp) as y_coords,
-    ARRAY_AGG(EXTRACT(EPOCH FROM detections.timestamp) ORDER BY detections.timestamp) as timestamps,
-    paths.distance as track_length
-FROM 
-    detections_extended detections
-    LEFT JOIN tracked_paths paths ON (detections.session_id = paths.session_id AND detections.tracker_id = paths.tracker_id)
-WHERE 
-    paths.distance IS NOT NULL
-    AND paths.distance >= 15
-GROUP BY 
-    detections.session_id, detections.tracker_id, paths.distance
-HAVING 
-    COUNT(*) > ({SEGMENT_LENGTH} + {PREDICTION_DISTANCE} + 5)
-ORDER BY 
-    paths.distance DESC, detections.session_id DESC, detections.tracker_id;
-"""
+        SELECT 
+            detections.session_id, 
+            detections.tracker_id, 
+            ARRAY_AGG(ST_X(detections.location) ORDER BY detections.timestamp) as x_coords,
+            ARRAY_AGG(ST_Y(detections.location) ORDER BY detections.timestamp) as y_coords,
+            ARRAY_AGG(EXTRACT(EPOCH FROM detections.timestamp) ORDER BY detections.timestamp) as timestamps,
+            paths.distance as track_length
+        FROM 
+            detections_extended detections
+            LEFT JOIN tracked_paths paths ON (detections.session_id = paths.session_id AND detections.tracker_id = paths.tracker_id)
+        WHERE 
+            paths.distance IS NOT NULL
+            AND paths.distance >= 15
+        GROUP BY 
+            detections.session_id, detections.tracker_id, paths.distance
+        HAVING 
+            COUNT(*) > ({SEGMENT_LENGTH} + {PREDICTION_DISTANCE} + 5)
+        ORDER BY 
+            paths.distance DESC, detections.session_id DESC, detections.tracker_id;
+        """
 
     cursor = db.cursor()
     cursor.execute(query)
     results = cursor.fetchall()
     cursor.close()
+
+    x_coords_all = []
+    y_coords_all = []
+    timestamps_all = []
+
+    for row in results:
+        x_coords_all.extend(row["x_coords"])
+        y_coords_all.extend(row["y_coords"])
+        timestamps_all.extend([float(t) for t in row["timestamps"]])
+
+    x_coords_all = np.array(x_coords_all).reshape(-1, 1)
+    y_coords_all = np.array(y_coords_all).reshape(-1, 1)
+    timestamps_all = np.array(timestamps_all).reshape(-1, 1)
+
+    # Initialize Min-Max Scalers
+    x_scaler = MinMaxScaler()
+    y_scaler = MinMaxScaler()
+    timestamp_scaler = MinMaxScaler()
+
+    # Fit the scalers
+    x_scaler.fit(x_coords_all)
+    y_scaler.fit(y_coords_all)
+    timestamp_scaler.fit(timestamps_all)
+
+    quit()
 
     normalized_tracks = []
 
