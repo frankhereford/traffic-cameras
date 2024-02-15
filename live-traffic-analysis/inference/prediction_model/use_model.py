@@ -10,6 +10,8 @@ import joblib
 from libraries.vehiclelstm import VehicleLSTM
 import os
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
+from libraries.normalize import normalize, revert_normalization
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -70,16 +72,47 @@ results = cursor.fetchall()
 cursor.close()
 
 
-# print(results)
-
-
 # Function to load the scaler
 def load_scaler(path):
     return joblib.load(path)
 
 
-# Load the scaler
-min_max_scaler = load_scaler("scaler.save")
+x_scaler = load_scaler("x_scalar.save")
+y_scaler = load_scaler("y_scalar.save")
+timestamp_scaler = load_scaler("timestamp_scaler.save")
+
+
+normalized_tracks = [
+    normalize(row, x_scaler, y_scaler, timestamp_scaler) for row in results
+]
+
+print("Normalized track points: ", len(normalized_tracks[0]))
+
+sample_track_start = normalized_tracks[0][:30]
+
+print("Sample track points: ", len(sample_track_start))
+
+
+# Convert the sample data to a tensor, ensure it's float32, and reshape it to match the model's input shape
+sample_tensor = (
+    torch.tensor(sample_track_start, dtype=torch.float32).unsqueeze(0).to(device)
+)
+
+# Make a prediction
+with torch.no_grad():
+    model.eval()  # Ensure the model is in evaluation mode
+    prediction = model(sample_tensor)
+
+# Convert prediction back to numpy array and denormalize
+prediction_np = prediction.cpu().numpy().squeeze()
+denormalized_prediction = revert_normalization(
+    prediction_np, x_scaler, y_scaler, timestamp_scaler
+)
+
+print("Predicted track points (denormalized):", denormalized_prediction)
+print("Predicted track points (denormalized):", len(denormalized_prediction))
+
+quit()
 
 
 # normalize
