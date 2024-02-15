@@ -34,9 +34,12 @@ def normalize(row, x_scaler, y_scaler, timestamp_scaler):
         zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
     )
 
-    x_coords = np.array([point[0] for point in track]).reshape(-1, 1)
-    y_coords = np.array([point[1] for point in track]).reshape(-1, 1)
-    timestamps = np.array([point[2] for point in track]).reshape(-1, 1)
+    # Ensure the data is in np.float64
+    x_coords = np.array([point[0] for point in track], dtype=np.float64).reshape(-1, 1)
+    y_coords = np.array([point[1] for point in track], dtype=np.float64).reshape(-1, 1)
+    timestamps = np.array([point[2] for point in track], dtype=np.float64).reshape(
+        -1, 1
+    )
 
     x_coords_scaled = x_scaler.transform(x_coords)
     y_coords_scaled = y_scaler.transform(y_coords)
@@ -123,9 +126,10 @@ if __name__ == "__main__":
     timestamps_all = []
 
     for row in results:
-        x_coords_all.extend(row["x_coords"])
-        y_coords_all.extend(row["y_coords"])
-        timestamps_all.extend([float(t) for t in row["timestamps"]])
+        # Convert data to np.float64 immediately after fetching
+        x_coords_all.extend([np.float64(x) for x in row["x_coords"]])
+        y_coords_all.extend([np.float64(y) for y in row["y_coords"]])
+        timestamps_all.extend([np.float64(t) for t in row["timestamps"]])
 
     x_coords_all = np.array(x_coords_all).reshape(-1, 1)
     y_coords_all = np.array(y_coords_all).reshape(-1, 1)
@@ -189,45 +193,6 @@ if __name__ == "__main__":
     print("Denormalized sample data:")
     print(np.array(denormalized_sample_data))
 
-    quit()
-
-    normalized_tracks = []
-
-    # Now you can work with the results
-    logging.info(f"Processing {len(results)} tracks...")
-    for i, row in enumerate(results):
-        # logging.info(f"Processing row {i+1} of {len(results)}...")
-        track = list(
-            zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
-        )
-        # Extract coordinates and timestamps
-        x_coords = np.array([point[0] for point in track]).reshape(-1, 1)
-        y_coords = np.array([point[1] for point in track]).reshape(-1, 1)
-        timestamps = np.array([point[2] for point in track]).reshape(-1, 1)
-
-        # Initialize Min-Max Scaler
-        min_max_scaler = MinMaxScaler()
-
-        # Fit and transform
-        # logging.info("Scaling x coordinates...")
-        x_coords_scaled = min_max_scaler.fit_transform(x_coords)
-        # logging.info("Scaling y coordinates...")
-        y_coords_scaled = min_max_scaler.fit_transform(y_coords)
-        # logging.info("Scaling timestamps...")
-        timestamps_scaled = min_max_scaler.fit_transform(timestamps)
-
-        # Combine back into normalized tracks
-        normalized_track = list(
-            zip(
-                x_coords_scaled.flatten(),
-                y_coords_scaled.flatten(),
-                timestamps_scaled.flatten(),
-            )
-        )
-
-        # print(normalized_track)
-        normalized_tracks.append(normalized_track)
-
     # Split the normalized_tracks into training and temporary datasets (combining validation and testing)
     train_tracks, temp_tracks = train_test_split(
         normalized_tracks, test_size=0.3, random_state=42
@@ -247,9 +212,9 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 
-# Apply this function after training your model and scaler
-save_scaler(min_max_scaler, "scaler.save")
-
+save_scaler(x_scaler, "x_scalar.save")
+save_scaler(y_scaler, "y_scalar.save")
+save_scaler(timestamp_scaler, "timestamp_scaler.save")
 
 logging.info(f"train_dataloader length: {len(train_dataloader)}")
 logging.info(f"val_dataloader length: {len(val_dataloader)}")
@@ -257,14 +222,14 @@ logging.info(f"test_dataloader length: {len(test_dataloader)}")
 
 
 # # Fetch a single batch from the DataLoader
-# dataiter = iter(dataloader)
-# if len(dataloader) > 0:
-#     sample_inputs, sample_targets = next(dataiter)
-#     # Print the shape of the inputs and targets
-#     logging.info(f"Shape of input batch: {sample_inputs.shape}")
-#     logging.info(f"Shape of target batch: {sample_targets.shape}")
-# else:
-#     logging.error("DataLoader is empty.")
+dataiter = iter(train_dataloader)
+if len(train_dataloader) > 0:
+    sample_inputs, sample_targets = next(dataiter)
+    # Print the shape of the inputs and targets
+    logging.info(f"Shape of input batch: {sample_inputs.shape}")
+    logging.info(f"Shape of target batch: {sample_targets.shape}")
+else:
+    logging.error("DataLoader is empty.")
 
 # Define the parameters for the LSTM model
 input_size = 3  # X, Y, timestamp
@@ -273,9 +238,10 @@ num_layers = 2  # Number of LSTM layers
 output_size = 3  # Predicting X, Y, timestamp
 
 # Instantiate the model
-vehicle_lstm_model = VehicleLSTM(input_size, hidden_size, num_layers, output_size).to(
-    device
+vehicle_lstm_model = (
+    VehicleLSTM(input_size, hidden_size, num_layers, output_size).double().to(device)
 )
+
 
 logging.info(vehicle_lstm_model)
 
@@ -296,9 +262,9 @@ for epoch in range(num_epochs):
     for i, data in enumerate(train_dataloader, 0):
         # Get the inputs; data is a list of [inputs, targets]
         inputs, targets = data
-        inputs, targets = inputs.float().to(device), targets.float().to(
+        inputs, targets = inputs.double().to(device), targets.double().to(
             device
-        )  # Convert to float32
+        )  # Convert to float64
 
         # Zero the parameter gradients
         optimizer.zero_grad()
@@ -322,17 +288,17 @@ for epoch in range(num_epochs):
             running_loss = 0.0
 
 logging.info("Finished Training")
-
 torch.save(vehicle_lstm_model.state_dict(), "vehicle_lstm_model.pth")
 
-# Assuming you have a validation dataloader (val_dataloader)
 vehicle_lstm_model.eval()  # Set the model to evaluation mode
 
 with torch.no_grad():
     val_loss = 0.0
     for i, data in enumerate(val_dataloader, 0):
         inputs, targets = data
-        inputs, targets = inputs.float().to(device), targets.float().to(device)
+        inputs, targets = inputs.double().to(device), targets.double().to(
+            device
+        )  # Convert to double
 
         outputs = vehicle_lstm_model(inputs)
         loss = criterion(outputs, targets)
@@ -342,13 +308,13 @@ with torch.no_grad():
     logging.info(f"Validation Loss: {average_val_loss:.3f}")
 
 
-vehicle_lstm_model.eval()  # Set the model to evaluation mode
-
 test_loss = 0.0
 with torch.no_grad():
     for i, data in enumerate(test_dataloader, 0):
         inputs, targets = data
-        inputs, targets = inputs.float().to(device), targets.float().to(device)
+        inputs, targets = inputs.double().to(device), targets.double().to(
+            device
+        )  # Convert to double
 
         # Forward pass: compute predicted outputs by passing inputs to the model
         outputs = vehicle_lstm_model(inputs)
