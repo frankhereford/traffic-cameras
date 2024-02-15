@@ -9,9 +9,9 @@ services:
       - 80:80
       - 443:443
       - 444:444
-  #   depends_on:
-  #     - nextjs
-  #     - flask
+    depends_on:
+      #     - nextjs
+      - metabase
 
   redis:
     image: redis:latest
