@@ -18,6 +18,7 @@ import joblib
 from libraries.vehiclelstm import VehicleLSTM
 from libraries.vehicletrajectorydataset import VehicleTrajectoryDataset
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
+from libraries.normalize import normalize, revert_normalization
 
 # Set print options
 np.set_printoptions(threshold=5, formatter={"float": "{: 0.3f}".format})
@@ -27,50 +28,6 @@ np.set_printoptions(threshold=5, formatter={"float": "{: 0.3f}".format})
 logging.basicConfig(level=logging.INFO)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def normalize(row, x_scaler, y_scaler, timestamp_scaler):
-    track = list(
-        zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
-    )
-
-    # Ensure the data is in np.float64
-    x_coords = np.array([point[0] for point in track], dtype=np.float64).reshape(-1, 1)
-    y_coords = np.array([point[1] for point in track], dtype=np.float64).reshape(-1, 1)
-    timestamps = np.array([point[2] for point in track], dtype=np.float64).reshape(
-        -1, 1
-    )
-
-    x_coords_scaled = x_scaler.transform(x_coords)
-    y_coords_scaled = y_scaler.transform(y_coords)
-    timestamps_scaled = timestamp_scaler.transform(timestamps)
-
-    normalized_track = list(
-        zip(
-            x_coords_scaled.flatten(),
-            y_coords_scaled.flatten(),
-            timestamps_scaled.flatten(),
-        )
-    )
-    return normalized_track
-
-
-def revert_normalization(normalized_track, x_scaler, y_scaler, timestamp_scaler):
-    x_coords = np.array([point[0] for point in normalized_track]).reshape(-1, 1)
-    y_coords = np.array([point[1] for point in normalized_track]).reshape(-1, 1)
-    timestamps = np.array([point[2] for point in normalized_track]).reshape(-1, 1)
-
-    x_coords_original = x_scaler.inverse_transform(x_coords)
-    y_coords_original = y_scaler.inverse_transform(y_coords)
-    timestamps_original = timestamp_scaler.inverse_transform(timestamps)
-
-    return list(
-        zip(
-            x_coords_original.flatten(),
-            y_coords_original.flatten(),
-            timestamps_original.flatten(),
-        )
-    )
 
 
 # Function to save the scaler
@@ -147,7 +104,6 @@ if __name__ == "__main__":
 
     normalized_tracks = []
 
-    # Existing code...
     normalized_tracks = [
         normalize(row, x_scaler, y_scaler, timestamp_scaler) for row in results
     ]
@@ -325,15 +281,3 @@ with torch.no_grad():
 
 average_test_loss = test_loss / len(test_dataloader)
 logging.info(f"Test Loss: {average_test_loss:.3f}")
-
-# Later, during prediction, load the scaler
-# min_max_scaler = load_scaler("scaler.save")
-
-
-# # Modify the predict function to include denormalization
-# def predict(model, input_data, scaler):
-#     processed_input = preprocess_input(input_data, scaler)
-#     with torch.no_grad():
-#         output = model(processed_input)
-#     denormalized_output = denormalize(output.numpy(), scaler)
-#     return denormalized_output
