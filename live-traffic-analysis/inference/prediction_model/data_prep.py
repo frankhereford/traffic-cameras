@@ -9,6 +9,7 @@ import numpy as np
 import torch.nn as nn
 import psycopg2.extras
 import torch.optim as optim
+from decimal import Decimal
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, Dataset
@@ -18,11 +19,55 @@ from libraries.vehiclelstm import VehicleLSTM
 from libraries.vehicletrajectorydataset import VehicleTrajectoryDataset
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
+# Set print options
+np.set_printoptions(threshold=5, formatter={"float": "{: 0.3f}".format})
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def normalize(row, x_scaler, y_scaler, timestamp_scaler):
+    track = list(
+        zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
+    )
+
+    x_coords = np.array([point[0] for point in track]).reshape(-1, 1)
+    y_coords = np.array([point[1] for point in track]).reshape(-1, 1)
+    timestamps = np.array([point[2] for point in track]).reshape(-1, 1)
+
+    x_coords_scaled = x_scaler.transform(x_coords)
+    y_coords_scaled = y_scaler.transform(y_coords)
+    timestamps_scaled = timestamp_scaler.transform(timestamps)
+
+    normalized_track = list(
+        zip(
+            x_coords_scaled.flatten(),
+            y_coords_scaled.flatten(),
+            timestamps_scaled.flatten(),
+        )
+    )
+    return normalized_track
+
+
+def revert_normalization(normalized_track, x_scaler, y_scaler, timestamp_scaler):
+    x_coords = np.array([point[0] for point in normalized_track]).reshape(-1, 1)
+    y_coords = np.array([point[1] for point in normalized_track]).reshape(-1, 1)
+    timestamps = np.array([point[2] for point in normalized_track]).reshape(-1, 1)
+
+    x_coords_original = x_scaler.inverse_transform(x_coords)
+    y_coords_original = y_scaler.inverse_transform(y_coords)
+    timestamps_original = timestamp_scaler.inverse_transform(timestamps)
+
+    return list(
+        zip(
+            x_coords_original.flatten(),
+            y_coords_original.flatten(),
+            timestamps_original.flatten(),
+        )
+    )
 
 
 # Function to save the scaler
@@ -95,6 +140,54 @@ if __name__ == "__main__":
     x_scaler.fit(x_coords_all)
     y_scaler.fit(y_coords_all)
     timestamp_scaler.fit(timestamps_all)
+
+    normalized_tracks = []
+
+    # Existing code...
+    normalized_tracks = [
+        normalize(row, x_scaler, y_scaler, timestamp_scaler) for row in results
+    ]
+
+    # Randomly select a track
+    random_track = random.choice(results)
+    random_track["timestamps"] = [float(t) for t in random_track["timestamps"]]
+
+    sample_x_coords = []
+    sample_y_coords = []
+    sample_timestamps = []
+
+    sample_x_coords.extend(row["x_coords"])
+    sample_y_coords.extend(row["y_coords"])
+    sample_timestamps.extend([float(t) for t in row["timestamps"]])
+
+    # Print the selected track
+    print("Original track:")
+    print(np.array(list(zip(sample_x_coords, sample_y_coords, sample_timestamps))))
+
+    # Create a dictionary for the sample data
+    sample_data = {
+        "x_coords": sample_x_coords,
+        "y_coords": sample_y_coords,
+        "timestamps": sample_timestamps,
+    }
+
+    # Normalize the sample data
+    normalized_sample_data = normalize(
+        sample_data, x_scaler, y_scaler, timestamp_scaler
+    )
+
+    # Print the normalized sample data
+    print("Normalized sample data:")
+    print(np.array(normalized_sample_data))
+
+    # Denormalize the sample data
+    denormalized_sample_data = revert_normalization(
+        normalized_sample_data, x_scaler, y_scaler, timestamp_scaler
+    )
+
+    # Print the denormalized sample data
+    print("Denormalized sample data:")
+    print(np.array(denormalized_sample_data))
 
     quit()
 
