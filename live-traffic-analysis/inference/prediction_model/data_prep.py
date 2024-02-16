@@ -2,7 +2,7 @@
 
 import os
 import torch
-import random
+
 import logging
 import psycopg2
 import numpy as np
@@ -19,6 +19,7 @@ from libraries.vehiclelstm import VehicleLSTM
 from libraries.vehicletrajectorydataset import VehicleTrajectoryDataset
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 from libraries.normalize import normalize, revert_normalization
+from libraries.checknormalization import check_normalization_denormalization
 
 # Set print options
 np.set_printoptions(threshold=5, formatter={"float": "{: 0.3f}".format})
@@ -33,61 +34,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Function to save the scaler
 def save_scaler(scaler, path):
     joblib.dump(scaler, path)
-
-
-def check_normalization_denormalization(results, x_scaler, y_scaler, timestamp_scaler):
-    # Randomly select a track
-    random_track = random.choice(results)
-    random_track["timestamps"] = [float(t) for t in random_track["timestamps"]]
-
-    sample_x_coords = []
-    sample_y_coords = []
-    sample_timestamps = []
-
-    sample_x_coords.extend(random_track["x_coords"])
-    sample_y_coords.extend(random_track["y_coords"])
-    sample_timestamps.extend([float(t) for t in random_track["timestamps"]])
-
-    # Print the selected track
-    original_track = np.array(
-        list(zip(sample_x_coords, sample_y_coords, sample_timestamps))
-    )
-    print("Original Track (", original_track.shape, "):\n", original_track)
-
-    # Create a dictionary for the sample data
-    sample_data = {
-        "x_coords": sample_x_coords,
-        "y_coords": sample_y_coords,
-        "timestamps": sample_timestamps,
-    }
-
-    # Normalize the sample data
-    normalized_sample_data = normalize(
-        sample_data, x_scaler, y_scaler, timestamp_scaler
-    )
-
-    # Print the normalized sample data
-    normalized_sample_data = np.array(normalized_sample_data)
-    print(
-        "Normalized Sample Data (",
-        normalized_sample_data.shape,
-        "):\n",
-        normalized_sample_data,
-    )
-
-    # Denormalize the sample data
-    denormalized_sample_data = revert_normalization(
-        normalized_sample_data, x_scaler, y_scaler, timestamp_scaler
-    )
-
-    # Print the denormalized sample data
-    denormalized_sample_data = np.array(denormalized_sample_data)
-    print(
-        "Denormalized Sample Data (",
-        denormalized_sample_data.shape,
-        "):\n",
-        denormalized_sample_data,
-    )
 
 
 if __name__ == "__main__":
@@ -267,10 +213,13 @@ vehicle_lstm_model.eval()  # Set the model to evaluation mode
 with torch.no_grad():
     val_loss = 0.0
     for i, data in enumerate(val_dataloader, 0):
+        # print("Data: ", data)
         inputs, targets = data
         inputs, targets = inputs.double().to(device), targets.double().to(
             device
         )  # Convert to double
+        # print("Inputs (", inputs.shape, "): ", inputs)
+        # print("Targets (", targets.shape, "): ", targets)
 
         outputs = vehicle_lstm_model(inputs)
         loss = criterion(outputs, targets)
