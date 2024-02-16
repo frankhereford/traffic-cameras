@@ -81,7 +81,6 @@ x_scaler = load_scaler("x_scalar.save")
 y_scaler = load_scaler("y_scalar.save")
 timestamp_scaler = load_scaler("timestamp_scaler.save")
 
-
 normalized_tracks = [
     normalize(row, x_scaler, y_scaler, timestamp_scaler) for row in results
 ]
@@ -109,8 +108,44 @@ denormalized_prediction = revert_normalization(
     prediction_np, x_scaler, y_scaler, timestamp_scaler
 )
 
+print("Input track points:", results)
+print("Input track points:", results)
+
+
 print("Predicted track points (denormalized):", denormalized_prediction)
 print("Predicted track points (denormalized):", len(denormalized_prediction))
+
+
+# Create a new prediction record
+cursor = db.cursor()
+cursor.execute("INSERT INTO prediction DEFAULT VALUES RETURNING id;")
+result = cursor.fetchone()
+prediction_id = result["id"]
+db.commit()
+
+# Insert known points
+for i, row in results:
+    cursor.execute(
+        """
+        INSERT INTO known_points (prediction, sequence_number, location)
+        VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253));
+        """,
+        (prediction_id, i, float(point[0]), float(point[1])),
+    )
+db.commit()
+quit()
+# Insert predicted points
+for i, point in enumerate(denormalized_prediction):
+    cursor.execute(
+        """
+        INSERT INTO predicted_points (prediction, sequence_number, location)
+        VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253));
+        """,
+        (prediction_id, i, float(point[0]), float(point[1])),
+    )
+db.commit()
+
+cursor.close()
 
 quit()
 
