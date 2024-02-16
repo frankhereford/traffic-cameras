@@ -85,11 +85,11 @@ normalized_tracks = [
     normalize(row, x_scaler, y_scaler, timestamp_scaler) for row in results
 ]
 
-print("Normalized track points: ", len(normalized_tracks[0]))
+# print("Normalized track points: ", len(normalized_tracks[0]))
 
 sample_track_start = normalized_tracks[0][:30]
 
-print("Sample track points: ", len(sample_track_start))
+# print("Sample track points: ", len(sample_track_start))
 
 
 # Convert the sample data to a tensor, ensure it's float32, and reshape it to match the model's input shape
@@ -108,12 +108,34 @@ denormalized_prediction = revert_normalization(
     prediction_np, x_scaler, y_scaler, timestamp_scaler
 )
 
-print("Input track points:", results)
-print("Input track points:", results)
+
+# Convert prediction back to numpy array and denormalize
+# sample_track_start_np = sample_track_start.numpy().squeeze()
+denormalized_known_points = revert_normalization(
+    sample_track_start, x_scaler, y_scaler, timestamp_scaler
+)
 
 
-print("Predicted track points (denormalized):", denormalized_prediction)
-print("Predicted track points (denormalized):", len(denormalized_prediction))
+print(
+    "Input track points (length: ",
+    len(denormalized_known_points),
+    "):",
+    denormalized_known_points,
+)
+
+
+print(
+    "Predicted track points (denormalized) (length: ",
+    len(denormalized_prediction),
+    "):",
+    denormalized_prediction,
+)
+
+
+# Create a new prediction record
+cursor = db.cursor()
+cursor.execute("truncate prediction cascade;")
+db.commit()
 
 
 # Create a new prediction record
@@ -124,137 +146,25 @@ prediction_id = result["id"]
 db.commit()
 
 # Insert known points
-for i, row in results:
+for i, (x, y, timestamp) in enumerate(denormalized_known_points):
     cursor.execute(
         """
-        INSERT INTO known_points (prediction, sequence_number, location)
-        VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253));
+        INSERT INTO known_points (prediction, sequence_number, timestamp, location)
+        VALUES (%s, %s, to_timestamp(%s), ST_SetSRID(ST_MakePoint(%s, %s), 2253));
         """,
-        (prediction_id, i, float(point[0]), float(point[1])),
+        (prediction_id, i, float(timestamp), float(x), float(y)),
     )
 db.commit()
-quit()
+
 # Insert predicted points
-for i, point in enumerate(denormalized_prediction):
+for i, (x, y, timestamp) in enumerate(denormalized_prediction):
     cursor.execute(
         """
-        INSERT INTO predicted_points (prediction, sequence_number, location)
-        VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253));
+        INSERT INTO predicted_points (prediction, sequence_number, timestamp, location)
+        VALUES (%s, %s, to_timestamp(%s), ST_SetSRID(ST_MakePoint(%s, %s), 2253));
         """,
-        (prediction_id, i, float(point[0]), float(point[1])),
+        (prediction_id, i, float(timestamp), float(x), float(y)),
     )
 db.commit()
 
 cursor.close()
-
-quit()
-
-
-# normalize
-def process_test_data(test_data, min_max_scaler):
-    normalized_tracks = []
-
-    for i, row in enumerate(test_data):
-        track = list(
-            zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
-        )
-        x_coords = np.array([point[0] for point in track]).reshape(-1, 1)
-        y_coords = np.array([point[1] for point in track]).reshape(-1, 1)
-        timestamps = np.array([point[2] for point in track]).reshape(-1, 1)
-
-        x_coords_scaled = min_max_scaler.transform(x_coords)
-        y_coords_scaled = min_max_scaler.transform(y_coords)
-        timestamps_scaled = min_max_scaler.transform(timestamps)
-
-        normalized_track = list(
-            zip(
-                x_coords_scaled.flatten(),
-                y_coords_scaled.flatten(),
-                timestamps_scaled.flatten(),
-            )
-        )
-        normalized_tracks.append(normalized_track)
-
-    return normalized_tracks
-
-
-print("results: ", results)
-normalized_test_data = process_test_data(results, min_max_scaler)
-print("normalized test data", normalized_test_data)
-
-# print(results)
-# normalized_track = process_results(results, min_max_scaler)
-
-# numpy_array = np.array(normalized_track)
-# print("Normalized track: ", numpy_array)
-quit()
-
-# normalized_tracks = []
-
-# for i, row in enumerate(results):
-#     # logging.info(f"Processing row {i+1} of {len(results)}...")
-#     track = list(
-#         zip(row["x_coords"], row["y_coords"], [float(t) for t in row["timestamps"]])
-#     )
-#     # Extract coordinates and timestamps
-#     x_coords = np.array([point[0] for point in track]).reshape(-1, 1)
-#     y_coords = np.array([point[1] for point in track]).reshape(-1, 1)
-#     timestamps = np.array([point[2] for point in track]).reshape(-1, 1)
-
-#     # Initialize Min-Max Scaler
-#     min_max_scaler = MinMaxScaler()
-
-#     # Fit and transform
-#     # logging.info("Scaling x coordinates...")
-#     x_coords_scaled = min_max_scaler.fit_transform(x_coords)
-#     # logging.info("Scaling y coordinates...")
-#     y_coords_scaled = min_max_scaler.fit_transform(y_coords)
-#     # logging.info("Scaling timestamps...")
-#     timestamps_scaled = min_max_scaler.fit_transform(timestamps)
-
-#     # Combine back into normalized tracks
-#     normalized_track = list(
-#         zip(
-#             x_coords_scaled.flatten(),
-#             y_coords_scaled.flatten(),
-#             timestamps_scaled.flatten(),
-#         )
-#     )
-
-
-n = 29  # Replace with the number of points you want
-first_n_points = numpy_array[:n, :]
-
-print("First n points: ", first_n_points.shape)
-
-# Reshape the numpy array and convert to tensor
-test_tensor = torch.from_numpy(first_n_points).unsqueeze(0).float()
-
-# Move the tensor to the device
-test_tensor = test_tensor.to(device)
-
-# Correct the shape of the tensor for LSTM input
-# Remove the extra dimension
-test_tensor = test_tensor.squeeze(1)
-
-print("test_tensor shape after squeeze: ", test_tensor.shape)
-
-# Now test_tensor should have the shape [1, 103, 3] which is suitable for LSTM
-
-with torch.no_grad():
-    predictions = model(test_tensor)
-
-
-print("predictions.shape: ", predictions.shape)
-predictions_numpy = predictions.cpu().detach().numpy()
-
-print(predictions_numpy)
-
-
-# # Denormalize predictions
-# denormalized_predictions = denormalize(predictions.cpu().numpy(), min_max_scaler)
-
-# # Output for GIS software
-# # ... [Code to output/save denormalized_predictions for GIS evaluation] ...
-
-# db.close()
