@@ -11,17 +11,12 @@ from libraries.vehiclelstm import VehicleLSTM
 import os
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 from libraries.normalize import normalize, revert_normalization
-
+from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-input_size = 3  # X, Y, timestamp
-hidden_size = 128  # This can be adjusted
-num_layers = 2  # Number of LSTM layers
-output_size = 3  # Predicting X, Y, timestamp
 
-
-model = VehicleLSTM(input_size, hidden_size, num_layers, output_size)
+model = VehicleLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE)
 
 # Move the model to the device
 model = model.to(device)

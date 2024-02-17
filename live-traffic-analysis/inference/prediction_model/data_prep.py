@@ -20,6 +20,7 @@ from libraries.vehicletrajectorydataset import VehicleTrajectoryDataset
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 from libraries.normalize import normalize, revert_normalization
 from libraries.checknormalization import check_normalization_denormalization
+from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
 
 # Set print options
 np.set_printoptions(threshold=5, formatter={"float": "{: 0.3f}".format})
@@ -149,15 +150,9 @@ if len(train_dataloader) > 0:
 else:
     logging.error("DataLoader is empty.")
 
-# Define the parameters for the LSTM model
-input_size = 3  # X, Y, timestamp
-hidden_size = 128  # This can be adjusted
-num_layers = 2  # Number of LSTM layers
-output_size = 3  # Predicting X, Y, timestamp
-
 # Instantiate the model
 vehicle_lstm_model = (
-    VehicleLSTM(input_size, hidden_size, num_layers, output_size).double().to(device)
+    VehicleLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).double().to(device)
 )
 
 
