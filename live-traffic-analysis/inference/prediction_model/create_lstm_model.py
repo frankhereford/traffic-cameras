@@ -18,12 +18,12 @@ from torch.utils.data import TensorDataset, DataLoader
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
 # from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
-num_epochs = 100
-hidden_size = 256
+num_epochs = 200
+hidden_size = 512
 num_layers = 2
 learning_rate = 0.0001
 batch_size = 64
-verification_loops = 1024
+verification_loops = 128
 epoch_print_interval = 25
 
 
