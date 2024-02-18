@@ -6,6 +6,7 @@ import numpy as np
 import psycopg2.extras
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
 
@@ -141,26 +142,57 @@ for record in results:
     x_coords = record["x_coords"]
     y_coords = record["y_coords"]
     pairs = list(zip(x_coords, y_coords))
-    coordinate_pairs.append(pairs)
 
-# Convert to a NumPy array
-tracks = np.array(coordinate_pairs, dtype=object)
+    for i in range(0, len(pairs), 60):
+        batch = pairs[i : i + 60]
+        if len(batch) == 60:
+            coordinate_pairs.append(batch)
+
+tracks = np.array([np.array(track, dtype=np.float64) for track in coordinate_pairs])
 
 print("Shape of tracks: ", tracks.shape)
 # print("Sample of tracks:\n", tracks)
 
-# next, we need to make the length of all tracks the same,
-# so we can get away from this array of lists and get this type of shape:
+# Save the original shape
+original_shape = tracks.shape
 
-# If you have a numpy array where:
+# Reshape the tracks array into a 2D array
+tracks_2d = tracks.reshape(-1, tracks.shape[-1])
 
-# There are 10,000 tracks
-# Each track has 30 data points
-# Each data point has an X and Y coordinate
-# Then the shape of that numpy array would be (10000, 30, 2).
+# Use the MinMaxScaler to transform the 2D tracks array
+tracks_scaled_2d = min_max_scaler.transform(tracks_2d)
 
-# Here's why:
+# Reshape the scaled array back to its original shape
+tracks_scaled = tracks_scaled_2d.reshape(original_shape)
 
-# 10000 represents the number of tracks.
-# 30 represents the number of data points in each track.
-# 2 represents the X and Y coordinates of each data point.
+print("Shape of tracks_scaled: ", tracks_scaled.shape)
+# print("Sample of tracks_scaled:\n", tracks_scaled)
+
+
+# demonstrate the inverse transform
+if False:
+    # Reshape the scaled tracks array into a 2D array
+    tracks_scaled_2d = tracks_scaled.reshape(-1, tracks_scaled.shape[-1])
+
+    # Use the MinMaxScaler to inverse transform the 2D tracks array
+    tracks_inverse_2d = min_max_scaler.inverse_transform(tracks_scaled_2d)
+
+    # Reshape the inverse transformed array back to its original shape
+    tracks_inverse = tracks_inverse_2d.reshape(original_shape)
+
+    print("Shape of tracks_inverse: ", tracks_inverse.shape)
+    print("Sample of tracks_inverse:\n", tracks_inverse)
+
+# print("Creating the one-second tracks dataset")
+# tracks_small = tracks_scaled[:, :30, :]
+
+# print("Shape of tracks_small: ", tracks_small.shape)
+# # print("Sample of tracks_small:\n", tracks_small)
+
+
+training_tracks, testing_tracks = train_test_split(
+    tracks_scaled, test_size=0.1, random_state=42
+)
+
+print("Shape of training_tracks: ", training_tracks.shape)
+print("Shape of testing_tracks: ", testing_tracks.shape)
