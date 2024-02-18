@@ -3,12 +3,14 @@
 
 import os
 import time
+import math
 import torch
 import random
 import psycopg2
 import numpy as np
 import torch.nn as nn
 import psycopg2.extras
+from psycopg2 import sql
 import torch.optim as optim
 from dotenv import load_dotenv
 from torch.autograd import Variable
@@ -19,12 +21,12 @@ from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
 # from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
 num_epochs = 200
-hidden_size = 512
+epoch_print_interval = 25
+hidden_size = 256
 num_layers = 2
 learning_rate = 0.0001
 batch_size = 64
 verification_loops = 128
-epoch_print_interval = 25
 
 
 class LSTMVehicleTracker(nn.Module):
@@ -146,39 +148,42 @@ if __name__ == "__main__":
     ORDER BY 
         MIN(detections.timestamp) asc
     """
-
     cursor = db.cursor()
+
+    cursor.execute("UPDATE training_data SET is_training = false, is_testing = false")
+    db.commit()
+
+    # Execute the query
+    cursor.execute("SELECT * FROM training_data")
+    rows = cursor.fetchall()
+
+    # Shuffle the rows
+    random.shuffle(rows)
+
+    # Calculate the number of training and testing records
+    num_training = math.ceil(len(rows) * 0.9)
+    num_testing = len(rows) - num_training
+
+    # Update the training records
+    cursor.execute(
+        sql.SQL("UPDATE training_data SET is_training = true WHERE id IN %s"),
+        (tuple(row["id"] for row in rows[:num_training]),),
+    )
+
+    # Update the testing records
+    cursor.execute(
+        sql.SQL("UPDATE training_data SET is_testing = true WHERE id IN %s"),
+        (tuple(row["id"] for row in rows[num_training:]),),
+    )
+    db.commit()
+
+    query = "select * FROM training_data"
+
     cursor.execute(query)
     results = cursor.fetchall()
     cursor.close()
 
     print("Total number of tracks retrieved: ", len(results))
-
-    # treating X and Y coordinates as individual series, not pairs
-    if False:
-        x_coords_all = []
-        y_coords_all = []
-        timestamps_all = []
-
-        print("Concatenating all data into numpy arrays")
-        for row in results:
-            # Convert data to np.float64 immediately after fetching
-            x_coords_all.extend([np.float64(x) for x in row["x_coords"]])
-            y_coords_all.extend([np.float64(y) for y in row["y_coords"]])
-            timestamps_all.extend([np.float64(t) for t in row["timestamps"]])
-
-        print("Length of x_coords_all: ", len(x_coords_all))
-        print("Length of y_coords_all: ", len(y_coords_all))
-        print("Length of timestamps_all: ", len(timestamps_all))
-
-        print("Reshaping the all data numpy arrays")
-        x_coords_all = np.array(x_coords_all).reshape(-1, 1)
-        y_coords_all = np.array(y_coords_all).reshape(-1, 1)
-        timestamps_all = np.array(timestamps_all).reshape(-1, 1)
-
-        print("Shape of the x_coords_all: ", x_coords_all.shape)
-        print("Shape of the y_coords_all: ", y_coords_all.shape)
-        print("Shape of the timestamps_all: ", timestamps_all.shape)
 
     coordinates_all = []
 
@@ -232,6 +237,14 @@ if __name__ == "__main__":
 
             # input("Press Enter to continue...")
 
+    # print("Done prepping the scaler")
+
+    cursor = db.cursor()
+    query = "select * FROM training_data where is_training is true"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    cursor.close()
+
     coordinate_pairs = []
     for record in results:
         x_coords = record["x_coords"]
@@ -244,24 +257,33 @@ if __name__ == "__main__":
                 coordinate_pairs.append(batch)
 
     tracks = np.array([np.array(track, dtype=np.float64) for track in coordinate_pairs])
-
-    # print("Shape of tracks: ", tracks.shape)
-    # print("Sample of tracks:\n", tracks)
-
-    # Save the original shape
     original_shape = tracks.shape
-
-    # Reshape the tracks array into a 2D array
     tracks_2d = tracks.reshape(-1, tracks.shape[-1])
-
-    # Use the MinMaxScaler to transform the 2D tracks array
     tracks_scaled_2d = min_max_scaler.transform(tracks_2d)
+    training_tracks = tracks_scaled_2d.reshape(original_shape)
 
-    # Reshape the scaled array back to its original shape
-    tracks_scaled = tracks_scaled_2d.reshape(original_shape)
+    cursor = db.cursor()
+    testing_query = "select * FROM training_data where is_testing is true"
+    cursor.execute(testing_query)
+    testing_results = cursor.fetchall()
+    cursor.close()
 
-    # print("Shape of tracks_scaled: ", tracks_scaled.shape)
-    # print("Sample of tracks_scaled:\n", tracks_scaled)
+    coordinate_pairs = []
+    for record in testing_results:
+        x_coords = record["x_coords"]
+        y_coords = record["y_coords"]
+        pairs = list(zip(x_coords, y_coords))
+
+        for i in range(0, len(pairs), 60):
+            batch = pairs[i : i + 60]
+            if len(batch) == 60:
+                coordinate_pairs.append(batch)
+
+    tracks = np.array([np.array(track, dtype=np.float64) for track in coordinate_pairs])
+    original_shape = tracks.shape
+    tracks_2d = tracks.reshape(-1, tracks.shape[-1])
+    tracks_scaled_2d = min_max_scaler.transform(tracks_2d)
+    testing_tracks = tracks_scaled_2d.reshape(original_shape)
 
     # demonstrate the inverse transform
     if False:
@@ -277,9 +299,11 @@ if __name__ == "__main__":
         print("Shape of tracks_inverse: ", tracks_inverse.shape)
         print("Sample of tracks_inverse:\n", tracks_inverse)
 
-    training_tracks, testing_tracks = train_test_split(
-        tracks_scaled, test_size=0.1, random_state=42
-    )
+    # training_tracks, testing_tracks = train_test_split(
+    #     tracks_scaled, test_size=0.1, random_state=42
+    # )
+
+    # quit()
 
     # print("Shape of training_tracks: ", training_tracks.shape)
     # print("Shape of testing_tracks: ", testing_tracks.shape)
@@ -399,7 +423,7 @@ if __name__ == "__main__":
     # Loop 1024 times
     for _ in range(verification_loops):
         # while True:
-        random_track = random.choice(results)
+        random_track = random.choice(testing_results)
         coordinate_pairs = []
         x_coords = random_track["x_coords"]
         y_coords = random_track["y_coords"]
@@ -527,7 +551,7 @@ if __name__ == "__main__":
     minutes, seconds = divmod(remainder, 60)
 
     print(
-        "Part 1 took",
+        "Training and testing took",
         int(hours),
         "hours,",
         int(minutes),
