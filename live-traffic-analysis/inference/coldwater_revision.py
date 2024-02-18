@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import pytz
 import time
 import redis
 import torch
@@ -13,6 +14,7 @@ from PIL import Image
 import psycopg2.extras
 import supervision as sv
 from ultralytics import YOLO
+from datetime import datetime
 from dotenv import load_dotenv
 from torch_tps import ThinPlateSpline
 from typing import Dict, List, Set, Tuple
@@ -155,7 +157,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             g=48,
         )  # Configure output
         .overwrite_output()
-        .global_args("-loglevel", "quiet")
+        # .global_args("-loglevel", "quiet")
         .compile()
     )
 
@@ -191,6 +193,11 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
             (1740, 649, 15),
             (1762, 733, 20),
             (1081, 400, 10),
+            (687, 331, 10),
+            (616, 299, 10),
+            (730, 351, 10),
+            (645, 316, 10),
+            (596, 299, 10),
             # (),
             ## parked cars now,
         ]
@@ -201,12 +208,12 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
         detections = byte_track.update_with_detections(detections)
         detections = smoother.update_with_detections(detections)
 
-        detections_in_zones = []
-        for zone in zones:
-            detections_in_zone = detections[zone.trigger(detections=detections)]
-            detections_in_zones.append(detections_in_zone)
+        # detections_in_zones = []
+        # for zone in zones:
+        #     detections_in_zone = detections[zone.trigger(detections=detections)]
+        #     detections_in_zones.append(detections_in_zone)
 
-        detection_manager.update(detections, detections_in_zones)
+        # detection_manager.update(detections, detections_in_zones)
 
         # detections = sv.Detections.merge(detections_in_zones)
 
@@ -243,6 +250,7 @@ def stream_frames_to_rtmp(rtmp_url, frame_generator):
                     our_class_id,
                     point[0],
                     point[1],
+                    # time.mktime(datetime.now(pytz.timezone("US/Central")).timetuple()),
                     time.time(),
                     session,
                     location[0],
@@ -393,10 +401,10 @@ trace_annotator = sv.TraceAnnotator(
 
 smoother = sv.DetectionsSmoother(length=2)
 
-hls_url = "http://10.0.3.228:8080/memfs/9ea806cb-a214-4971-8b29-76cc9fc9de75.m3u8"
+hls_url = "http://10.0.3.228:8080/memfs/ccbb14ad-3d69-43d3-a6a0-5f34a23c2ef9.m3u8"
 frame_generator = hls_frame_generator(hls_url)
 
-rtmp_url = "rtmp://10.0.3.228/8495ebad-db94-44fb-9a05-45ac7630933a.stream"
+rtmp_url = "rtmp://10.0.3.228/e4c6e442-387f-4f3f-8b51-28c5538497c3.stream"
 stream_frames_to_rtmp(rtmp_url, frame_generator)
 
 # with profile(
