@@ -147,30 +147,6 @@ if __name__ == "__main__":
 
     # print("MinMaxScalar for dataset is defined")
 
-    # inspect the normalized data to make sure it fits the way we expect
-    if False:
-        # Initialize min and max variables
-        min_x = min_y = float("inf")
-        max_x = max_y = float("-inf")
-
-        # Assuming normalized_coordinates is a list of tuples (x, y)
-        for i in range(0, len(normalized_coordinates), 30):
-            batch = normalized_coordinates[i : i + 30]
-            # print(batch)
-
-            # Update min and max variables
-            for x, y in batch:
-                min_x = min(min_x, x)
-                min_y = min(min_y, y)
-                max_x = max(max_x, x)
-                max_y = max(max_y, y)
-
-            print(f"Min X: {min_x}, Max X: {max_x}, Min Y: {min_y}, Max Y: {max_y}")
-
-            # input("Press Enter to continue...")
-
-    # print("Done prepping the scaler")
-
     cursor = db.cursor()
     query = "select * FROM training_data where is_training is true"
     cursor.execute(query)
