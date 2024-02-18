@@ -18,6 +18,13 @@ from torch.utils.data import TensorDataset, DataLoader
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
 # from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
+num_epochs = 100
+hidden_size = 256
+num_layers = 2
+learning_rate = 0.0001
+batch_size = 64
+verification_loops = 1024
+epoch_print_interval = 25
 
 
 class LSTMVehicleTracker(nn.Module):
@@ -322,8 +329,6 @@ if __name__ == "__main__":
     train_dataset = TensorDataset(input_training_tensor, output_training_tensor)
     test_dataset = TensorDataset(input_testing_tensor, output_testing_tensor)
 
-    # Create a DataLoader
-    batch_size = 64
     train_loader = DataLoader(
         dataset=train_dataset, batch_size=batch_size, shuffle=True
     )
@@ -338,19 +343,14 @@ if __name__ == "__main__":
         break
 
     vehicle_tracker = LSTMVehicleTracker(
-        input_size=2, hidden_size=256, num_layers=3, seq_length=30
+        input_size=2, hidden_size=hidden_size, num_layers=num_layers, seq_length=30
     )
     vehicle_tracker = vehicle_tracker.to(device)
     print(vehicle_tracker)
 
     # Loss and optimizer
     criterion = torch.nn.MSELoss()  # Mean Squared Error for regression task
-    optimizer = optim.Adam(
-        vehicle_tracker.parameters(), lr=0.001
-    )  # Adam optimizer with learning rate 0.001
-
-    # Training loop
-    num_epochs = 100
+    optimizer = optim.Adam(vehicle_tracker.parameters(), lr=learning_rate)
 
     for epoch in range(num_epochs):
         vehicle_tracker.train()
@@ -371,7 +371,7 @@ if __name__ == "__main__":
 
             running_loss += loss.item()
 
-        if epoch % 25 == 0:
+        if epoch % epoch_print_interval == 0:
             # if True:
             print(
                 f"Epoch [{epoch}/{num_epochs}], Loss: {running_loss / len(train_loader):.8f}"
@@ -382,17 +382,22 @@ if __name__ == "__main__":
         with torch.no_grad():
             val_outputs = vehicle_tracker(input_testing_tensor)
             val_loss = criterion(val_outputs, output_testing_tensor)
-            if epoch % 25 == 0:
+            if epoch % epoch_print_interval == 0:
                 # if True:
                 print(f"Validation Loss: {val_loss.item():.8f}")
 
-    # print("Try it out!")
+            # print("Try it out!")
+
+    cursor = db.cursor()
+    cursor.execute("truncate prediction cascade;")
+    db.commit()
+    cursor.close()
 
     counter = 0
     total_distance = 0
 
     # Loop 1024 times
-    for _ in range(1024):
+    for _ in range(verification_loops):
         # while True:
         random_track = random.choice(results)
         coordinate_pairs = []
@@ -463,11 +468,11 @@ if __name__ == "__main__":
         # print("Distance: ", distance)
 
         # record track and prediction in DB
-        if False:
+        if True:
             # Create a new prediction record
             cursor = db.cursor()
-            cursor.execute("truncate prediction cascade;")
-            db.commit()
+            # cursor.execute("truncate prediction cascade;")
+            # db.commit()
 
             # Create a new prediction record
             cursor = db.cursor()
@@ -527,6 +532,6 @@ if __name__ == "__main__":
         "hours,",
         int(minutes),
         "minutes, and",
-        seconds,
+        int(seconds),
         "seconds",
     )
