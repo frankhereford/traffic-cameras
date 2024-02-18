@@ -389,8 +389,7 @@ if __name__ == "__main__":
 
         # record track and prediction in DB
         # if iteration % 100 == 0:
-        if iteration in [10, 20, 30, 50, 60, 70]:
-            # while True:
+        if iteration in [10, 20, 30]:
             # cursor = db.cursor()
             # cursor.execute("truncate prediction cascade;")
             # db.commit()
@@ -426,8 +425,8 @@ if __name__ == "__main__":
             db.commit()
 
             cursor.close()
-
-        # input("try again?")
+            # input("try again?")
+            # time.sleep(3)
 
         total_distance += distance
 
