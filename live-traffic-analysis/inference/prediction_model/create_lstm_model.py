@@ -261,6 +261,7 @@ if __name__ == "__main__":
     tracks_2d = tracks.reshape(-1, tracks.shape[-1])
     tracks_scaled_2d = min_max_scaler.transform(tracks_2d)
     training_tracks = tracks_scaled_2d.reshape(original_shape)
+    cursor.close()
 
     cursor = db.cursor()
     testing_query = "select * FROM training_data where is_testing is true"
@@ -284,6 +285,7 @@ if __name__ == "__main__":
     tracks_2d = tracks.reshape(-1, tracks.shape[-1])
     tracks_scaled_2d = min_max_scaler.transform(tracks_2d)
     testing_tracks = tracks_scaled_2d.reshape(original_shape)
+    cursor.close()
 
     # demonstrate the inverse transform
     if False:
@@ -299,14 +301,8 @@ if __name__ == "__main__":
         print("Shape of tracks_inverse: ", tracks_inverse.shape)
         print("Sample of tracks_inverse:\n", tracks_inverse)
 
-    # training_tracks, testing_tracks = train_test_split(
-    #     tracks_scaled, test_size=0.1, random_state=42
-    # )
-
-    # quit()
-
-    # print("Shape of training_tracks: ", training_tracks.shape)
-    # print("Shape of testing_tracks: ", testing_tracks.shape)
+    print("Shape of training_tracks: ", training_tracks.shape)
+    print("Shape of testing_tracks: ", testing_tracks.shape)
 
     # print("Creating the one-second tracks dataset")
     input_training_tracks = training_tracks[:, :30, :]
@@ -332,22 +328,6 @@ if __name__ == "__main__":
     # print("Shape of output_training_tensor: ", output_training_tensor.shape)
     # print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
     # print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
-
-    # red herring reshaping?
-    if False:
-        print("Reshaping the tensors..")
-
-        # Reshape the tensors
-        input_training_tensor = input_training_tensor.transpose(0, 1)
-        output_training_tensor = output_training_tensor.unsqueeze(0)
-
-        input_testing_tensor = input_testing_tensor.transpose(0, 1)
-        output_testing_tensor = output_testing_tensor.unsqueeze(0)
-
-        print("Shape of input_training_tensor: ", input_training_tensor.shape)
-        print("Shape of output_training_tensor: ", output_training_tensor.shape)
-        print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
-        print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
 
     # Create a TensorDataset
     train_dataset = TensorDataset(input_training_tensor, output_training_tensor)
