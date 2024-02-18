@@ -6,6 +6,7 @@ import time
 import math
 import torch
 import random
+import joblib
 import psycopg2
 import numpy as np
 import torch.nn as nn
@@ -146,6 +147,8 @@ if __name__ == "__main__":
     # print("Sample of normalized coordinates:\n", normalized_coordinates)
 
     # print("MinMaxScalar for dataset is defined")
+
+    joblib.dump(min_max_scaler, "./model_data/min_max_scaler.save")
 
     cursor = db.cursor()
     query = "select * FROM training_data where is_training is true"
@@ -307,6 +310,9 @@ if __name__ == "__main__":
                 print(f"Validation Loss: {val_loss.item():.8f}")
 
             # print("Try it out!")
+
+    # Save the model
+    torch.save(vehicle_tracker.state_dict(), "./model_data/lstm_model.pth")
 
     cursor = db.cursor()
     cursor.execute("truncate prediction cascade;")
