@@ -20,7 +20,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 
 # from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
-num_epochs = 50
+num_epochs = 100
 epoch_print_interval = 25
 hidden_size = 256
 num_layers = 2
@@ -43,7 +43,7 @@ class LSTMVehicleTracker(nn.Module):
             num_layers=num_layers,
             batch_first=True,
         )
-        self.fc = nn.Linear(hidden_size, 2)  # Output is 2D (X,Y)
+        self.fc = nn.Linear(hidden_size, 12)  # Output is now 6 pairs of 2D (X,Y)
 
     def forward(self, x):
         h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(
@@ -56,7 +56,7 @@ class LSTMVehicleTracker(nn.Module):
         output, (hn, cn) = self.lstm(x, (h_0, c_0))
         hn_last_layer = hn[-1, :, :]  # Get the hidden state of the last layer
         out = self.fc(hn_last_layer)
-        return out
+        return out.view(-1, 6, 2)  # Reshape the output to have 6 pairs of (X,Y)
 
 
 if __name__ == "__main__":
@@ -214,10 +214,18 @@ if __name__ == "__main__":
 
     # print("Creating the one-second tracks dataset")
     input_training_tracks = training_tracks[:, :30, :]
-    output_training_tracks = training_tracks[:, 30, :]
+    # output_training_tracks = training_tracks[:, 30, :]
 
     input_testing_tracks = testing_tracks[:, :30, :]
-    output_testing_tracks = testing_tracks[:, 30, :]
+    # output_testing_tracks = testing_tracks[:, 30, :]
+
+    indices = [30, 35, 40, 45, 50, 55]
+
+    output_training_tracks = training_tracks[:, indices, :]
+    output_testing_tracks = testing_tracks[:, indices, :]
+
+    print("Shape of output_training_tracks: ", output_training_tracks.shape)
+    print("Shape of output_testing_tracks: ", output_testing_tracks.shape)
 
     # print("Shape of input_training_tracks: ", input_training_tracks.shape)
     # print("Shape of output_training_tracks: ", output_training_tracks.shape)
@@ -309,7 +317,7 @@ if __name__ == "__main__":
     total_distance = 0
 
     # Loop 1024 times
-    for _ in range(verification_loops):
+    for iteration in range(verification_loops):
         # while True:
         random_track = random.choice(testing_results)
         coordinate_pairs = []
@@ -380,11 +388,13 @@ if __name__ == "__main__":
         # print("Distance: ", distance)
 
         # record track and prediction in DB
-        if True:
-            # Create a new prediction record
-            cursor = db.cursor()
+        # if iteration % 100 == 0:
+        if iteration in [10, 20, 30, 50, 60, 70]:
+            # while True:
+            # cursor = db.cursor()
             # cursor.execute("truncate prediction cascade;")
             # db.commit()
+            # cursor.close()
 
             # Create a new prediction record
             cursor = db.cursor()
@@ -422,7 +432,7 @@ if __name__ == "__main__":
         total_distance += distance
 
         # Increment the counter
-        counter += 1
+        counter += 6
 
     average_distance = total_distance / counter
     print(f"Average distance: {average_distance:.2f}")
