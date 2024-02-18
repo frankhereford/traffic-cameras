@@ -3,6 +3,7 @@
 
 import os
 import torch
+import random
 import psycopg2
 import numpy as np
 import torch.nn as nn
@@ -35,8 +36,12 @@ class LSTMVehicleTracker(nn.Module):
         self.fc = nn.Linear(hidden_size, 2)  # Output is 2D (X,Y)
 
     def forward(self, x):
-        h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
-        c_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
+        h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(
+            device
+        )
+        c_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(
+            device
+        )
 
         output, (hn, cn) = self.lstm(x, (h_0, c_0))
         hn_last_layer = hn[-1, :, :]  # Get the hidden state of the last layer
@@ -45,6 +50,8 @@ class LSTMVehicleTracker(nn.Module):
 
 
 if __name__ == "__main__":
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     load_dotenv()
 
@@ -237,11 +244,11 @@ print("Shape of output_testing_tracks: ", output_testing_tracks.shape)
 
 print("Making tensors out of these numpy arrays..")
 
-input_training_tensor = Variable(torch.Tensor(input_training_tracks))
-output_training_tensor = Variable(torch.Tensor(output_training_tracks))
+input_training_tensor = Variable(torch.Tensor(input_training_tracks)).to(device)
+output_training_tensor = Variable(torch.Tensor(output_training_tracks)).to(device)
 
-input_testing_tensor = Variable(torch.Tensor(input_testing_tracks))
-output_testing_tensor = Variable(torch.Tensor(output_testing_tracks))
+input_testing_tensor = Variable(torch.Tensor(input_testing_tracks)).to(device)
+output_testing_tensor = Variable(torch.Tensor(output_testing_tracks)).to(device)
 
 print("Shape of input_training_tensor: ", input_training_tensor.shape)
 print("Shape of output_training_tensor: ", output_training_tensor.shape)
@@ -286,6 +293,7 @@ for batch in train_loader:
 vehicle_tracker = LSTMVehicleTracker(
     input_size=2, hidden_size=128, num_layers=2, seq_length=30
 )
+vehicle_tracker = vehicle_tracker.to(device)
 print(vehicle_tracker)
 
 # Loss and optimizer
@@ -295,13 +303,15 @@ optimizer = optim.Adam(
 )  # Adam optimizer with learning rate 0.001
 
 # Training loop
-num_epochs = 100  # Number of epochs
+num_epochs = 10  # Number of epochs
 
 for epoch in range(num_epochs):
     vehicle_tracker.train()
 
     running_loss = 0.0
     for i, (inputs, targets) in enumerate(train_loader):
+        inputs = inputs.to(device)
+        targets = targets.to(device)
         optimizer.zero_grad()
 
         # Forward pass
@@ -314,15 +324,21 @@ for epoch in range(num_epochs):
 
         running_loss += loss.item()
 
-    if epoch % 10 == 0:  # Print every 10 epochs
+    # if epoch % 10 == 0:  # Print every 10 epochs
+    if True:
         print(
             f"Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss / len(train_loader):.4f}"
         )
 
-    # # Validation step, if you have validation data
-    # vehicle_tracker.eval()
-    # with torch.no_grad():
-    #     val_outputs = vehicle_tracker(input_testing_tensor)
-    #     val_loss = criterion(val_outputs, output_testing_tensor)
-    #     if epoch % 10 == 0:
-    #         print(f"Validation Loss: {val_loss.item():.4f}")
+    # Validation step, if you have validation data
+    vehicle_tracker.eval()
+    with torch.no_grad():
+        val_outputs = vehicle_tracker(input_testing_tensor)
+        val_loss = criterion(val_outputs, output_testing_tensor)
+        # if epoch % 10 == 0:
+        if True:
+            print(f"Validation Loss: {val_loss.item():.4f}")
+
+    # try it out
+
+    random_track = random.choice(results)
