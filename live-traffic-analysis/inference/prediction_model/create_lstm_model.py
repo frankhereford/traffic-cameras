@@ -7,12 +7,41 @@ import psycopg2
 import numpy as np
 import torch.nn as nn
 import psycopg2.extras
+import torch.optim as optim
 from dotenv import load_dotenv
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from torch.utils.data import TensorDataset, DataLoader
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
-from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
+
+# from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
+
+
+class LSTMVehicleTracker(nn.Module):
+    def __init__(self, input_size=2, hidden_size=128, num_layers=2, seq_length=30):
+        super(LSTMVehicleTracker, self).__init__()
+        self.num_layers = num_layers
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.seq_length = seq_length
+
+        self.lstm = nn.LSTM(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+        )
+        self.fc = nn.Linear(hidden_size, 2)  # Output is 2D (X,Y)
+
+    def forward(self, x):
+        h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
+        c_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size))
+
+        output, (hn, cn) = self.lstm(x, (h_0, c_0))
+        hn_last_layer = hn[-1, :, :]  # Get the hidden state of the last layer
+        out = self.fc(hn_last_layer)
+        return out
 
 
 if __name__ == "__main__":
@@ -220,16 +249,80 @@ print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
 print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
 
 
-print("Reshaping the tensors..")
+# red herring reshaping?
+if False:
+    print("Reshaping the tensors..")
 
-# Reshape the tensors
-input_training_tensor = input_training_tensor.transpose(0, 1)
-output_training_tensor = output_training_tensor.unsqueeze(0)
+    # Reshape the tensors
+    input_training_tensor = input_training_tensor.transpose(0, 1)
+    output_training_tensor = output_training_tensor.unsqueeze(0)
 
-input_testing_tensor = input_testing_tensor.transpose(0, 1)
-output_testing_tensor = output_testing_tensor.unsqueeze(0)
+    input_testing_tensor = input_testing_tensor.transpose(0, 1)
+    output_testing_tensor = output_testing_tensor.unsqueeze(0)
 
-print("Shape of input_training_tensor: ", input_training_tensor.shape)
-print("Shape of output_training_tensor: ", output_training_tensor.shape)
-print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
-print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
+    print("Shape of input_training_tensor: ", input_training_tensor.shape)
+    print("Shape of output_training_tensor: ", output_training_tensor.shape)
+    print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
+    print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
+
+# Create a TensorDataset
+train_dataset = TensorDataset(input_training_tensor, output_training_tensor)
+test_dataset = TensorDataset(input_testing_tensor, output_testing_tensor)
+
+# Create a DataLoader
+batch_size = 64  # You can choose a batch size that fits your need
+train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+
+for batch in train_loader:
+    input_batch, output_batch = batch
+    print("Input batch shape:", input_batch.shape)
+    print("Output batch shape:", output_batch.shape)
+    print("First input batch:\n", input_batch)
+    print("First output batch:\n", output_batch)
+    break
+
+
+vehicle_tracker = LSTMVehicleTracker(
+    input_size=2, hidden_size=128, num_layers=2, seq_length=30
+)
+print(vehicle_tracker)
+
+# Loss and optimizer
+criterion = torch.nn.MSELoss()  # Mean Squared Error for regression task
+optimizer = optim.Adam(
+    vehicle_tracker.parameters(), lr=0.001
+)  # Adam optimizer with learning rate 0.001
+
+# Training loop
+num_epochs = 100  # Number of epochs
+
+for epoch in range(num_epochs):
+    vehicle_tracker.train()
+
+    running_loss = 0.0
+    for i, (inputs, targets) in enumerate(train_loader):
+        optimizer.zero_grad()
+
+        # Forward pass
+        outputs = vehicle_tracker(inputs)
+        loss = criterion(outputs, targets)
+
+        # Backward and optimize
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+
+    if epoch % 10 == 0:  # Print every 10 epochs
+        print(
+            f"Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss / len(train_loader):.4f}"
+        )
+
+    # # Validation step, if you have validation data
+    # vehicle_tracker.eval()
+    # with torch.no_grad():
+    #     val_outputs = vehicle_tracker(input_testing_tensor)
+    #     val_loss = criterion(val_outputs, output_testing_tensor)
+    #     if epoch % 10 == 0:
+    #         print(f"Validation Loss: {val_loss.item():.4f}")
