@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+
 import os
+import torch
 import psycopg2
 import numpy as np
+import torch.nn as nn
 import psycopg2.extras
 from dotenv import load_dotenv
+from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
@@ -183,16 +187,49 @@ if False:
     print("Shape of tracks_inverse: ", tracks_inverse.shape)
     print("Sample of tracks_inverse:\n", tracks_inverse)
 
-# print("Creating the one-second tracks dataset")
-# tracks_small = tracks_scaled[:, :30, :]
-
-# print("Shape of tracks_small: ", tracks_small.shape)
-# # print("Sample of tracks_small:\n", tracks_small)
-
-
 training_tracks, testing_tracks = train_test_split(
     tracks_scaled, test_size=0.1, random_state=42
 )
 
 print("Shape of training_tracks: ", training_tracks.shape)
 print("Shape of testing_tracks: ", testing_tracks.shape)
+
+# print("Creating the one-second tracks dataset")
+input_training_tracks = training_tracks[:, :30, :]
+output_training_tracks = training_tracks[:, 30, :]
+
+input_testing_tracks = testing_tracks[:, :30, :]
+output_testing_tracks = testing_tracks[:, 30, :]
+
+print("Shape of input_training_tracks: ", input_training_tracks.shape)
+print("Shape of output_training_tracks: ", output_training_tracks.shape)
+print("Shape of input_testing_tracks: ", input_testing_tracks.shape)
+print("Shape of output_testing_tracks: ", output_testing_tracks.shape)
+
+print("Making tensors out of these numpy arrays..")
+
+input_training_tensor = Variable(torch.Tensor(input_training_tracks))
+output_training_tensor = Variable(torch.Tensor(output_training_tracks))
+
+input_testing_tensor = Variable(torch.Tensor(input_testing_tracks))
+output_testing_tensor = Variable(torch.Tensor(output_testing_tracks))
+
+print("Shape of input_training_tensor: ", input_training_tensor.shape)
+print("Shape of output_training_tensor: ", output_training_tensor.shape)
+print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
+print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
+
+
+print("Reshaping the tensors..")
+
+# Reshape the tensors
+input_training_tensor = input_training_tensor.transpose(0, 1)
+output_training_tensor = output_training_tensor.unsqueeze(0)
+
+input_testing_tensor = input_testing_tensor.transpose(0, 1)
+output_testing_tensor = output_testing_tensor.unsqueeze(0)
+
+print("Shape of input_training_tensor: ", input_training_tensor.shape)
+print("Shape of output_training_tensor: ", output_training_tensor.shape)
+print("Shape of input_testing_tensor: ", input_testing_tensor.shape)
+print("Shape of output_testing_tensor: ", output_testing_tensor.shape)
