@@ -337,6 +337,67 @@ if __name__ == "__main__":
             if True:
                 print(f"Validation Loss: {val_loss.item():.4f}")
 
-    # try it out
+    print("Try it out!")
 
     random_track = random.choice(results)
+    coordinate_pairs = []
+    x_coords = random_track["x_coords"]
+    y_coords = random_track["y_coords"]
+    pairs = list(zip(x_coords, y_coords))
+
+    for i in range(0, len(pairs), 60):
+        batch = pairs[i : i + 60]
+        if len(batch) == 60:
+            coordinate_pairs.append(batch)
+            break  # even if we could make a couple, let's just do one
+    # print("Coordinate pairs: ", coordinate_pairs)
+    tracks = np.array([np.array(track, dtype=np.float64) for track in coordinate_pairs])
+
+    # Save the original shape
+    original_shape = tracks.shape
+
+    # Reshape the tracks array into a 2D array
+    tracks_2d = tracks.reshape(-1, tracks.shape[-1])
+
+    # Use the MinMaxScaler to transform the 2D tracks array
+    tracks_scaled_2d = min_max_scaler.transform(tracks_2d)
+
+    # Reshape the scaled array back to its original shape
+    tracks_scaled = tracks_scaled_2d.reshape(original_shape)
+
+    print("tracks_scaled shape: ", tracks_scaled.shape)
+    # print("Tracks: ", tracks)
+
+    input_tracks = tracks_scaled[:, :30, :]
+    output_tracks = tracks_scaled[:, 30, :]
+
+    input_tensor = Variable(torch.Tensor(input_tracks)).to(device)
+    output_tensor = Variable(torch.Tensor(output_tracks)).to(device)
+
+    print("Shape of input_tensor: ", input_tensor.shape)
+    print("Shape of output_tensor: ", output_tensor.shape)
+
+    with torch.no_grad():
+        vehicle_tracker.eval()
+        prediction = vehicle_tracker(input_tensor)
+
+    print("Prediction shape: ", prediction.shape)
+    print("Prediction: ", prediction)
+    print("Truth: ", output_tensor)
+
+    input_array = input_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (30, 2)
+    output_array = output_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
+    prediction_array = prediction.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
+
+    input_inverted = min_max_scaler.inverse_transform(input_array)
+    output_inverted = min_max_scaler.inverse_transform(output_array)
+    prediction_inverted = min_max_scaler.inverse_transform(prediction_array)
+
+    print("Shape of input_inverted: ", input_inverted.shape)
+    print("Sample of input_inverted:\n", input_inverted)
+
+    print("Shape of output_inverted: ", output_inverted.shape)
+    print("Sample of output_inverted:\n", output_inverted)
+
+    print("Shape of prediction_inverted: ", prediction_inverted.shape)
+    print("Sample of prediction_inverted:\n", prediction_inverted)
