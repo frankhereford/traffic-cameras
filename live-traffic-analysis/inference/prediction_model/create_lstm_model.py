@@ -19,45 +19,16 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
+from libraries.lstmvehicletracker import LSTMVehicleTracker
 
 # from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
-num_epochs = 100
+num_epochs = 400
 epoch_print_interval = 25
 hidden_size = 256
 num_layers = 2
 learning_rate = 0.0001
 batch_size = 64
 verification_loops = 1024
-
-
-class LSTMVehicleTracker(nn.Module):
-    def __init__(self, input_size=2, hidden_size=128, num_layers=2, seq_length=30):
-        super(LSTMVehicleTracker, self).__init__()
-        self.num_layers = num_layers
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.seq_length = seq_length
-
-        self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-        )
-        self.fc = nn.Linear(hidden_size, 12)  # Output is now 6 pairs of 2D (X,Y)
-
-    def forward(self, x):
-        h_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(
-            device
-        )
-        c_0 = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size)).to(
-            device
-        )
-
-        output, (hn, cn) = self.lstm(x, (h_0, c_0))
-        hn_last_layer = hn[-1, :, :]  # Get the hidden state of the last layer
-        out = self.fc(hn_last_layer)
-        return out.view(-1, 6, 2)  # Reshape the output to have 6 pairs of (X,Y)
 
 
 if __name__ == "__main__":

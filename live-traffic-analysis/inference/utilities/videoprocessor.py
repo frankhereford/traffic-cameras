@@ -11,6 +11,40 @@ import redis
 from PIL import Image, ImageDraw, ImageFont
 import pytz
 
+import joblib
+import torch
+from prediction_model.libraries.lstmvehicletracker import LSTMVehicleTracker
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+min_max_scaler = joblib.load("./prediction_model/model_data/min_max_scaler.save")
+
+# from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
+num_epochs = 400
+epoch_print_interval = 25
+hidden_size = 256
+num_layers = 2
+learning_rate = 0.0001
+batch_size = 64
+verification_loops = 1024
+
+
+vehicle_tracker = LSTMVehicleTracker(
+    input_size=2, hidden_size=hidden_size, num_layers=num_layers, seq_length=30
+)
+vehicle_tracker = vehicle_tracker.to(device)
+print(vehicle_tracker)
+
+# Load the model
+vehicle_tracker.load_state_dict(
+    torch.load("./prediction_model/model_data/lstm_model.pth")
+)
+
+# Ensure to switch to eval mode if you're doing inference
+vehicle_tracker.eval()
+
+
 from utilities.sql import (
     prepare_detection,
     insert_detections,
@@ -85,6 +119,8 @@ CENTER_POINTS_TO_AVOID = [
     (1081, 401, 10),
     (488, 245, 10),
     (1449, 142, 10),
+    (534, 264, 10),
+    (1550, 357, 10),
 ]
 
 
@@ -294,6 +330,10 @@ class VideoProcessor:
         future_locations = get_future_locations_for_trackers(
             self.cursor, self.session, detections.tracker_id
         )
+
+        if detections.tracker_id is not None:
+            for tracker in detections.tracker_id:
+                print("session: ", self.session, "tracker: ", tracker)
 
         # print("future locations: ", future_locations)
         image_space_future_locations = self.transform_into_image_space(future_locations)

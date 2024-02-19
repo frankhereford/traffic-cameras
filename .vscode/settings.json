@@ -40,6 +40,7 @@
     "jsonify",
     "kmeans",
     "latlon",
+    "lstmvehicletracker",
     "lucide",
     "mapcameralocations",
     "mapcorrelatedpoints",
