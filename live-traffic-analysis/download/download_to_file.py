@@ -7,8 +7,8 @@ import signal
 import time
 import redis
 
-target_video_length = 20
-factor_for_waiting = 6
+target_video_length = 60
+factor_for_waiting = 5
 
 
 def send_sigint_to_process(process):
