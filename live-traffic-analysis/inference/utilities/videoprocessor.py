@@ -145,7 +145,7 @@ class VideoProcessor:
 
         self.db = db
         self.cursor = self.db.cursor()
-        self.queue_size = 5
+        self.queue_size = 100
         self.queued_inserts = 0
         # self.cursor.execute("TRUNCATE sessions CASCADE")
         # db.commit()
@@ -215,14 +215,10 @@ class VideoProcessor:
         return data_obj
 
     def transform_model_results_into_image_space(self, predictions):
-        image_space_future_locations = predictions
-
         none_indices = [i for i, location in enumerate(predictions) if location is None]
 
         if len(none_indices) == len(predictions):
             return
-
-        # print("Image space future locations: ", image_space_future_locations)
 
         locations_tuples = np.concatenate([p for p in predictions if p is not None])
 
@@ -231,15 +227,11 @@ class VideoProcessor:
 
         reshaped_image_space_locations = image_space_locations.reshape(-1, 6, 2)
 
-        # Convert tensor to list of lists
         reshaped_image_space_locations = reshaped_image_space_locations.tolist()
 
         for index in none_indices:
             reshaped_image_space_locations.insert(index, None)
 
-        # print(
-        #     "Future locations tuples in image space: ", reshaped_image_space_locations
-        # )
         return reshaped_image_space_locations
 
     def transform_into_image_space(self, future_locations):
@@ -257,11 +249,8 @@ class VideoProcessor:
             if location is not None
         ]
 
-        # print("Future locations tuples: ", locations_tuples)
         if locations_tuples is not None and len(locations_tuples) > 0:
-            # Convert the list of tuples into a torch tensor
             prediction_tensor = torch.tensor(locations_tuples)
-            # print("Future locations tensor: ", prediction_tensor)
 
             image_space_prediction_tensor = self.reverse_tps.transform(
                 prediction_tensor
@@ -274,7 +263,6 @@ class VideoProcessor:
             for index in none_indices:
                 image_space_future_locations.insert(index, None)
 
-        # print("Image space future locations tuples: ", image_space_future_locations)
         return image_space_future_locations
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
