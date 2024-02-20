@@ -37,12 +37,15 @@ if __name__ == "__main__":
             cursor_factory=psycopg2.extras.RealDictCursor,
         )
 
-        # cursor = db.cursor()
-
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL", error)
 
     r = redis.Redis(host="localhost", port=6379, db=0)
+
+    # while True:
+    #     # Block until a value is available in the queue
+    #     _, value = r.brpop("downloaded-videos-queue")
+    #     print("Popped value: ", value)
 
     parser = argparse.ArgumentParser(description="Process some files.")
 
