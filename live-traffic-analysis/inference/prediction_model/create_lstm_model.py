@@ -338,7 +338,12 @@ if __name__ == "__main__":
 
         with torch.no_grad():
             vehicle_tracker.eval()
+            # print("Input tensor shape: ", input_tensor.shape)
+            # print(input_tensor)
             prediction = vehicle_tracker(input_tensor)
+            # print("Prediction shape: ", prediction.shape)
+            # print(prediction)
+            # quit()
 
         # print("Prediction shape: ", prediction.shape)
         # print("Prediction: ", prediction)

@@ -11,39 +11,6 @@ import redis
 from PIL import Image, ImageDraw, ImageFont
 import pytz
 
-import joblib
-import torch
-from prediction_model.libraries.lstmvehicletracker import LSTMVehicleTracker
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-min_max_scaler = joblib.load("./prediction_model/model_data/min_max_scaler.save")
-
-# from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
-num_epochs = 400
-epoch_print_interval = 25
-hidden_size = 256
-num_layers = 2
-learning_rate = 0.0001
-batch_size = 64
-verification_loops = 1024
-
-
-vehicle_tracker = LSTMVehicleTracker(
-    input_size=2, hidden_size=hidden_size, num_layers=num_layers, seq_length=30
-)
-vehicle_tracker = vehicle_tracker.to(device)
-print(vehicle_tracker)
-
-# Load the model
-vehicle_tracker.load_state_dict(
-    torch.load("./prediction_model/model_data/lstm_model.pth")
-)
-
-# Ensure to switch to eval mode if you're doing inference
-vehicle_tracker.eval()
-
 
 from utilities.sql import (
     prepare_detection,
@@ -121,11 +88,14 @@ CENTER_POINTS_TO_AVOID = [
     (1449, 142, 10),
     (534, 264, 10),
     (1550, 357, 10),
+    (1049, 367, 10),
+    (70, 501, 10),
 ]
 
 
 class VideoProcessor:
-    def __init__(self, input, output, db):
+    def __init__(self, input, output, db, location_tracker):
+        self.location_tracker = location_tracker
         self.source_video_path = input
 
         # Extract the date and time from the file path using regex
@@ -244,6 +214,34 @@ class VideoProcessor:
 
         return data_obj
 
+    def transform_model_results_into_image_space(self, predictions):
+        image_space_future_locations = predictions
+
+        none_indices = [i for i, location in enumerate(predictions) if location is None]
+
+        if len(none_indices) == len(predictions):
+            return
+
+        # print("Image space future locations: ", image_space_future_locations)
+
+        locations_tuples = np.concatenate([p for p in predictions if p is not None])
+
+        locations_tensor = torch.tensor(locations_tuples)
+        image_space_locations = self.reverse_tps.transform(locations_tensor).cpu()
+
+        reshaped_image_space_locations = image_space_locations.reshape(-1, 6, 2)
+
+        # Convert tensor to list of lists
+        reshaped_image_space_locations = reshaped_image_space_locations.tolist()
+
+        for index in none_indices:
+            reshaped_image_space_locations.insert(index, None)
+
+        # print(
+        #     "Future locations tuples in image space: ", reshaped_image_space_locations
+        # )
+        return reshaped_image_space_locations
+
     def transform_into_image_space(self, future_locations):
 
         image_space_future_locations = future_locations
@@ -315,7 +313,6 @@ class VideoProcessor:
                     our_class_id,
                     point[0],
                     point[1],
-                    # time.time(),  # FIXME this needs to get computed off frame number
                     self.video_datetime.timestamp(),
                     self.session,
                     location[0],
@@ -323,83 +320,37 @@ class VideoProcessor:
                 )
                 self.queued_inserts += 1
 
-                ### ! dude you gotta keep track of the last 30 in ram, don't use the db
-
-                # Execute the query
-                self.cursor.execute(
-                    """
-                    WITH ordered_detections AS (
-                            SELECT
-                                session_id,
-                                tracker_id,
-                                ST_X(location) as x_coord,
-                                ST_Y(location) as y_coord,
-                                ROW_NUMBER() OVER(PARTITION BY session_id, tracker_id ORDER BY timestamp) as rn
-                            FROM
-                                detections_extended
-                            WHERE
-                                session_id = %s AND tracker_id = %s
-                        ),
-                        distances AS (
-                            SELECT
-                                d1.session_id,
-                                d1.tracker_id,
-                                SQRT(POWER(d1.x_coord - d2.x_coord, 2) + POWER(d1.y_coord - d2.y_coord, 2)) as distance
-                            FROM
-                                ordered_detections d1
-                                JOIN ordered_detections d2 ON d1.session_id = d2.session_id AND d1.tracker_id = d2.tracker_id
-                            WHERE
-                                d1.rn = 1 AND d2.rn = 30
-                        )
-                        SELECT
-                            detections.session_id,
-                            detections.tracker_id,
-                            ARRAY_AGG(ST_X(detections.location) ORDER BY detections.timestamp) as x_coords,
-                            ARRAY_AGG(ST_Y(detections.location) ORDER BY detections.timestamp) as y_coords,
-                            ARRAY_AGG(EXTRACT(EPOCH FROM detections.timestamp) ORDER BY detections.timestamp) as timestamps,
-                            MIN(detections.timestamp) as start_timestamp,
-                            paths.distance as track_length
-                        FROM
-                            detections_extended detections
-                            LEFT JOIN tracked_paths paths ON (detections.session_id = paths.session_id AND detections.tracker_id = paths.tracker_id)
-                            JOIN distances ON (detections.session_id = distances.session_id AND detections.tracker_id = distances.tracker_id)
-                        WHERE
-                            paths.distance IS NOT NULL
-                            AND paths.distance >= 30
-                            AND distances.distance > 30
-                        GROUP BY
-                            detections.session_id, detections.tracker_id, paths.distance
-                        HAVING
-                            COUNT(*) > 60
-                        ORDER BY
-                            MIN(detections.timestamp) asc;
-                """,
-                    (self.session, int(tracker_id)),
+                self.location_tracker.record_data_point(
+                    tracker_id,
+                    point[0],
+                    point[1],
+                    float(location[0]),
+                    float(location[1]),
+                    self.video_datetime,
                 )
-
-                # Fetch all the rows
-                rows = self.cursor.fetchall()
-
-                # Now you can print or process the results
-                for row in rows:
-                    print(row)
 
             if self.queued_inserts >= self.queue_size:
                 # print(f"Inserting {queued_inserts} detections")
                 insert_detections(self.db, self.cursor)
                 self.queued_inserts = 0
 
-        future_locations = get_future_locations_for_trackers(
-            self.cursor, self.session, detections.tracker_id
+        predictions = self.location_tracker.infer_future_locations(
+            detections.tracker_id
         )
 
-        # if detections.tracker_id is not None:
-        #     for tracker in detections.tracker_id:
-        #         print("session: ", self.session, "tracker: ", tracker)
+        image_space_future_locations = self.transform_model_results_into_image_space(
+            predictions
+        )
+
+        # future_locations = get_future_locations_for_trackers(
+        #     self.cursor, self.session, detections.tracker_id
+        # )
 
         # print("future locations: ", future_locations)
-        image_space_future_locations = self.transform_into_image_space(future_locations)
+        # image_space_future_locations = self.transform_into_image_space(future_locations)
         # print("image space future locations: ", image_space_future_locations)
+
+        # image_space_future_locations = []
 
         self.frame_number += 1
         one_thirtieth_second_in_microseconds = int(1_000_000 / 30)
@@ -480,17 +431,28 @@ class VideoProcessor:
             # Define the radius of the circles
             radius = 5
 
-            # Iterate over the future_locations list
-            for location in future_locations:
-                if location is not None:
-                    # Calculate the bounding box of the circle
-                    upper_left = (location[0] - radius, location[1] - radius)
-                    lower_right = (location[0] + radius, location[1] + radius)
+            # # Iterate over the future_locations list
+            if future_locations is not None:
+                for location in future_locations:
+                    if location is not None:
+                        previous_loc = None
+                        for loc in location:
+                            # Convert coordinates to integers
+                            x, y = map(int, loc)
+                            # Calculate the bounding box of the circle
+                            upper_left = (x - radius, y - radius)
+                            lower_right = (x + radius, y + radius)
 
-                    # Draw a red circle
-                    draw.ellipse([upper_left, lower_right], fill="red")
+                            # Draw a blue circle
+                            # we're in some strange non-RGB world here
+                            draw.ellipse([upper_left, lower_right], fill="red")
 
-            # Convert the PIL image back to a numpy array
+                            # If there is a previous location, draw a line from the previous location to the current location
+                            if previous_loc is not None:
+                                draw.line([previous_loc, (x, y)], fill="red", width=3)
+                            # Update the previous location
+                            previous_loc = (x, y)
+                # Convert the PIL image back to a numpy array
             annotated_frame = np.array(image)
 
         image = Image.fromarray(annotated_frame)

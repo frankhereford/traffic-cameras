@@ -7,7 +7,7 @@ import signal
 import time
 import redis
 
-target_video_length = 60
+target_video_length = 30
 factor_for_waiting = 5
 
 

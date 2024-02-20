@@ -9,15 +9,21 @@ from dotenv import load_dotenv
 import os
 import redis
 
+from utilities.locationhistory import VehicleHistoryAndInference
 
-def main(input_file, output_file, db):
+
+def main(input_file, output_file, db, location_tracker):
     print(f"Input file: {input_file}")
     print(f"Output file: {output_file}")
-    image_processor = VideoProcessor(input=input_file, output=output_file, db=db)
+    image_processor = VideoProcessor(
+        input=input_file, output=output_file, db=db, location_tracker=location_tracker
+    )
     image_processor.process_video()
+    # location_tracker.pretty_print_all_history()
 
 
 if __name__ == "__main__":
+    location_tracker = VehicleHistoryAndInference()
 
     load_dotenv()
 
@@ -63,6 +69,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(args.input, args.output, db)
+    main(args.input, args.output, db, location_tracker)
 
     r.set("last-processed-video", output_filename)
