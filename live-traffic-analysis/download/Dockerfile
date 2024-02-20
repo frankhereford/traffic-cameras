@@ -13,7 +13,7 @@ RUN python3 -m pip install -U yt-dlp vtt_to_srt3 redis moviepy psycopg2-binary
 
 RUN mkdir /application
 COPY . /application
-WORKDIR /application/media
+WORKDIR /application
 
 ENTRYPOINT ["/application/download_and_serve.py"]
 #ENTRYPOINT ["/bin/bash"]
