@@ -7,8 +7,8 @@ import signal
 import time
 import redis
 
-target_video_length = 30
-factor_for_waiting = 5
+target_video_length = 300
+factor_for_waiting = 0
 
 
 def send_sigint_to_process(process):
@@ -34,6 +34,9 @@ def download_video(video_id):
     # Set the key
     r.set("last-downloaded-video", f"{video_id}-{timestamp}.mp4")
 
+    # Add the value to a FIFO queue
+    r.lpush("downloaded-videos-queue", f"{video_id}-{timestamp}.mp4")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download video media from youtube.")
@@ -44,5 +47,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     while True:
         download_video(args.video_id)
-        print("sleeping: ", (target_video_length * factor_for_waiting) + 5)
-        time.sleep((target_video_length * factor_for_waiting) + 5)
+        print("sleeping: ", (target_video_length * factor_for_waiting))
+        time.sleep((target_video_length * factor_for_waiting))
