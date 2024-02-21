@@ -81,7 +81,7 @@ def make_detections(model, tracker, frame):
     result = model(frame, verbose=False)[0]
     detections = sv.Detections.from_ultralytics(result)
     detections = tracker.update_with_detections(detections)
-    return detections
+    return result, detections
 
 
 def get_supervision_objects():
@@ -145,9 +145,6 @@ def prepare_detection(
     latitude,
     frame_hash,
 ):
-    # Convert the Unix timestamp to a datetime value
-    timestamp = datetime.datetime.fromtimestamp(timestamp)
-
     # Convert the timestamp to Central Time
     central = pytz.timezone("America/Chicago")
     timestamp = timestamp.astimezone(central)
@@ -183,45 +180,141 @@ def create_new_session(db):
         return session_id["id"]
 
 
+def get_class_id(db, session, results, detections):
+    # Check if the record exists
+    select_query = """
+    SELECT id FROM classes 
+    WHERE session_id = %s AND class_id = %s AND class_name = %s
+    """
+
+    insert_query = """
+    INSERT INTO classes (session_id, class_id, class_name) 
+    VALUES (%s, %s, %s) RETURNING id
+    """
+
+    class_names = [results.names.get(class_id) for class_id in detections.class_id]
+
+    ids = []
+    for class_id, class_name in zip(detections.class_id, class_names):
+        with db.cursor() as cursor:
+            cursor.execute(select_query, (session, int(class_id), class_name))
+            result = cursor.fetchone()
+
+            # If the record exists, add its id to the list
+            if result:
+                ids.append(result["id"])
+            else:
+                # If the record does not exist, insert it and add its id to the list
+                cursor.execute(insert_query, (session, int(class_id), class_name))
+                db.commit()
+                result = cursor.fetchone()
+                if result:
+                    ids.append(result["id"])
+                else:
+                    raise Exception("Failed to insert new record into classes table")
+    return ids
+
+
+def get_class_names(class_ids, result):
+    return [result.names.get(class_id) for class_id in class_ids]
+
+
+def do_bulk_insert(records):
+    print("insert!")
+    return []
+
+
+def process_detections(
+    detections,
+    detection_classes,
+    image_space_locations,
+    map_space_locations,
+    time,
+    session,
+    hash,
+):
+    records_to_insert = []
+
+    for (
+        tracker_id,
+        detection_class,
+        image_space_location,
+        map_space_location,
+    ) in zip(
+        detections.tracker_id,
+        detection_classes,
+        image_space_locations,
+        map_space_locations,
+    ):
+        records_to_insert = prepare_detection(
+            records_to_insert,
+            tracker_id,
+            detection_class,
+            image_space_location[0],
+            image_space_location[1],
+            time,
+            session,
+            map_space_location[0],
+            map_space_location[1],
+            hash,
+        )
+
+        if len(records_to_insert) >= 10000:
+            records_to_insert = do_bulk_insert(records_to_insert)
+
+    return records_to_insert
+
+
 def main():
     db, redis = setup_service_handles()
     args = receive_arguments()
     while True:
         job = get_a_job(redis)
+        session = create_new_session(db)
         information = get_video_information(job)
-        print(f"Information: {information}")
         input = get_frame_generator(job)
         model, tracker = get_supervision_objects()
         tps, inverse_tps = get_tps()
         time = get_datetime_from_job(job)
         frame_duration = get_frame_duration(information)
         records_to_insert = []
-        session_id = create_new_session(db)
         for frame in tqdm(input, total=information.total_frames):
             hash = hash_frame(frame)
-            detections = make_detections(model, tracker, frame)
+            results, detections = make_detections(model, tracker, frame)
+            detection_classes = get_class_id(db, session, results, detections)
+            # print(f"Detection classes: {detection_classes}")
+
             image_space_locations = get_image_space_locations(detections)
             map_space_locations = get_map_space_locations(tps, image_space_locations)
             time += frame_duration
-            print(f"Detections: {detections}")
-            # for detection in detections:
-            #     print(f"Detection: {detection}")
-            # records_to_insert = prepare_detection(
-            #     records_to_insert,
-            #     detection.tracker_id,
-            #     detection.class_id,
-            #     detection.image_x,
-            #     detection.image_y,
-            #     time.timestamp(),
-            #     session_id,  # You need to define this
-            #     map_space_locations[detection.index].x,
-            #     map_space_locations[detection.index].y,
-            #     hash,
-            # )
-            # if len(records_to_insert) >= n:
-            #     # Here you can insert the records into the database
-            #     # insert_records(db, records_to_insert)
-            #     records_to_insert = []
+            for (
+                tracker_id,
+                detection_class,
+                image_space_location,
+                map_space_location,
+            ) in zip(
+                detections.tracker_id,
+                detection_classes,
+                image_space_locations,
+                map_space_locations,
+            ):
+                records_to_insert = prepare_detection(
+                    records_to_insert,
+                    tracker_id,
+                    detection_class,
+                    image_space_location[0],
+                    image_space_location[1],
+                    time,
+                    session,
+                    map_space_location[0],
+                    map_space_location[1],
+                    hash,
+                )
+
+                if len(records_to_insert) >= 10000:
+                    records_to_insert = do_bulk_insert(records_to_insert)
+
+        records_to_insert = do_bulk_insert(records_to_insert)  # process the tail
 
 
 if __name__ == "__main__":
