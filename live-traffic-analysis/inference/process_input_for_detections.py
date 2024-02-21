@@ -282,37 +282,24 @@ def main():
             hash = hash_frame(frame)
             results, detections = make_detections(model, tracker, frame)
             detection_classes = get_class_id(db, session, results, detections)
-            # print(f"Detection classes: {detection_classes}")
 
             image_space_locations = get_image_space_locations(detections)
             map_space_locations = get_map_space_locations(tps, image_space_locations)
             time += frame_duration
-            for (
-                tracker_id,
-                detection_class,
-                image_space_location,
-                map_space_location,
-            ) in zip(
-                detections.tracker_id,
-                detection_classes,
-                image_space_locations,
-                map_space_locations,
-            ):
-                records_to_insert = prepare_detection(
-                    records_to_insert,
-                    tracker_id,
-                    detection_class,
-                    image_space_location[0],
-                    image_space_location[1],
+            records_to_insert.extend(
+                process_detections(
+                    detections,
+                    detection_classes,
+                    image_space_locations,
+                    map_space_locations,
                     time,
                     session,
-                    map_space_location[0],
-                    map_space_location[1],
                     hash,
                 )
+            )
 
-                if len(records_to_insert) >= 10000:
-                    records_to_insert = do_bulk_insert(records_to_insert)
+            if len(records_to_insert) >= 10000:
+                records_to_insert = do_bulk_insert(records_to_insert)
 
         records_to_insert = do_bulk_insert(records_to_insert)  # process the tail
 
