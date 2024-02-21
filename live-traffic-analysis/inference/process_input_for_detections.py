@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import json
 import pytz
 import uuid
 import torch
+import pickle
 import hashlib
 import argparse
 import psycopg2
@@ -46,12 +48,20 @@ def receive_arguments():
         description="Process new video and record detections as quickly as possible"
     )
 
+    parser.add_argument(
+        "-d",
+        "--detections",
+        action="store_true",
+        help="Flag to enable or disable storing detections",
+    )
+
     args = parser.parse_args()
     return args
 
 
 def get_a_job(redis):
     _, value = redis.brpop("downloaded-videos-queue")
+    print("value: ", value)
     # Decode bytes object to string
     value = value.decode("utf-8")
     print("Received job: ", value)
@@ -180,8 +190,7 @@ def create_new_session(db):
         return session_id["id"]
 
 
-def get_class_id(db, session, results, detections):
-    # Check if the record exists
+def get_class_id(db, redis, session, results, detections):
     select_query = """
     SELECT id FROM classes 
     WHERE session_id = %s AND class_id = %s AND class_name = %s
@@ -196,22 +205,41 @@ def get_class_id(db, session, results, detections):
 
     ids = []
     for class_id, class_name in zip(detections.class_id, class_names):
-        with db.cursor() as cursor:
-            cursor.execute(select_query, (session, int(class_id), class_name))
-            result = cursor.fetchone()
+        # Create a unique key for each class_id and class_name pair
+        key = f"{session}:{class_id}:{class_name}"
 
-            # If the record exists, add its id to the list
-            if result:
-                ids.append(result["id"])
-            else:
-                # If the record does not exist, insert it and add its id to the list
-                cursor.execute(insert_query, (session, int(class_id), class_name))
-                db.commit()
+        # Try to get the id from Redis
+        id = redis.get(key)
+
+        if id is None:
+            # If the id is not in Redis, get it from the database
+            with db.cursor() as cursor:
+                cursor.execute(select_query, (session, int(class_id), class_name))
                 result = cursor.fetchone()
+
                 if result:
-                    ids.append(result["id"])
+                    id = result["id"]
                 else:
-                    raise Exception("Failed to insert new record into classes table")
+                    # If the record does not exist, insert it
+                    cursor.execute(insert_query, (session, int(class_id), class_name))
+                    db.commit()
+                    result = cursor.fetchone()
+                    if result:
+                        id = result["id"]
+                    else:
+                        raise Exception(
+                            "Failed to insert new record into classes table"
+                        )
+
+                # Store the id in Redis
+                redis.set(key, json.dumps(id))
+
+        else:
+            # If the id is in Redis, decode it
+            id = json.loads(id)
+
+        ids.append(id)
+
     return ids
 
 
@@ -219,9 +247,17 @@ def get_class_names(class_ids, result):
     return [result.names.get(class_id) for class_id in class_ids]
 
 
-def do_bulk_insert(records):
-    print("insert!")
-    return []
+def do_bulk_insert(db, records_to_insert):
+    insert_query = """
+    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id, frame_hash) 
+    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s, %s)
+    """
+    with db.cursor() as cursor:
+        cursor.executemany(insert_query, records_to_insert)
+    db.commit()
+    # Clear the records list
+    records_to_insert.clear()
+    return records_to_insert
 
 
 def process_detections(
@@ -259,9 +295,6 @@ def process_detections(
             hash,
         )
 
-        if len(records_to_insert) >= 10000:
-            records_to_insert = do_bulk_insert(records_to_insert)
-
     return records_to_insert
 
 
@@ -270,6 +303,7 @@ def main():
     args = receive_arguments()
     while True:
         job = get_a_job(redis)
+        print("Processing job: ", job)
         session = create_new_session(db)
         information = get_video_information(job)
         input = get_frame_generator(job)
@@ -279,29 +313,33 @@ def main():
         frame_duration = get_frame_duration(information)
         records_to_insert = []
         for frame in tqdm(input, total=information.total_frames):
-            hash = hash_frame(frame)
             results, detections = make_detections(model, tracker, frame)
-            detection_classes = get_class_id(db, session, results, detections)
-
-            image_space_locations = get_image_space_locations(detections)
-            map_space_locations = get_map_space_locations(tps, image_space_locations)
-            time += frame_duration
-            records_to_insert.extend(
-                process_detections(
-                    detections,
-                    detection_classes,
-                    image_space_locations,
-                    map_space_locations,
-                    time,
-                    session,
-                    hash,
+            if args.detections == True:
+                hash = hash_frame(frame)
+                detection_classes = get_class_id(
+                    db, redis, session, results, detections
                 )
-            )
-
-            if len(records_to_insert) >= 10000:
-                records_to_insert = do_bulk_insert(records_to_insert)
-
-        records_to_insert = do_bulk_insert(records_to_insert)  # process the tail
+                image_space_locations = get_image_space_locations(detections)
+                map_space_locations = get_map_space_locations(
+                    tps, image_space_locations
+                )
+                records_to_insert.extend(
+                    process_detections(
+                        detections,
+                        detection_classes,
+                        image_space_locations,
+                        map_space_locations,
+                        time,
+                        session,
+                        hash,
+                    )
+                )
+                if len(records_to_insert) >= 10000:
+                    records_to_insert = do_bulk_insert(db, records_to_insert)
+                time += frame_duration
+        # process the tail
+        if args.detections == True:
+            records_to_insert = do_bulk_insert(db, records_to_insert)
 
 
 if __name__ == "__main__":
