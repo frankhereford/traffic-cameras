@@ -5,11 +5,9 @@ import json
 import pytz
 import uuid
 import torch
-import pickle
 import hashlib
 import argparse
 import psycopg2
-import numpy as np
 from tqdm import tqdm
 import psycopg2.extras
 import supervision as sv
@@ -61,10 +59,10 @@ def receive_arguments():
 
 def get_a_job(redis):
     _, value = redis.brpop("downloaded-videos-queue")
-    print("value: ", value)
+    # print("value: ", value)
     # Decode bytes object to string
     value = value.decode("utf-8")
-    print("Received job: ", value)
+    # print("Received job: ", value)
     return value
 
 
@@ -298,9 +296,8 @@ def process_detections(
     return records_to_insert
 
 
-def main():
-    db, redis = setup_service_handles()
-    args = receive_arguments()
+# fmt: off
+def detections(redis, db):
     while True:
         job = get_a_job(redis)
         print("Processing job: ", job)
@@ -314,32 +311,28 @@ def main():
         records_to_insert = []
         for frame in tqdm(input, total=information.total_frames):
             results, detections = make_detections(model, tracker, frame)
-            if args.detections == True:
-                hash = hash_frame(frame)
-                detection_classes = get_class_id(
-                    db, redis, session, results, detections
-                )
-                image_space_locations = get_image_space_locations(detections)
-                map_space_locations = get_map_space_locations(
-                    tps, image_space_locations
-                )
-                records_to_insert.extend(
-                    process_detections(
-                        detections,
-                        detection_classes,
-                        image_space_locations,
-                        map_space_locations,
-                        time,
-                        session,
-                        hash,
-                    )
-                )
-                if len(records_to_insert) >= 10000:
-                    records_to_insert = do_bulk_insert(db, records_to_insert)
-                time += frame_duration
+            hash = hash_frame(frame)
+            detection_classes = get_class_id(db, redis, session, results, detections)
+            image_space_locations = get_image_space_locations(detections)
+            map_space_locations = get_map_space_locations(tps, image_space_locations)
+            records_to_insert.extend(process_detections( detections, detection_classes, image_space_locations, map_space_locations, time, session, hash,))
+            if len(records_to_insert) >= 10000:
+                records_to_insert = do_bulk_insert(db, records_to_insert)
+            time += frame_duration
         # process the tail
-        if args.detections == True:
-            records_to_insert = do_bulk_insert(db, records_to_insert)
+        records_to_insert = do_bulk_insert(db, records_to_insert)
+# fmt: on
+
+
+# ? the way this should work is that you run it in -d mode and it does detections
+# ? and then you put those completions in a queue and run it in -c mode to purge out tracks/detections from void lists
+# ? and pipe that into a queue which does the next thing.
+# ? the idea is that decoding is super cheap and detecting isn't bad.
+def main():
+    db, redis = setup_service_handles()
+    args = receive_arguments()
+    if args.detections:
+        detections(redis, db)
 
 
 if __name__ == "__main__":
