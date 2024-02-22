@@ -142,60 +142,51 @@ def get_frame_duration(information):
 
 
 def prepare_detection(
-    records_to_insert,
     tracker_id,
-    class_id,
-    image_x,
-    image_y,
-    timestamp,
-    session_id,
-    longitude,
-    latitude,
-    frame_hash,
+    xyxy,
+    confidence,
+    map_space_location,
+    frame_id,
 ):
-    # Convert the timestamp to Central Time
-    central = pytz.timezone("America/Chicago")
-    timestamp = timestamp.astimezone(central)
+    # Extract coordinates and location
+    x1, y1, x2, y2 = map(float, xyxy)
+    longitude, latitude = map_space_location
+
+    location = f"POINT({longitude} {latitude})"
 
     record_to_insert = (
-        int(tracker_id),
-        int(image_x),
-        int(image_y),
-        timestamp,
-        session_id,
-        float(longitude),
-        float(latitude),
-        int(class_id),
-        frame_hash,
+        frame_id,
+        tracker_id,
+        x1,
+        y1,
+        x2,
+        y2,
+        float(confidence),
+        location,
     )
-    records_to_insert.append(record_to_insert)
 
-    return records_to_insert
+    return record_to_insert
 
 
-def create_new_session(db):
-    # Generate a fresh UUID
-    new_uuid = uuid.uuid4()
-
-    # Insert a new session record and return the id
-    insert_query = """INSERT INTO sessions (uuid) VALUES (%s) RETURNING id;"""
+def create_new_recording(db, job, time):
+    insert_query = """INSERT INTO detections.recordings (filename, start_time) VALUES (%s, %s) RETURNING id;"""
 
     with db.cursor() as cursor:
-        cursor.execute(insert_query, (str(new_uuid),))
+        cursor.execute(insert_query, (job, time))
+        recording_id = cursor.fetchone()
+        db.commit()
+        print(f"Recording id: {recording_id['id']}")
+        return recording_id["id"]
 
-        # Fetch the id of the newly inserted record
-        session_id = cursor.fetchone()
-        return session_id["id"]
 
-
-def get_class_id(db, redis, session, results, detections):
+def get_class_ids(db, redis, recording, results, detections):
     select_query = """
-    SELECT id FROM classes 
-    WHERE session_id = %s AND class_id = %s AND class_name = %s
+    SELECT id FROM detections.classes 
+    WHERE recording_id = %s AND ultralytics_id = %s AND ultralytics_name = %s
     """
 
     insert_query = """
-    INSERT INTO classes (session_id, class_id, class_name) 
+    INSERT INTO detections.classes (recording_id, ultralytics_id, ultralytics_name) 
     VALUES (%s, %s, %s) RETURNING id
     """
 
@@ -204,7 +195,7 @@ def get_class_id(db, redis, session, results, detections):
     ids = []
     for class_id, class_name in zip(detections.class_id, class_names):
         # Create a unique key for each class_id and class_name pair
-        key = f"{session}:{class_id}:{class_name}"
+        key = f"{recording}:{class_id}:{class_name}"
 
         # Try to get the id from Redis
         id = redis.get(key)
@@ -212,14 +203,14 @@ def get_class_id(db, redis, session, results, detections):
         if id is None:
             # If the id is not in Redis, get it from the database
             with db.cursor() as cursor:
-                cursor.execute(select_query, (session, int(class_id), class_name))
+                cursor.execute(select_query, (recording, int(class_id), class_name))
                 result = cursor.fetchone()
 
                 if result:
                     id = result["id"]
                 else:
                     # If the record does not exist, insert it
-                    cursor.execute(insert_query, (session, int(class_id), class_name))
+                    cursor.execute(insert_query, (recording, int(class_id), class_name))
                     db.commit()
                     result = cursor.fetchone()
                     if result:
@@ -246,9 +237,10 @@ def get_class_names(class_ids, result):
 
 
 def do_bulk_insert(db, records_to_insert):
+    # print(records_to_insert[0])
     insert_query = """
-    INSERT INTO detections (tracker_id, image_x, image_y, timestamp, session_id, location, class_id, frame_hash) 
-    VALUES (%s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253), %s, %s)
+    INSERT INTO detections.detections (frame_id, tracker_id, x1, y1, x2, y2, confidence, location) 
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
     with db.cursor() as cursor:
         cursor.executemany(insert_query, records_to_insert)
@@ -258,42 +250,122 @@ def do_bulk_insert(db, records_to_insert):
     return records_to_insert
 
 
-def process_detections(
-    detections,
-    detection_classes,
-    image_space_locations,
-    map_space_locations,
-    time,
-    session,
-    hash,
-):
+def process_detections(frame_id, detections, map_space_locations, tracker_ids):
     records_to_insert = []
 
-    for (
-        tracker_id,
-        detection_class,
-        image_space_location,
-        map_space_location,
-    ) in zip(
-        detections.tracker_id,
-        detection_classes,
-        image_space_locations,
+    for tracker_id, xyxy, confidence, map_space_location in zip(
+        tracker_ids,
+        detections.xyxy,
+        detections.confidence,
         map_space_locations,
     ):
-        records_to_insert = prepare_detection(
-            records_to_insert,
-            tracker_id,
-            detection_class,
-            image_space_location[0],
-            image_space_location[1],
-            time,
-            session,
-            map_space_location[0],
-            map_space_location[1],
-            hash,
+        records_to_insert.append(
+            prepare_detection(
+                tracker_id,
+                xyxy,
+                confidence,
+                map_space_location,
+                frame_id,
+            )
         )
 
     return records_to_insert
+
+
+def get_frame_id(db, redis, recording, hash, time):
+    select_query = """
+    SELECT id FROM detections.frames 
+    WHERE recording_id = %s AND hash = %s
+    """
+
+    insert_query = """
+    INSERT INTO detections.frames (recording_id, hash, time) 
+    VALUES (%s, %s, %s) RETURNING id
+    """
+
+    # Create a unique key for the Redis cache
+    key = f"frame:{recording}:{hash}"
+
+    # Try to get the id from Redis
+    id = redis.get(key)
+
+    if id is None:
+        # If the id is not in Redis, get it from the database
+        with db.cursor() as cursor:
+            cursor.execute(select_query, (recording, hash))
+            result = cursor.fetchone()
+
+            if result:
+                id = result["id"]
+            else:
+                # If the record does not exist, insert it
+                cursor.execute(insert_query, (recording, hash, time))
+                db.commit()
+                result = cursor.fetchone()
+                if result:
+                    id = result["id"]
+                else:
+                    raise Exception("Failed to insert new record into frames table")
+
+            # Store the id in Redis
+            redis.set(key, json.dumps(id))
+
+    else:
+        # If the id is in Redis, decode it
+        id = json.loads(id)
+
+    return id
+
+
+def get_tracker_ids(db, redis, detection_classes, detections):
+    select_query = """
+    SELECT id FROM detections.trackers 
+    WHERE class_id = %s AND ultralytics_id = %s
+    """
+
+    insert_query = """
+    INSERT INTO detections.trackers (class_id, ultralytics_id) 
+    VALUES (%s, %s) RETURNING id
+    """
+
+    tracker_ids = []
+    for class_id, tracker_id in zip(detection_classes, detections.tracker_id):
+        # Create a unique key for each class_id and tracker_id pair
+        key = f"tracker:{class_id}:{tracker_id}"
+
+        # Try to get the id from Redis
+        id = redis.get(key)
+
+        if id is None:
+            # If the id is not in Redis, get it from the database
+            with db.cursor() as cursor:
+                cursor.execute(select_query, (class_id, int(tracker_id)))
+                result = cursor.fetchone()
+
+                if result:
+                    id = result["id"]
+                else:
+                    # If the record does not exist, insert it
+                    cursor.execute(insert_query, (class_id, int(tracker_id)))
+                    db.commit()
+                    result = cursor.fetchone()
+                    if result:
+                        id = result["id"]
+                    else:
+                        raise Exception(
+                            "Failed to insert new record into trackers table"
+                        )
+
+                # Store the id in Redis
+                redis.set(key, json.dumps(id))
+
+        else:
+            # If the id is in Redis, decode it
+            id = json.loads(id)
+
+        tracker_ids.append(id)
+
+    return tracker_ids
 
 
 # fmt: off
@@ -301,21 +373,23 @@ def detections(redis, db):
     while True:
         job = get_a_job(redis)
         print("Processing job: ", job)
-        session = create_new_session(db)
+        time = get_datetime_from_job(job)
+        recording = create_new_recording(db, job, time)
         information = get_video_information(job)
         input = get_frame_generator(job)
         model, tracker = get_supervision_objects()
         tps, inverse_tps = get_tps()
-        time = get_datetime_from_job(job)
         frame_duration = get_frame_duration(information)
         records_to_insert = []
         for frame in tqdm(input, total=information.total_frames):
-            results, detections = make_detections(model, tracker, frame)
             hash = hash_frame(frame)
-            detection_classes = get_class_id(db, redis, session, results, detections)
+            frame_id = get_frame_id(db, redis, recording, hash, time)
+            results, detections = make_detections(model, tracker, frame)
+            detection_classes = get_class_ids(db, redis, recording, results, detections)
+            tracker_ids = get_tracker_ids(db, redis, detection_classes, detections)
             image_space_locations = get_image_space_locations(detections)
             map_space_locations = get_map_space_locations(tps, image_space_locations)
-            records_to_insert.extend(process_detections( detections, detection_classes, image_space_locations, map_space_locations, time, session, hash,))
+            records_to_insert.extend(process_detections(frame_id, detections, map_space_locations, tracker_ids))
             if len(records_to_insert) >= 10000:
                 records_to_insert = do_bulk_insert(db, records_to_insert)
             time += frame_duration
