@@ -40,7 +40,6 @@ def receive_arguments():
 
 def main():
     db, redis = setup_service_handles()
-    # args = receive_arguments()
     with db.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
         cursor.execute("SELECT COUNT(*) FROM detections.tracks")
         total_rows = cursor.fetchone()[0]
@@ -48,10 +47,8 @@ def main():
         cursor.execute("SELECT tracker_id FROM detections.tracks")
         for row in tqdm(cursor, total=total_rows, desc="Processing rows"):
             tracker_id = row["tracker_id"]
-            # print(f"Tracker ID: {tracker_id}")
 
             with db.cursor(cursor_factory=psycopg2.extras.DictCursor) as inner_cursor:
-                # Select all detections.detections with the current tracker_id
                 inner_cursor.execute(
                     """
                     SELECT detections.id
@@ -64,9 +61,57 @@ def main():
                 )
                 detections = inner_cursor.fetchall()
 
-                for detection in detections:
-                    # print(f"Detection count: {detection['count']}")
-                    pass
+                # Divide detections into groups of 60
+                groups = [detections[n : n + 60] for n in range(0, len(detections), 60)]
+
+                # Discard groups with less than 60 detections
+                groups = [group for group in groups if len(group) == 60]
+
+                # Discard extra detections from the start and end of the list
+                if len(groups) > 1:
+                    groups = groups[1:-1]
+
+                for i, group in enumerate(groups):
+                    # Insert a new record into the training_data.samples table
+                    inner_cursor.execute(
+                        """
+                        INSERT INTO training_data.samples (tracker_id)
+                        VALUES (%s)
+                        RETURNING id
+                        """,
+                        (tracker_id,),
+                    )
+                    sample_id = inner_cursor.fetchone()[0]
+
+                    # Buffer for the queries
+                    query_buffer = []
+
+                    # For each detection in the group, prepare the parameters for the INSERT query
+                    for detection in group:
+                        query_buffer.append((sample_id, detection["id"]))
+
+                        # If there are more than 1000 queries in the buffer, execute them with executemany
+                        if len(query_buffer) >= 1000:
+                            inner_cursor.executemany(
+                                """
+                                INSERT INTO training_data.detections (sample_id, detection_id)
+                                VALUES (%s, %s)
+                                """,
+                                query_buffer,
+                            )
+                            query_buffer = []
+
+                    # Execute any remaining queries in the buffer
+                    if query_buffer:
+                        inner_cursor.executemany(
+                            """
+                            INSERT INTO training_data.detections (sample_id, detection_id)
+                            VALUES (%s, %s)
+                            """,
+                            query_buffer,
+                        )
+
+                    db.commit()
 
 
 if __name__ == "__main__":
