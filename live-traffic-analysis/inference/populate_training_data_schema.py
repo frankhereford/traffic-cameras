@@ -3,6 +3,7 @@
 import os
 import time
 import psycopg2
+import argparse
 import psycopg2.extras
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -32,17 +33,7 @@ def setup_service_handles():
 
 
 def receive_arguments():
-    parser = argparse.ArgumentParser(
-        description="Process new video and record detections as quickly as possible"
-    )
-
-    parser.add_argument(
-        "-d",
-        "--detections",
-        action="store_true",
-        help="Flag to enable or disable storing detections",
-    )
-
+    parser = argparse.ArgumentParser(description="")
     args = parser.parse_args()
     return args
 
@@ -51,9 +42,31 @@ def main():
     db, redis = setup_service_handles()
     # args = receive_arguments()
     with db.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-        cursor.execute("SELECT * FROM detections.tracks")
-        for row in tqdm(cursor, desc="Processing rows"):
-            time.sleep(0.001)
+        cursor.execute("SELECT COUNT(*) FROM detections.tracks")
+        total_rows = cursor.fetchone()[0]
+
+        cursor.execute("SELECT tracker_id FROM detections.tracks")
+        for row in tqdm(cursor, total=total_rows, desc="Processing rows"):
+            tracker_id = row["tracker_id"]
+            # print(f"Tracker ID: {tracker_id}")
+
+            with db.cursor(cursor_factory=psycopg2.extras.DictCursor) as inner_cursor:
+                # Select all detections.detections with the current tracker_id
+                inner_cursor.execute(
+                    """
+                    SELECT detections.id
+                    FROM detections.detections 
+                    JOIN detections.frames ON detections.frame_id = frames.id
+                    WHERE tracker_id = %s
+                    ORDER BY frames.time ASC
+                    """,
+                    (tracker_id,),
+                )
+                detections = inner_cursor.fetchall()
+
+                for detection in detections:
+                    # print(f"Detection count: {detection['count']}")
+                    pass
 
 
 if __name__ == "__main__":
