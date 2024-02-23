@@ -236,9 +236,32 @@ if __name__ == "__main__":
         )
 
         vehicle_tracker.eval()
-        with torch.no_grad():
-            prediction = vehicle_tracker(input_tensor)
+        # with torch.no_grad():
+        #     vehicle_tracker.eval()
+        #     prediction = vehicle_tracker(input_tensor)
 
-        # Continue with your verification code here...
+        # input_array = input_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (30, 2)
+        # output_array = output_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
+        # prediction_array = prediction.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
 
-        print(f"length of pairs: {len(coordinate_pairs)}")
+        # input_inverted = min_max_scaler.inverse_transform(input_array)
+        # output_inverted = min_max_scaler.inverse_transform(output_array)
+        # prediction_inverted = min_max_scaler.inverse_transform(prediction_array)
+
+        # distance = np.sqrt(np.sum((output_inverted - prediction_inverted) ** 2))
+        # print("Distance: ", distance)
+
+        # # record track and prediction in DB
+        # # if iteration % 100 == 0:
+        # if iteration in [10, 20, 30]:
+        #     # cursor = db.cursor()
+        #     # cursor.execute("truncate prediction cascade;")
+        #     # db.commit()
+        #     # cursor.close()
+
+        #     # Create a new prediction record
+        #     cursor = db.cursor()
+        #     cursor.execute("INSERT INTO public.prediction DEFAULT VALUES RETURNING id;")
+        #     result = cursor.fetchone()
+        #     prediction_id = result["id"]
+        #     db.commit()
