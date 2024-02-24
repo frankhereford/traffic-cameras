@@ -245,7 +245,7 @@ if __name__ == "__main__":
             vehicle_tracker.eval()
             prediction = vehicle_tracker(input_tensor)
 
-        print(f"Prediction shape: {prediction.shape}")
+        # print(f"Prediction shape: {prediction.shape}")
 
         input_array = input_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (30, 2)
         output_array = output_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
@@ -301,13 +301,8 @@ if __name__ == "__main__":
 
     end_time = time.time()
 
-    # Calculate the elapsed time
     elapsed_time = end_time - start_time
-
-    # Calculate the hours
     hours, remainder = divmod(elapsed_time, 3600)
-
-    # Calculate the minutes and seconds
     minutes, seconds = divmod(remainder, 60)
 
     print(
