@@ -20,14 +20,13 @@ from torch.utils.data import TensorDataset, DataLoader
 from libraries.parameters import SEGMENT_LENGTH, PREDICTION_DISTANCE
 from libraries.lstmvehicletracker import LSTMVehicleTracker
 
-# from libraries.parameters import INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE
-num_epochs = 50
-epoch_print_interval = 25
+num_epochs = 100
+epoch_print_interval = 10
 hidden_size = 256
 num_layers = 2
 learning_rate = 0.0001
 batch_size = 64
-verification_loops = 1024
+verification_loops = 64
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -145,10 +144,11 @@ if __name__ == "__main__":
     print("Shape of testing_tracks: ", testing_tracks.shape)
 
     input_training_tracks = training_tracks[:, :30, :]
-
     input_testing_tracks = testing_tracks[:, :30, :]
 
-    indices = [30, 35, 40, 45, 50, 55]
+    indices = list(range(30, 60, 5))  # This will create a list [30, 35, 40, 45, 50, 55]
+    if 59 not in indices:
+        indices.append(59)  # Add the last point if it wasn't already included
 
     output_training_tracks = training_tracks[:, indices, :]
     output_testing_tracks = testing_tracks[:, indices, :]
@@ -171,7 +171,11 @@ if __name__ == "__main__":
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
     vehicle_tracker = LSTMVehicleTracker(
-        input_size=2, hidden_size=hidden_size, num_layers=num_layers, seq_length=30
+        input_size=2,
+        hidden_size=hidden_size,
+        num_layers=num_layers,
+        seq_length=30,
+        output_pairs=7,
     )
     vehicle_tracker = vehicle_tracker.to(device)
     print(vehicle_tracker)
@@ -231,37 +235,87 @@ if __name__ == "__main__":
         input_tensor = Variable(torch.Tensor(normalized_coordinates[:, :30, :])).to(
             device
         )
-        output_tensor = Variable(torch.Tensor(normalized_coordinates[:, 30:, :])).to(
-            device
-        )
+
+        output_tensor = Variable(
+            torch.Tensor(normalized_coordinates[:, indices, :])
+        ).to(device)
 
         vehicle_tracker.eval()
-        # with torch.no_grad():
-        #     vehicle_tracker.eval()
-        #     prediction = vehicle_tracker(input_tensor)
+        with torch.no_grad():
+            vehicle_tracker.eval()
+            prediction = vehicle_tracker(input_tensor)
 
-        # input_array = input_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (30, 2)
-        # output_array = output_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
-        # prediction_array = prediction.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
+        print(f"Prediction shape: {prediction.shape}")
 
-        # input_inverted = min_max_scaler.inverse_transform(input_array)
-        # output_inverted = min_max_scaler.inverse_transform(output_array)
-        # prediction_inverted = min_max_scaler.inverse_transform(prediction_array)
+        input_array = input_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (30, 2)
+        output_array = output_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
+        prediction_array = prediction.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
 
-        # distance = np.sqrt(np.sum((output_inverted - prediction_inverted) ** 2))
+        input_inverted = min_max_scaler.inverse_transform(input_array)
+        output_inverted = min_max_scaler.inverse_transform(output_array)
+        prediction_inverted = min_max_scaler.inverse_transform(prediction_array)
+
+        distance = np.sqrt(np.sum((output_inverted - prediction_inverted) ** 2))
         # print("Distance: ", distance)
 
-        # # record track and prediction in DB
-        # # if iteration % 100 == 0:
-        # if iteration in [10, 20, 30]:
-        #     # cursor = db.cursor()
-        #     # cursor.execute("truncate prediction cascade;")
-        #     # db.commit()
-        #     # cursor.close()
+        # if iteration % 100 == 0:
+        if iteration in [10, 20, 30]:
+            # Create a new prediction record
+            cursor = db.cursor()
+            cursor.execute("INSERT INTO public.prediction DEFAULT VALUES RETURNING id;")
+            result = cursor.fetchone()
+            prediction_id = result["id"]
+            db.commit()
 
-        #     # Create a new prediction record
-        #     cursor = db.cursor()
-        #     cursor.execute("INSERT INTO public.prediction DEFAULT VALUES RETURNING id;")
-        #     result = cursor.fetchone()
-        #     prediction_id = result["id"]
-        #     db.commit()
+            # Insert known points
+            for i, (x, y) in enumerate(input_inverted):
+                cursor.execute(
+                    """
+                    INSERT INTO known_points (prediction, sequence_number, location)
+                    VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253));
+                    """,
+                    (prediction_id, i, float(x), float(y)),
+                )
+            db.commit()
+
+            # Insert predicted points
+            for i, (x, y) in enumerate(prediction_inverted):
+                cursor.execute(
+                    """
+                    INSERT INTO predicted_points (prediction, sequence_number, location)
+                    VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 2253));
+                    """,
+                    (prediction_id, i, float(x), float(y)),
+                )
+            db.commit()
+
+            cursor.close()
+
+    total_distance += distance
+
+    # Increment the counter
+    counter += 6
+
+    average_distance = total_distance / counter
+    print(f"Average distance: {average_distance:.2f}")
+
+    end_time = time.time()
+
+    # Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    # Calculate the hours
+    hours, remainder = divmod(elapsed_time, 3600)
+
+    # Calculate the minutes and seconds
+    minutes, seconds = divmod(remainder, 60)
+
+    print(
+        "Training and testing took",
+        int(hours),
+        "hours,",
+        int(minutes),
+        "minutes, and",
+        int(seconds),
+        "seconds",
+    )
