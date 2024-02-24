@@ -53,12 +53,20 @@ def receive_arguments():
         help="Flag to enable or disable storing detections",
     )
 
+    parser.add_argument(
+        "-r",
+        "--render",
+        action="store_true",
+        default=False,
+        help="Flag to control if the output video will be rendered",
+    )
+
     args = parser.parse_args()
     return args
 
 
-def get_a_job(redis):
-    _, value = redis.brpop("downloaded-videos-queue")
+def get_a_job(redis, queue_name):
+    _, value = redis.brpop(queue_name)
     # print("value: ", value)
     # Decode bytes object to string
     value = value.decode("utf-8")
@@ -168,15 +176,48 @@ def prepare_detection(
     return record_to_insert
 
 
-def create_new_recording(db, job, time):
-    insert_query = """INSERT INTO detections.recordings (filename, start_time) VALUES (%s, %s) RETURNING id;"""
+def get_recording_id(db, redis, filename, start_time):
+    select_query = """
+    SELECT id FROM detections.recordings 
+    WHERE filename = %s AND start_time = %s
+    """
 
-    with db.cursor() as cursor:
-        cursor.execute(insert_query, (job, time))
-        recording_id = cursor.fetchone()
-        db.commit()
-        print(f"Recording id: {recording_id['id']}")
-        return recording_id["id"]
+    insert_query = """
+    INSERT INTO detections.recordings (filename, start_time) 
+    VALUES (%s, %s) RETURNING id
+    """
+
+    # Create a unique key for the recording
+    key = f"recording:{filename}:{start_time}"
+
+    # Try to get the id from Redis
+    recording_id = redis.get(key)
+
+    if recording_id is None:
+        # If the id is not in Redis, get it from the database
+        with db.cursor() as cursor:
+            cursor.execute(select_query, (filename, start_time))
+            result = cursor.fetchone()
+
+            if result:
+                recording_id = result["id"]
+            else:
+                # If the record does not exist, insert it
+                cursor.execute(insert_query, (filename, start_time))
+                db.commit()
+                result = cursor.fetchone()
+                if result:
+                    recording_id = result["id"]
+                else:
+                    raise Exception("Failed to insert new record into recordings table")
+
+            # Store the id in Redis
+            redis.set(key, json.dumps(recording_id))
+    else:
+        # If the id is in Redis, decode it
+        recording_id = json.loads(recording_id)
+
+    return recording_id
 
 
 def get_class_ids(db, redis, recording, results, detections):
@@ -368,13 +409,62 @@ def get_tracker_ids(db, redis, detection_classes, detections):
     return tracker_ids
 
 
+def get_output_path(job):
+    # Get the filename without the extension
+    base_name = os.path.splitext(job)[0]
+
+    # Get the current date and time
+    now = datetime.now()
+
+    # Format the date and time as YYMMDD-HHMMSS
+    date_time_str = now.strftime("%y%m%d-%H%M%S")
+
+    # Create the output file name
+    output_file_name = (
+        "/home/frank/traffic-cameras/live-traffic-analysis/inference/output_media/full_fps_output/"
+        + f"{base_name}_{date_time_str}.mp4"
+    )
+
+    print(f"Output file name: {output_file_name}")
+    return output_file_name
+
+
+def get_colors():
+    return sv.ColorPalette.default()
+
+
+def get_annotators(color):
+    box = sv.BoxCornerAnnotator(color=color)
+    trace = sv.TraceAnnotator(
+        thickness=2, trace_length=30, position=sv.Position.BOTTOM_CENTER
+    )
+    classs = sv.LabelAnnotator(
+        text_scale=0.5,
+        text_thickness=1,
+        text_padding=2,
+        text_position=sv.Position.TOP_CENTER,
+        text_color=sv.Color(r=0, g=0, b=0),
+    )
+    speed = sv.LabelAnnotator(
+        text_scale=0.5,
+        text_thickness=1,
+        text_padding=2,
+        text_position=sv.Position.BOTTOM_CENTER,
+        text_color=sv.Color(r=0, g=0, b=0),
+    )
+    smooth = sv.DetectionsSmoother(length=3)
+
+    return box, trace, classs, speed, smooth
+
+
 # fmt: off
 def detections(redis, db):
     while True:
-        job = get_a_job(redis)
+        job = None
+        job = get_a_job(redis, 'downloaded-videos-queue')
         print("Processing job: ", job)
         time = get_datetime_from_job(job)
-        recording = create_new_recording(db, job, time)
+        recording = get_recording_id(db, redis, job, time)
         information = get_video_information(job)
         input = get_frame_generator(job)
         model, tracker = get_supervision_objects()
@@ -395,7 +485,38 @@ def detections(redis, db):
             time += frame_duration
         # process the tail
         records_to_insert = do_bulk_insert(db, records_to_insert)
-# fmt: on
+
+def render(redis, db):
+    while True:
+        job = None
+        job = get_a_job(redis, 'render-videos-queue')
+        print("Processing job: ", job)
+        time = get_datetime_from_job(job)
+        recording = get_recording_id(db, redis, job, time)
+        information = get_video_information(job)
+        input = get_frame_generator(job)
+        model, tracker = get_supervision_objects()
+        tps, inverse_tps = get_tps()
+        frame_duration = get_frame_duration(information)
+        output_path = get_output_path(job)
+        colors = get_colors()
+        box, trace, classs, speed, smooth = get_annotators(colors)
+        with sv.VideoSink(output_path, information) as sink:
+            for frame in tqdm(input, total=information.total_frames):
+                hash = hash_frame(frame)
+                frame_id = get_frame_id(db, redis, recording, hash, time)
+                results, detections = make_detections(model, tracker, frame)
+                detection_classes = get_class_ids(db, redis, recording, results, detections)
+                tracker_ids = get_tracker_ids(db, redis, detection_classes, detections)
+                image_space_locations = get_image_space_locations(detections)
+                map_space_locations = get_map_space_locations(tps, image_space_locations)
+                class_names = get_class_names(detections.class_id, results)
+                frame = box.annotate(frame, detections)
+                frame = trace.annotate(frame, detections)
+                frame = classs.annotate(frame, detections, class_names)
+                sink.write_frame(frame=frame)
+                time += frame_duration
+
 
 
 # ? the way this should work is that you run it in -d mode and it does detections
@@ -407,6 +528,8 @@ def main():
     args = receive_arguments()
     if args.detections:
         detections(redis, db)
+    if args.render:
+        render(redis, db)
 
 
 if __name__ == "__main__":

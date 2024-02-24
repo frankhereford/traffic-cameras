@@ -38,7 +38,7 @@ def receive_arguments():
     return args
 
 
-def main():
+def main(input_length=60, prediction_length=60):
     db, redis = setup_service_handles()
     with db.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
         cursor.execute("SELECT COUNT(*) FROM detections.tracks")
@@ -61,11 +61,20 @@ def main():
                 )
                 detections = inner_cursor.fetchall()
 
-                # Divide detections into groups of 60
-                groups = [detections[n : n + 60] for n in range(0, len(detections), 60)]
+                # Divide detections into groups of (input_length + prediction_length)
+                groups = [
+                    detections[n : n + (input_length + prediction_length)]
+                    for n in range(
+                        0, len(detections), (input_length + prediction_length)
+                    )
+                ]
 
-                # Discard groups with less than 60 detections
-                groups = [group for group in groups if len(group) == 60]
+                # Discard groups with less than (input_length + prediction_length) detections
+                groups = [
+                    group
+                    for group in groups
+                    if len(group) == (input_length + prediction_length)
+                ]
 
                 # Discard extra detections from the start and end of the list
                 if len(groups) > 1:
@@ -73,6 +82,49 @@ def main():
 
                 for i, group in enumerate(groups):
                     # Insert a new record into the training_data.samples table
+
+                    # print(f"Group {i} has {group} detections")
+                    # # Calculate the distance between the first and last detection
+                    first_detection_id = group[0]["id"]
+                    last_detection_id = group[-1]["id"]
+
+                    # print(f"first_detection_id: {first_detection_id}")
+                    # print(f"last_detection_id: {last_detection_id}")
+
+                    distance = None
+                    with db.cursor(
+                        cursor_factory=psycopg2.extras.DictCursor
+                    ) as distance_cursor:
+                        distance_cursor.execute(
+                            """
+                            SELECT 
+                                ST_Distance(
+                                    (
+                                        SELECT location 
+                                        FROM detections.detections 
+                                        WHERE id = %s
+                                    ), 
+                                    (
+                                        SELECT location 
+                                        FROM detections.detections 
+                                        WHERE id = %s
+                                    )
+                            ) AS distance 
+                            """,
+                            (first_detection_id, last_detection_id),
+                        )
+                        distance = distance_cursor.fetchone()[0]
+
+                    # print(f"distance: {distance}")
+
+                    # Skip this group if the distance is less than 20 feet
+                    if distance < 20:
+                        # print(f"skip distance is {distance}")
+                        continue
+                    else:
+                        pass
+                        # print(f"insert distance is {distance}")
+
                     inner_cursor.execute(
                         """
                         INSERT INTO training_data.samples (tracker_id)
