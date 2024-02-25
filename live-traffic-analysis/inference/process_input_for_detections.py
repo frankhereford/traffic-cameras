@@ -421,7 +421,7 @@ def get_output_path(job):
 
     # Create the output file name
     output_file_name = (
-        "/home/frank/traffic-cameras/live-traffic-analysis/inference/output_media/full_fps_output/"
+        "/home/frank/development/traffic-cameras/live-traffic-analysis/inference/output_media/full_fps_output/"
         + f"{base_name}_{date_time_str}.mp4"
     )
 
@@ -430,7 +430,7 @@ def get_output_path(job):
 
 
 def get_colors():
-    return sv.ColorPalette.default()
+    return sv.ColorPalette.DEFAULT
 
 
 def get_annotators(color):
