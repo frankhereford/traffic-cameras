@@ -4,19 +4,29 @@ import os
 import json
 import pytz
 import uuid
+import copy
 import torch
 import hashlib
 import argparse
 import psycopg2
+
+import numpy as np
 from tqdm import tqdm
 import psycopg2.extras
 import supervision as sv
 from ultralytics import YOLO
 import redis as redis_library
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from torch_tps import ThinPlateSpline
+from PIL import Image, ImageDraw, ImageFont
+from datetime import datetime, timedelta, timezone
 from utilities.transformation import read_points_file
+from utilities.database_results_detections import (
+    Results,
+    from_database,
+    # update_with_tensors,
+    # update_with_detections,
+)
 
 
 def setup_service_handles():
@@ -97,6 +107,18 @@ def make_detections(model, tracker, frame):
     result = model(frame, verbose=False)[0]
     detections = sv.Detections.from_ultralytics(result)
     detections = tracker.update_with_detections(detections)
+    return result, detections
+
+
+def recall_detections(db, tracker, hash):
+    result = Results()
+    sv.Detections.from_database = from_database
+    # sv.ByteTrack.update_with_tensors = update_with_tensors
+    # sv.ByteTrack.update_with_detections = update_with_detections
+    detections = sv.Detections.from_database(db, hash)
+    # print("detections before: ", detections.speed)
+    detections = tracker.update_with_detections(detections)
+    # print("detections after: ", detections.speed)
     return result, detections
 
 
@@ -236,7 +258,7 @@ def get_class_ids(db, redis, recording, results, detections):
     ids = []
     for class_id, class_name in zip(detections.class_id, class_names):
         # Create a unique key for each class_id and class_name pair
-        key = f"{recording}:{class_id}:{class_name}"
+        key = f"class:{recording}:{class_id}:{class_name}"
 
         # Try to get the id from Redis
         id = redis.get(key)
@@ -457,6 +479,61 @@ def get_annotators(color):
     return box, trace, classs, speed, smooth
 
 
+def get_image_space_centers(detections):
+    points = detections.get_anchors_coordinates(anchor=sv.Position.CENTER)
+    # tensor = torch.tensor(points).float()
+    # tensor = tensor.to("cuda")
+    return points
+
+
+def get_top_labels(class_names, centers):
+    labels = []
+    for class_name, center in zip(class_names, centers):
+        # print(center)
+        # labels.append(f"{class_name} {center}")
+        labels.append(f"{class_name}: (x: {int(center[0])}, y: {int(center[1])})")
+    return labels
+
+
+def burn_in_timestamp(frame, time):
+    # Convert the frame to a PIL Image
+    image = Image.fromarray(frame)
+    draw = ImageDraw.Draw(image)
+
+    # Specify that the incoming time is in UTC
+    time = time.replace(tzinfo=timezone.utc)
+
+    # Convert the datetime object from UTC to Central Time
+    central = pytz.timezone("US/Central")
+    time_central = time.astimezone(central)
+
+    datetime_str = time_central.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+    # Load the font (you may need to adjust the path)
+    font = ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size=18
+    )
+
+    # Draw the datetime string onto the image
+    draw.text((10, 10), datetime_str, fill="white", font=font)
+
+    # Convert the image back to a numpy array
+    frame_with_timestamp = np.array(image)
+
+    return frame_with_timestamp
+
+
+def get_speed_labels(speeds):
+    formatted_rates = [
+        f"{rate:.1f} mph" if rate is not None else "..." for rate in speeds
+    ]
+
+    # Convert the list to a numpy array
+    speed_labels = np.array(formatted_rates, dtype=str)
+
+    return speed_labels
+
+
 # fmt: off
 def detections(redis, db):
     while True:
@@ -487,42 +564,54 @@ def detections(redis, db):
         records_to_insert = do_bulk_insert(db, records_to_insert)
 
 def render(redis, db):
-    while True:
-        job = None
-        job = get_a_job(redis, 'render-videos-queue')
-        print("Processing job: ", job)
-        time = get_datetime_from_job(job)
-        recording = get_recording_id(db, redis, job, time)
-        information = get_video_information(job)
-        input = get_frame_generator(job)
-        model, tracker = get_supervision_objects()
-        tps, inverse_tps = get_tps()
-        frame_duration = get_frame_duration(information)
-        output_path = get_output_path(job)
-        colors = get_colors()
-        box, trace, classs, speed, smooth = get_annotators(colors)
-        with sv.VideoSink(output_path, information) as sink:
-            for frame in tqdm(input, total=information.total_frames):
-                hash = hash_frame(frame)
-                frame_id = get_frame_id(db, redis, recording, hash, time)
-                results, detections = make_detections(model, tracker, frame)
-                detection_classes = get_class_ids(db, redis, recording, results, detections)
-                tracker_ids = get_tracker_ids(db, redis, detection_classes, detections)
-                image_space_locations = get_image_space_locations(detections)
-                map_space_locations = get_map_space_locations(tps, image_space_locations)
-                class_names = get_class_names(detections.class_id, results)
-                frame = box.annotate(frame, detections)
-                frame = trace.annotate(frame, detections)
-                frame = classs.annotate(frame, detections, class_names)
-                sink.write_frame(frame=frame)
-                time += frame_duration
+    # while True:
+    job = None
+    # job = get_a_job(redis, 'render-videos-queue')
+    job = "ByED80IKdIU-20240220-121727.mp4"
+    print("Processing job: ", job)
+    time = get_datetime_from_job(job)
+    recording = get_recording_id(db, redis, job, time)
+    information = get_video_information(job)
+    input = get_frame_generator(job)
+    model, tracker = get_supervision_objects()
+    tps, inverse_tps = get_tps()
+    frame_duration = get_frame_duration(information)
+    output_path = get_output_path(job)
+    colors = get_colors()
+    box, trace, classs, speed, smooth = get_annotators(colors)
+    with sv.VideoSink(output_path, information) as sink:
+        frame_count = 0
+        for frame in tqdm(input, total=information.total_frames):
+            if frame_count == 1024:
+                pass
+                break
+            hash = hash_frame(frame)
+            # print(f"hash: {hash}")
+            # frame_id = get_frame_id(db, redis, recording, hash, time)
+            results, detections = recall_detections(db, tracker, hash)
+            # print("detections: ", detections)
+            # print("speeds: ", speeds)
+            # detection_classes = get_class_ids(db, redis, recording, results, detections)
+            # tracker_ids = get_tracker_ids(db, redis, detection_classes, detections)
+            # image_space_locations = get_image_space_locations(detections)
+            # map_space_locations = get_map_space_locations(tps, image_space_locations)
+            class_names = get_class_names(detections.class_id, results)
+            centers = get_image_space_centers(detections)
+            labels = get_top_labels(class_names, centers)
+            # speed_labels = get_speed_labels(speeds)
+            # print(labels)
+            # print(speeds)
+            frame = box.annotate(frame, detections)
+            frame = trace.annotate(frame, detections)
+            frame = classs.annotate(frame, detections, labels)
+            # frame = speed.annotate(frame, detections, speed_labels)
+            frame = burn_in_timestamp(frame, time)
+            sink.write_frame(frame=frame)
+            time += frame_duration
+            frame_count += 1
 
 
 
-# ? the way this should work is that you run it in -d mode and it does detections
-# ? and then you put those completions in a queue and run it in -c mode to purge out tracks/detections from void lists
-# ? and pipe that into a queue which does the next thing.
-# ? the idea is that decoding is super cheap and detecting isn't bad.
 def main():
     db, redis = setup_service_handles()
     args = receive_arguments()
