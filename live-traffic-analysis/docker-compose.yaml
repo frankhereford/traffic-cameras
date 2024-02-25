@@ -9,9 +9,8 @@ services:
       - 80:80
       - 443:443
       - 444:444
-    depends_on:
-      #     - nextjs
-      - metabase
+    # depends_on:
+      # - metabase
 
   redis:
     image: redis:latest
@@ -49,25 +48,28 @@ services:
       - "6000:6000/udp"
       - "554:554/udp"
 
-  # live_camera_postgis:
-  #   build:
-  #     context: ./live_camera_postgis
-  #   ports:
-  #     - 5431:5432
-  #   environment:
-  #     POSTGRES_DB: live_cameras
-  #     POSTGRES_PASSWORD: cameras
-  #     POSTGRES_HOST_AUTH_METHOD: trust
-  #   volumes:
-  #     - db_live_camera_data:/var/lib/postgresql/data
-  #     - ./live_camera_postgis/seed.sql:/docker-entrypoint-initdb.d/seed.sql
-
-  metabase:
-    image: metabase/metabase:latest
+  live_camera_postgis:
+    build:
+      context: ./postgis
     ports:
-      - 3000:3000
+      - 5432:5432
+    environment:
+      POSTGRES_DB: live_cameras
+      POSTGRES_PASSWORD: cameras
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - db_live_camera_data:/var/lib/postgresql/data
+      # - ./postgis/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      - ./postgis:/docker_directory
     env_file:
-      - ./metabase/.env
-# volumes:
-#   db_data:
-#   db_live_camera_data:
+      - ./postgis/.env
+
+  # metabase:
+  #   image: metabase/metabase:latest
+  #   ports:
+  #     - 3000:3000
+  #   env_file:
+  #     - ./metabase/.env
+
+volumes:
+  db_live_camera_data:
