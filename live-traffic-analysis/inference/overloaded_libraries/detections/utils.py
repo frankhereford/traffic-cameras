@@ -558,6 +558,17 @@ def validate_tracker_id(tracker_id: Any, n: int) -> None:
         )
 
 
+def validate_speed(speed: Any, n: int) -> None:
+    expected_shape = f"({n},)"
+    actual_shape = str(getattr(speed, "shape", None))
+    is_valid = speed is None or (isinstance(speed, np.ndarray) and speed.shape == (n,))
+    if not is_valid:
+        raise ValueError(
+            f"speed must be a 1D np.ndarray with shape {expected_shape}, but got "
+            f"shape {actual_shape}"
+        )
+
+
 def validate_data(data: Dict[str, Any], n: int) -> None:
     for key, value in data.items():
         if isinstance(value, list):
@@ -580,6 +591,7 @@ def validate_detections_fields(
     class_id: Any,
     confidence: Any,
     tracker_id: Any,
+    speed: Any,
     data: Dict[str, Any],
 ) -> None:
     validate_xyxy(xyxy)
@@ -588,6 +600,7 @@ def validate_detections_fields(
     validate_class_id(class_id, n)
     validate_confidence(confidence, n)
     validate_tracker_id(tracker_id, n)
+    validate_speed(speed, n)
     validate_data(data, n)
 
 
