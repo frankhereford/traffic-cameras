@@ -567,7 +567,7 @@ def render(redis, db):
     # while True:
     job = None
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-121727.mp4"
+    job = "ByED80IKdIU-20240220-203606.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     recording = get_recording_id(db, redis, job, time)
@@ -587,20 +587,13 @@ def render(redis, db):
                 break
             hash = hash_frame(frame)
             # print(f"hash: {hash}")
-            # frame_id = get_frame_id(db, redis, recording, hash, time)
             results, detections = recall_detections(db, tracker, hash)
             # print("detections: ", detections)
             # print("speeds: ", speeds)
-            # detection_classes = get_class_ids(db, redis, recording, results, detections)
-            # tracker_ids = get_tracker_ids(db, redis, detection_classes, detections)
-            # image_space_locations = get_image_space_locations(detections)
-            # map_space_locations = get_map_space_locations(tps, image_space_locations)
             class_names = get_class_names(detections.class_id, results)
             centers = get_image_space_centers(detections)
             labels = get_top_labels(class_names, centers)
             # speed_labels = get_speed_labels(speeds)
-            # print(labels)
-            # print(speeds)
             frame = box.annotate(frame, detections)
             frame = trace.annotate(frame, detections)
             frame = classs.annotate(frame, detections, labels)
