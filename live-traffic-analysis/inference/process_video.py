@@ -523,9 +523,11 @@ def burn_in_timestamp(frame, time):
     return frame_with_timestamp
 
 
-def get_speed_labels(speeds):
+def get_speed_labels(detections):
+    if detections.speed is None:
+        return None
     formatted_rates = [
-        f"{rate:.1f} mph" if rate is not None else "..." for rate in speeds
+        f"{int(rate)} mph" if not np.isnan(rate) else None for rate in detections.speed
     ]
 
     # Convert the list to a numpy array
@@ -567,7 +569,7 @@ def render(redis, db):
     # while True:
     job = None
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-203606.mp4"
+    job = "ByED80IKdIU-20240220-121727.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     recording = get_recording_id(db, redis, job, time)
@@ -584,20 +586,17 @@ def render(redis, db):
         for frame in tqdm(input, total=information.total_frames):
             if frame_count == 1024:
                 pass
-                break
+                # break
             hash = hash_frame(frame)
-            # print(f"hash: {hash}")
             results, detections = recall_detections(db, tracker, hash)
-            # print("detections: ", detections)
-            # print("speeds: ", speeds)
             class_names = get_class_names(detections.class_id, results)
             centers = get_image_space_centers(detections)
             labels = get_top_labels(class_names, centers)
-            # speed_labels = get_speed_labels(speeds)
+            speed_labels = get_speed_labels(detections)
             frame = box.annotate(frame, detections)
             frame = trace.annotate(frame, detections)
             frame = classs.annotate(frame, detections, labels)
-            # frame = speed.annotate(frame, detections, speed_labels)
+            frame = speed.annotate(frame, detections, speed_labels)
             frame = burn_in_timestamp(frame, time)
             sink.write_frame(frame=frame)
             time += frame_duration
