@@ -33,7 +33,7 @@ def create_video(folder):
 
     # Use ffmpeg to create a video from the images
     (
-        ffmpeg.input(f"{folder}/*.jpg", pattern_type="glob", framerate=30)
+        ffmpeg.input(f"{folder}/*.jpg", pattern_type="glob", framerate=15)
         .output(
             video_filename,
             vcodec="libx264",
