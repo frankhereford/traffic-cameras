@@ -75,6 +75,7 @@ if __name__ == "__main__":
         frame_count = 0
         for frame in generator:
             frame_count += 1
+            # print("Frame Count: ", frame_count)
             if frame_count % 30 == 0:
                 last_processed_video_check = r.get("last-processed-video")
                 if last_processed_video_check is not None:
@@ -92,4 +93,5 @@ if __name__ == "__main__":
             if time_taken < 1.0 / fps:
                 time.sleep(1.0 / fps - time_taken)
 
+            # print("time taken: ", time_taken)
             start_time = time.time()
