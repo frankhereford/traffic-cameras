@@ -24,8 +24,6 @@ from utilities.transformation import read_points_file
 from utilities.database_results_detections import (
     Results,
     from_database,
-    # update_with_tensors,
-    # update_with_detections,
 )
 
 
@@ -569,7 +567,7 @@ def render(redis, db):
     # while True:
     job = None
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-121727.mp4"
+    job = "ByED80IKdIU-20240220-181909.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     recording = get_recording_id(db, redis, job, time)
@@ -608,7 +606,8 @@ def main():
     db, redis = setup_service_handles()
     args = receive_arguments()
     if args.detections:
-        detections(redis, db)
+        pass
+        # detections(redis, db)
     if args.render:
         render(redis, db)
 
