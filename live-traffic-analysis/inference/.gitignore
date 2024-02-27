@@ -5,3 +5,8 @@ frames/*jpg
 *pt
 *jpg
 output_media/*mp4
+
+input_media
+output_media/full_fps_output
+output_media/processed-media
+

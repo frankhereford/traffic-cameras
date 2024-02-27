@@ -37,7 +37,8 @@ def mp4_frame_generator(mp4_file, fps="30"):
 if __name__ == "__main__":
     r = redis.Redis(host="localhost", port=6379, db=0)
 
-    rtmp_url = "rtmp://10.0.3.228/dc05b5e7-3ef8-455f-8c62-547d2e9f2c18.stream"
+    # rtmp_url = "rtmp://10.0.3.228/dc05b5e7-3ef8-455f-8c62-547d2e9f2c18.stream"
+    rtmp_url = "rtmp://10.10.10.97/20986bb8-5db4-4afd-8a23-afd385e2924f.stream"
 
     command = (
         ffmpeg.input(
@@ -67,12 +68,14 @@ if __name__ == "__main__":
         if last_processed_video is not None:
             last_processed_video = last_processed_video.decode("utf-8")
 
-        path = f"./output_media/processed-media/{last_processed_video}"
+        # path = f"./output_media/processed-media/{last_processed_video}"
+        path = f"./output_media/full_fps_output/{last_processed_video}"
         generator = mp4_frame_generator(path)
         start_time = time.time()
         frame_count = 0
         for frame in generator:
             frame_count += 1
+            # print("Frame Count: ", frame_count)
             if frame_count % 30 == 0:
                 last_processed_video_check = r.get("last-processed-video")
                 if last_processed_video_check is not None:
@@ -90,4 +93,5 @@ if __name__ == "__main__":
             if time_taken < 1.0 / fps:
                 time.sleep(1.0 / fps - time_taken)
 
+            # print("time taken: ", time_taken)
             start_time = time.time()

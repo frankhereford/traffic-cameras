@@ -22,8 +22,10 @@ from libraries.lstmvehicletracker import LSTMVehicleTracker
 
 num_epochs = 100
 epoch_print_interval = 10
+input_size = 60
+prediction_size = 60
 hidden_size = 256
-num_layers = 2
+num_layers = 5
 learning_rate = 0.0001
 batch_size = 64
 verification_loops = 64
@@ -110,7 +112,9 @@ if __name__ == "__main__":
             [(np.float64(x), np.float64(y)) for x, y in record["coordinates"]]
         )
 
-    coordinate_pairs = np.array(coordinate_pairs).reshape(-1, 60, 2)
+    coordinate_pairs = np.array(coordinate_pairs).reshape(
+        -1, (input_size + prediction_size), 2
+    )
     original_shape = coordinate_pairs.shape
     coordinate_pairs_2d = coordinate_pairs.reshape(-1, coordinate_pairs.shape[-1])
     coordinate_pairs_scaled_2d = min_max_scaler.transform(coordinate_pairs_2d)
@@ -129,7 +133,9 @@ if __name__ == "__main__":
             [(np.float64(x), np.float64(y)) for x, y in record["coordinates"]]
         )
 
-    testing_coordinate_pairs = np.array(testing_coordinate_pairs).reshape(-1, 60, 2)
+    testing_coordinate_pairs = np.array(testing_coordinate_pairs).reshape(
+        -1, (input_size + prediction_size), 2
+    )
     original_shape = testing_coordinate_pairs.shape
     testing_coordinate_pairs_2d = testing_coordinate_pairs.reshape(
         -1, testing_coordinate_pairs.shape[-1]
@@ -143,12 +149,16 @@ if __name__ == "__main__":
     print("Shape of training_tracks: ", training_tracks.shape)
     print("Shape of testing_tracks: ", testing_tracks.shape)
 
-    input_training_tracks = training_tracks[:, :30, :]
-    input_testing_tracks = testing_tracks[:, :30, :]
+    input_training_tracks = training_tracks[:, :input_size, :]
+    input_testing_tracks = testing_tracks[:, :input_size, :]
 
-    indices = list(range(30, 60, 5))  # This will create a list [30, 35, 40, 45, 50, 55]
-    if 59 not in indices:
-        indices.append(59)  # Add the last point if it wasn't already included
+    indices = list(range(input_size, (input_size + prediction_size), 5))
+    if (input_size + prediction_size - 1) not in indices:
+        indices.append(
+            (input_size + prediction_size - 1)
+        )  # Add the last point if it wasn't already included
+
+    output_size = len(indices)
 
     output_training_tracks = training_tracks[:, indices, :]
     output_testing_tracks = testing_tracks[:, indices, :]
@@ -174,8 +184,8 @@ if __name__ == "__main__":
         input_size=2,
         hidden_size=hidden_size,
         num_layers=num_layers,
-        seq_length=30,
-        output_pairs=7,
+        seq_length=input_size,
+        output_pairs=output_size,
     )
     vehicle_tracker = vehicle_tracker.to(device)
     print(vehicle_tracker)
@@ -232,9 +242,9 @@ if __name__ == "__main__":
         normalized_coordinates = min_max_scaler.transform(coordinate_pairs)
         normalized_coordinates = normalized_coordinates.reshape(1, -1, 2)
 
-        input_tensor = Variable(torch.Tensor(normalized_coordinates[:, :30, :])).to(
-            device
-        )
+        input_tensor = Variable(
+            torch.Tensor(normalized_coordinates[:, :input_size, :])
+        ).to(device)
 
         output_tensor = Variable(
             torch.Tensor(normalized_coordinates[:, indices, :])
@@ -247,7 +257,9 @@ if __name__ == "__main__":
 
         # print(f"Prediction shape: {prediction.shape}")
 
-        input_array = input_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (30, 2)
+        input_array = (
+            input_tensor.cpu().numpy().reshape(-1, 2)
+        )  # Reshape to (input_size, 2)
         output_array = output_tensor.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
         prediction_array = prediction.cpu().numpy().reshape(-1, 2)  # Reshape to (1, 2)
 
