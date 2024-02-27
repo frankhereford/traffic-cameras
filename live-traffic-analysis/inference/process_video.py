@@ -9,7 +9,6 @@ import torch
 import hashlib
 import argparse
 import psycopg2
-
 import numpy as np
 from tqdm import tqdm
 import psycopg2.extras
