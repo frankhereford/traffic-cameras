@@ -71,8 +71,8 @@ def main():
     min_max_scalar = load_min_max_scalar
     args = receive_arguments()
     min_max_scalar = load_min_max_scalar()
-    vehicle_tracker = load_vehicle_tracker(hidden_size=256, num_layers=2)
-    intersection_model = load_intersection_model(vehicle_tracker)
+    # vehicle_tracker = load_vehicle_tracker(hidden_size=256, num_layers=2)
+    # intersection_model = load_intersection_model(vehicle_tracker)
 
 
 if __name__ == "__main__":
