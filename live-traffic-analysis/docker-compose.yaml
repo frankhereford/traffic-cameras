@@ -17,14 +17,14 @@ services:
     ports:
       - 6379:6379
 
-  download:
-    build:
-      context: ./download
-    # entrypoint: ["/application/download_and_serve.py", "ByED80IKdIU"]
-    entrypoint: ["/application/download_to_file.py", "ByED80IKdIU"]
-    volumes:
-      - /home/frank/efs/live-traffic/media-from-camera:/application/media
-      - ./download:/application
+  # download:
+  #   build:
+  #     context: ./download
+  #   # entrypoint: ["/application/download_and_serve.py", "ByED80IKdIU"]
+  #   entrypoint: ["/application/download_to_file.py", "ByED80IKdIU"]
+  #   volumes:
+  #     - /home/frank/efs/live-traffic/media-from-camera:/application/media
+  #     - ./download:/application
 
   # inference:
   #   build:
@@ -48,7 +48,7 @@ services:
       - "6000:6000/udp"
       - "554:554/udp"
 
-  live_camera_postgis:
+  postgis:
     build:
       context: ./postgis
     ports:
