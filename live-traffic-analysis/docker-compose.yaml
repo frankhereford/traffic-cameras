@@ -26,13 +26,13 @@ services:
       - /home/frank/efs/live-traffic/media-from-camera:/application/media
       - ./download:/application
 
-  inference:
-    build:
-      context: ./inference
-    volumes:
-      - ./inference:/app
-    env_file:
-      - ./inference/.env
+  # inference:
+  #   build:
+  #     context: ./inference
+  #   volumes:
+  #     - ./inference:/app
+  #   env_file:
+  #     - ./inference/.env
 
   media:
     image: datarhei/restreamer:latest
