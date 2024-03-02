@@ -158,6 +158,9 @@ def detections2boxes(detections: Detections) -> np.ndarray:
         (np.ndarray): Detections as numpy tensors as in
             `(x_min, y_min, x_max, y_max, confidence, class_id)` order.
     """
+    if detections is None:
+        return None
+
     return np.hstack(
         (
             detections.xyxy,
