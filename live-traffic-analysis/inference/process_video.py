@@ -6,6 +6,7 @@ import pytz
 import uuid
 import copy
 import torch
+import random
 import hashlib
 import argparse
 import psycopg2
@@ -532,6 +533,41 @@ def get_speed_labels(detections):
 
     return speed_labels
 
+def get_random_job(db):
+    # Create a new cursor object with DictCursor
+    cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Execute a query to get all ids from the recordings table
+    cursor.execute("SELECT id FROM detections.recordings;")
+
+    # Fetch all the results
+    ids = cursor.fetchall()
+
+    # Close the cursor
+    cursor.close()
+
+    # If there are no ids, return None
+    if not ids:
+        return None
+
+    # Choose a random id
+    random_id = random.choice(ids)[0]
+
+    # Create a new cursor object with DictCursor
+    cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Execute a query to get the recording with the random id
+    cursor.execute("SELECT * FROM detections.recordings WHERE id = %s;", (random_id,))
+
+    # Fetch the result
+    recording = cursor.fetchone()
+
+    # Close the cursor
+    cursor.close()
+
+    # Return the random recording
+    return recording.get("filename")
+
 
 # fmt: off
 def detections(redis, db):
@@ -565,8 +601,9 @@ def detections(redis, db):
 def render(redis, db):
     # while True:
     job = None
+    job = get_random_job(db)
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-181909.mp4"
+    # job = "ByED80IKdIU-20240220-181909.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     recording = get_recording_id(db, redis, job, time)
