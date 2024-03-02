@@ -112,6 +112,11 @@ def from_database(cls, db, hash):
     cur.execute(sql, (hash,))
     results = cur.fetchone()
     cur.close()
+
+    if results is None:
+        return None
+
+
     xyxy = np.array(results["xyxy"], dtype=np.float32)
     confidence = np.array(results["confidence"], dtype=np.float32)
     class_id = np.array(results["class_id"])
