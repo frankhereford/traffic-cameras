@@ -601,9 +601,9 @@ def detections(redis, db):
 def render(redis, db):
     # while True:
     job = None
-    job = get_random_job(db)
+    # job = get_random_job(db)
     # job = get_a_job(redis, 'render-videos-queue')
-    # job = "ByED80IKdIU-20240220-181909.mp4"
+    job = "ByED80IKdIU-20240220-141539.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     recording = get_recording_id(db, redis, job, time)

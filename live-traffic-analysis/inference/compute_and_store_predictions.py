@@ -54,7 +54,8 @@ def load_vehicle_tracker(hidden_size, num_layers):
         input_size=2,
         hidden_size=hidden_size,
         num_layers=num_layers,
-        seq_length=30,
+        seq_length=60,
+        output_pairs=13,
     )
     return vehicle_tracker
 
@@ -68,11 +69,10 @@ def load_intersection_model(vehicle_tracker):
 
 def main():
     db, redis = setup_service_handles()
-    min_max_scalar = load_min_max_scalar
     args = receive_arguments()
     min_max_scalar = load_min_max_scalar()
-    # vehicle_tracker = load_vehicle_tracker(hidden_size=256, num_layers=2)
-    # intersection_model = load_intersection_model(vehicle_tracker)
+    vehicle_tracker = load_vehicle_tracker(hidden_size=256, num_layers=5)
+    intersection_model = load_intersection_model(vehicle_tracker)
 
 
 if __name__ == "__main__":
