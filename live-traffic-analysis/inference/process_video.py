@@ -640,9 +640,10 @@ def detections(redis, db):
 def render(redis, db):
     # while True:
     job = None
-    # job = get_random_job(db)
+    job = get_random_job(db)
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-124256.mp4"
+    # job = "ByED80IKdIU-20240220-125814.mp4" # 9 (problem)
+    # job = "ByED80IKdIU-20240220-122231.mp4" # 2
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     information = get_video_information(job)
