@@ -570,9 +570,35 @@ def get_random_job(db):
     return recording.get("filename")
 
 
-def draw_futures(frame, detections):
-    print(f"detections: {detections}")
-    quit()
+def draw_futures(db, frame, detections):
+    # print(detections)
+    # print(f"detections: {detections.detection_id}")
+    # quit()
+    if detections is None or detections.detection_id is None:
+        return frame
+
+    image = Image.fromarray(frame)
+
+    # Create a draw object
+    draw = ImageDraw.Draw(image)
+
+    # Define the radius of the circles
+    radius = 5
+
+    for detection in detections.detection_id:
+        detection_int = int(detection)
+        sql = """
+        select pixels
+        from detections.predictions
+        where detection_id = %s
+        """
+        cursor = db.cursor()
+        cursor.execute(sql, (detection_int,))
+        pixels = cursor.fetchone()
+        if pixels is not None:
+            for x, y in pixels["pixels"]:
+                pass
+                # print(f"x: {x}, y: {y}")
     return frame
 
 
@@ -613,11 +639,9 @@ def render(redis, db):
     job = "ByED80IKdIU-20240220-124256.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
-    recording = get_recording_id(db, redis, job, time)
     information = get_video_information(job)
     input = get_frame_generator(job)
-    model, tracker = get_supervision_objects()
-    tps, inverse_tps = get_tps()
+    _, tracker = get_supervision_objects()
     frame_duration = get_frame_duration(information)
     output_path = get_output_path(job)
     colors = get_colors()
@@ -640,7 +664,7 @@ def render(redis, db):
             frame = classs.annotate(frame, detections, labels)
             frame = speed.annotate(frame, detections, speed_labels)
             frame = burn_in_timestamp(frame, time)
-            frame = draw_futures(db,frame, detections)
+            frame = draw_futures(db, frame, detections)
             sink.write_frame(frame=frame)
             time += frame_duration
             frame_count += 1
