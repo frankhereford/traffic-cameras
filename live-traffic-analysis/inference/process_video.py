@@ -657,7 +657,7 @@ def render(redis, db):
         for frame in tqdm(input, total=information.total_frames):
             if frame_count == 1024:
                 pass
-                break
+                # break
             hash = hash_frame(frame)
             results, detections = recall_detections(db, tracker, hash)
             # print(f"detections: {detections}")
