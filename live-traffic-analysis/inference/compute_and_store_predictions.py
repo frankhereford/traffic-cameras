@@ -121,10 +121,10 @@ def get_previous_detections(db, detection, min_length=60):
                 JOIN detections.frames ON detections.frame_id = frames.id
                 WHERE trackers.id = %s
                 AND frames.time <= %s
-                ORDER BY frames.time ASC
+                ORDER BY frames.time desc 
                 LIMIT 60
             )
-            SELECT ARRAY_AGG(coordinates ORDER BY row_num ASC) AS coordinates
+            SELECT ARRAY_AGG(coordinates ORDER BY row_num desc) AS coordinates
             FROM ordered_detections
     """
     cursor.execute(query, (tracker_id, time))
@@ -182,7 +182,7 @@ def truncate_and_populate_queue(db, redis):
         join detections.detection_objects on (frames.id = detection_objects.frame_id)
         where trackers.discard_short_track is false
         and recordings.id in (532,533,534,535,536,537,538,539,540,541)
-        and recordings.id = 537
+        --and recordings.id = 537
     """
     cursor.execute(count_query)
     total_detections = cursor.fetchone()["count"]
@@ -200,7 +200,7 @@ def truncate_and_populate_queue(db, redis):
         join detections.detection_objects on (frames.id = detection_objects.frame_id)
         where trackers.discard_short_track is false
         and recordings.id in (532,533,534,535,536,537,538,539,540,541)
-        and recordings.id = 537
+        --and recordings.id = 537
         ORDER BY trackers.id, frames.time asc
     """
     cursor.execute(query)
