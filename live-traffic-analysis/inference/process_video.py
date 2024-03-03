@@ -571,22 +571,16 @@ def get_random_job(db):
 
 
 def draw_futures(db, frame, detections):
-    # print(detections)
-    # print(f"detections: {detections.detection_id}")
-    # quit()
     if detections is None or detections.detection_id is None:
         return frame
 
     image = Image.fromarray(frame)
-
-    # Create a draw object
     draw = ImageDraw.Draw(image)
-
-    # Define the radius of the circles
     radius = 5
 
     for detection in detections.detection_id:
         detection_int = int(detection)
+        # print(f"detection_int: {detection_int}")
         sql = """
         select pixels
         from detections.predictions
@@ -595,10 +589,22 @@ def draw_futures(db, frame, detections):
         cursor = db.cursor()
         cursor.execute(sql, (detection_int,))
         pixels = cursor.fetchone()
+        # print(f"pixels: {pixels}")
         if pixels is not None:
-            for x, y in pixels["pixels"]:
-                pass
+            previous_loc = None
+            for loc in pixels["pixels"]:
+                x, y = map(int, loc)
                 # print(f"x: {x}, y: {y}")
+                upper_left = (x - radius, y - radius)
+                lower_right = (x + radius, y + radius)
+
+                draw.ellipse([upper_left, lower_right], fill="red")
+
+                if previous_loc is not None:
+                    draw.line([previous_loc, (x, y)], fill="red", width=3)
+                previous_loc = (x, y)
+
+    frame = np.array(image)
     return frame
 
 
@@ -651,7 +657,7 @@ def render(redis, db):
         for frame in tqdm(input, total=information.total_frames):
             if frame_count == 1024:
                 pass
-                # break
+                break
             hash = hash_frame(frame)
             results, detections = recall_detections(db, tracker, hash)
             # print(f"detections: {detections}")

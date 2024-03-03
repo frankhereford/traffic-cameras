@@ -46,13 +46,24 @@ def receive_arguments():
         description="Compute and store the predictions for the traffic data."
     )
 
-    parser.add_argument('-p', '--populate_queue', action='store_true', default=False,
-                        help='Populate the queue with data')
-    parser.add_argument('-q', '--process_queue', action='store_true', default=False,
-                        help='Process the data in the queue')
+    parser.add_argument(
+        "-p",
+        "--populate_queue",
+        action="store_true",
+        default=False,
+        help="Populate the queue with data",
+    )
+    parser.add_argument(
+        "-q",
+        "--process_queue",
+        action="store_true",
+        default=False,
+        help="Process the data in the queue",
+    )
 
     args = parser.parse_args()
     return args
+
 
 def load_min_max_scalar():
     min_max_scaler = joblib.load("./prediction_model/model_data/min_max_scaler.save")
@@ -91,7 +102,7 @@ def get_detections(db):
         JOIN detections.frames ON detections.frame_id = frames.id
         ORDER BY trackers.id, frames.time asc
     """
-        # LIMIT 1000000
+    # LIMIT 1000000
     cursor.execute(query)
     detections = cursor.fetchall()
     return detections
@@ -110,7 +121,7 @@ def get_previous_detections(db, detection, min_length=60):
                 JOIN detections.frames ON detections.frame_id = frames.id
                 WHERE trackers.id = %s
                 AND frames.time <= %s
-                ORDER BY frames.time DESC
+                ORDER BY frames.time ASC
                 LIMIT 60
             )
             SELECT ARRAY_AGG(coordinates ORDER BY row_num ASC) AS coordinates
@@ -118,9 +129,10 @@ def get_previous_detections(db, detection, min_length=60):
     """
     cursor.execute(query, (tracker_id, time))
     result = cursor.fetchone()
-    if result is None or len(result['coordinates']) < min_length:
+    if result is None or len(result["coordinates"]) < min_length:
         return None
-    return np.array(result['coordinates'])
+    return np.array(result["coordinates"])
+
 
 def insert_into_redis_detection_queue(redis, detection):
     # Convert the RealDictRow to a dict
@@ -130,14 +142,16 @@ def insert_into_redis_detection_queue(redis, detection):
     detection_json = json.dumps(detection_dict, default=str)
 
     # Insert the JSON string into the Redis queue
-    redis.rpush('detection_queue', detection_json)
-    
+    redis.rpush("detection_queue", detection_json)
+
+
 def clear_redis_queue(redis):
-    redis.delete('detection_queue')
-    
+    redis.delete("detection_queue")
+
+
 def get_detection_from_queue(redis):
     # Get the JSON string from the Redis queue
-    detection_json = redis.lpop('detection_queue')
+    detection_json = redis.lpop("detection_queue")
 
     # If the queue is empty, lpop will return None
     if detection_json is None:
@@ -148,9 +162,10 @@ def get_detection_from_queue(redis):
 
     return detection_dict
 
+
 def get_detection_queue_length(redis):
     # Get the length of the Redis queue
-    queue_length = redis.llen('detection_queue')
+    queue_length = redis.llen("detection_queue")
 
     return queue_length
 
@@ -167,9 +182,10 @@ def truncate_and_populate_queue(db, redis):
         join detections.detection_objects on (frames.id = detection_objects.frame_id)
         where trackers.discard_short_track is false
         and recordings.id in (532,533,534,535,536,537,538,539,540,541)
+        and recordings.id = 537
     """
     cursor.execute(count_query)
-    total_detections = cursor.fetchone()['count']
+    total_detections = cursor.fetchone()["count"]
 
     query = """
         SELECT trackers.id AS tracker_id,
@@ -184,6 +200,7 @@ def truncate_and_populate_queue(db, redis):
         join detections.detection_objects on (frames.id = detection_objects.frame_id)
         where trackers.discard_short_track is false
         and recordings.id in (532,533,534,535,536,537,538,539,540,541)
+        and recordings.id = 537
         ORDER BY trackers.id, frames.time asc
     """
     cursor.execute(query)
@@ -193,6 +210,7 @@ def truncate_and_populate_queue(db, redis):
         if detection is None:
             break
         insert_into_redis_detection_queue(redis, detection)
+
 
 def infer_future_location(min_max_scalar, intersection_model, input):
     # print("input", input.shape)
@@ -207,14 +225,13 @@ def infer_future_location(min_max_scalar, intersection_model, input):
         prediction = intersection_model(on_device_history_scaled_tensor)
         # print("prediction", prediction)
 
-    input_array = (
-        prediction.cpu().numpy().reshape(-1, 2)
-    )
+    input_array = prediction.cpu().numpy().reshape(-1, 2)
 
     input_inverted = min_max_scalar.inverse_transform(input_array)
 
     # print("input_inverted", input_inverted)
     return input_inverted
+
 
 def get_tps():
     coordinates = read_points_file("./gcp/coldwater_mi.points")
@@ -224,12 +241,16 @@ def get_tps():
     reverse_tps.fit(coordinates["map_coordinates"], coordinates["image_coordinates"])
     return tps, reverse_tps
 
+
 def inverse_transform_prediction(inverse_tps, prediction):
     predictions_tensor = torch.tensor(prediction)
     predictions_tensor_cude = predictions_tensor.to(DEVICE)
-    predictions_in_image_space = inverse_tps.transform(predictions_tensor_cude).cpu().numpy()
+    predictions_in_image_space = (
+        inverse_tps.transform(predictions_tensor_cude).cpu().numpy()
+    )
     predictions_in_image_space_int = predictions_in_image_space.astype(int)
     return predictions_in_image_space_int
+
 
 def save_future_to_db(db, detection, future, image_space_future):
     cursor = db.cursor()
@@ -247,9 +268,10 @@ def save_future_to_db(db, detection, future, image_space_future):
         RETURNING id
     """
     cursor.execute(query, (tracker_id, detection_id))
-    inserted_id = cursor.fetchone()['id']
+    inserted_id = cursor.fetchone()["id"]
     db.commit()
     return inserted_id
+
 
 def process_queue(redis, db):
     tps, inverse_tps = get_tps()
@@ -264,10 +286,14 @@ def process_queue(redis, db):
         detection = get_detection_from_queue(redis)
         if detection is None:
             break
-        previous_detections = get_previous_detections(db=db, detection=detection, min_length=60)
+        previous_detections = get_previous_detections(
+            db=db, detection=detection, min_length=60
+        )
         if previous_detections is None:
             continue
-        future = infer_future_location(min_max_scalar, intersection_model, previous_detections)
+        future = infer_future_location(
+            min_max_scalar, intersection_model, previous_detections
+        )
         image_space_future = inverse_transform_prediction(inverse_tps, future)
         id = save_future_to_db(db, detection, future, image_space_future)
         # print(f"inserted id: {id}", flush=True)
@@ -283,9 +309,9 @@ def process_queue(redis, db):
 def main():
     db, redis = setup_service_handles()
     args = receive_arguments()
-    if (args.populate_queue):
+    if args.populate_queue:
         truncate_and_populate_queue(db, redis)
-    if (args.process_queue):
+    if args.process_queue:
         process_queue(redis, db)
 
 
