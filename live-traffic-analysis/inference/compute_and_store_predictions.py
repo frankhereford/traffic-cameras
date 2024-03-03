@@ -205,8 +205,36 @@ def inverse_transform_prediction(inverse_tps, prediction):
     predictions_tensor = torch.tensor(prediction)
     predictions_tensor_cude = predictions_tensor.to(DEVICE)
     predictions_in_image_space = inverse_tps.transform(predictions_tensor_cude).cpu().numpy()
-    return predictions_in_image_space
+    predictions_in_image_space_int = predictions_in_image_space.astype(int)
+    return predictions_in_image_space_int
 
+# def save_future_to_db(db, detection, future, image_space_future):
+#     print(detection["tracker_id"])
+#     print(detection["detection_id"])
+#     print(future)
+#     print(image_space_future)
+#     quit()
+#     pass
+
+def save_future_to_db(db, detection, future, image_space_future):
+    cursor = db.cursor()
+    tracker_id = detection["tracker_id"]
+    detection_id = detection["detection_id"]
+    locations = [f"ST_MakePoint({x}, {y})" for x, y in future.tolist()]
+    pixels = image_space_future.tolist()
+
+    gis_data = "ARRAY[" + ", ".join(locations) + "]"
+    image_data = "ARRAY" + (str(pixels))
+
+    query = f"""
+        INSERT INTO detections.predictions (tracker_id, detection_id, locations, pixels)
+        VALUES (%s, %s, {gis_data}, {image_data} )
+        RETURNING id
+    """
+    cursor.execute(query, (tracker_id, detection_id))
+    inserted_id = cursor.fetchone()['id']
+    db.commit()
+    return inserted_id
 
 def process_queue(redis, db):
     tps, inverse_tps = get_tps()
@@ -221,9 +249,9 @@ def process_queue(redis, db):
         if previous_detections is None:
             continue
         future = infer_future_location(min_max_scalar, intersection_model, previous_detections)
-        # print(future.shape)
         image_space_future = inverse_transform_prediction(inverse_tps, future)
-        print(image_space_future.shape)
+        id = save_future_to_db(db, detection, future, image_space_future)
+        print(f"inserted id: {id}", flush=True)
 
 
 def main():
@@ -233,8 +261,6 @@ def main():
         truncate_and_populate_queue(db, redis)
     if (args.process_queue):
         process_queue(redis, db)
-
-        # pass
 
 
 if __name__ == "__main__":
