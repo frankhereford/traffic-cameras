@@ -181,7 +181,7 @@ def truncate_and_populate_queue(db, redis):
         JOIN detections.recordings on recordings.id = frames.recording_id
         join detections.detection_objects on (frames.id = detection_objects.frame_id)
         where trackers.discard_short_track is false
-        and recordings.id in (532,533,534,535,536,537,538,539,540,541)
+        --and recordings.id in (532,533,534,535,536,537,538,539,540,541)
         --and recordings.id = 537
     """
     cursor.execute(count_query)
@@ -199,7 +199,7 @@ def truncate_and_populate_queue(db, redis):
         JOIN detections.recordings on recordings.id = frames.recording_id
         join detections.detection_objects on (frames.id = detection_objects.frame_id)
         where trackers.discard_short_track is false
-        and recordings.id in (532,533,534,535,536,537,538,539,540,541)
+        --and recordings.id in (532,533,534,535,536,537,538,539,540,541)
         --and recordings.id = 537
         ORDER BY trackers.id, frames.time asc
     """
