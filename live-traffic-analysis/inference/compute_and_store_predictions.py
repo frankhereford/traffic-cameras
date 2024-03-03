@@ -160,9 +160,9 @@ def truncate_and_populate_queue(db, redis):
         FROM detections.trackers
         JOIN detections.detections ON trackers.id = detections.tracker_id
         JOIN detections.frames ON detections.frame_id = frames.id
+        where trackers.discard_short_track is false
         ORDER BY trackers.id, frames.time asc
     """
-        # LIMIT 1000000
     cursor.execute(query)
     print("starting iteration")
     while True:
@@ -207,14 +207,6 @@ def inverse_transform_prediction(inverse_tps, prediction):
     predictions_in_image_space = inverse_tps.transform(predictions_tensor_cude).cpu().numpy()
     predictions_in_image_space_int = predictions_in_image_space.astype(int)
     return predictions_in_image_space_int
-
-# def save_future_to_db(db, detection, future, image_space_future):
-#     print(detection["tracker_id"])
-#     print(detection["detection_id"])
-#     print(future)
-#     print(image_space_future)
-#     quit()
-#     pass
 
 def save_future_to_db(db, detection, future, image_space_future):
     cursor = db.cursor()
