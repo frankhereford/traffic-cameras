@@ -11,7 +11,7 @@ from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, class_ids, speed):
+    def __init__(self, tlwh, score, class_ids, speed, detection_id):
         # wait activate
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
@@ -21,6 +21,7 @@ class STrack(BaseTrack):
         self.score = score
         self.class_ids = class_ids
         self.speed = speed
+        self.detection_id = detection_id
         self.tracklet_len = 0
 
     def predict(self):
@@ -96,6 +97,7 @@ class STrack(BaseTrack):
 
         self.score = new_track.score
         self.speed = new_track.speed
+        self.detection_id = new_track.detection_id
 
     @property
     def tlwh(self):
@@ -161,12 +163,14 @@ def detections2boxes(detections: Detections) -> np.ndarray:
     if detections is None:
         return None
 
+
     return np.hstack(
         (
             detections.xyxy,
             detections.confidence[:, np.newaxis],
             detections.class_id[:, np.newaxis],
             detections.speed[:, np.newaxis],
+            detections.detection_id[:, np.newaxis],
         )
     )
 
@@ -267,6 +271,9 @@ class ByteTrack:
                 [t.score for t in tracks], dtype=np.float32
             )
             detections.speed = np.array([t.speed for t in tracks], dtype=np.float32)
+            detections.detection_id = np.array(
+                [int(t.detection_id) for t in tracks], dtype=int
+            )
         else:
             detections.tracker_id = np.array([], dtype=int)
 
@@ -288,6 +295,7 @@ class ByteTrack:
         lost_stracks = []
         removed_stracks = []
 
+        detection_ids = tensors[:, 7]
         speeds = tensors[:, 6]
         class_ids = tensors[:, 5]
         scores = tensors[:, 4]
@@ -309,6 +317,9 @@ class ByteTrack:
         speed_ids_keep = speeds[remain_inds]
         speed_ids_second = speeds[inds_second]
 
+        detection_ids_keep = detection_ids[remain_inds]
+        detection_ids_second = detection_ids[inds_second]
+
         # print("speeds in tensor update", speeds)
         # print("speed_ids_keep in tensor update", speed_ids_keep)
         # print("speed_ids_second in tensor update", speed_ids_second)
@@ -316,9 +327,9 @@ class ByteTrack:
         if len(dets) > 0:
             """Detections"""
             detections = [
-                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, speed)
-                for (tlbr, s, c, speed) in zip(
-                    dets, scores_keep, class_ids_keep, speed_ids_keep
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c, speed, detection_id)
+                for (tlbr, s, c, speed, detection_id) in zip(
+                    dets, scores_keep, class_ids_keep, speed_ids_keep, detection_ids_keep
                 )
             ]
         else:
@@ -361,7 +372,7 @@ class ByteTrack:
             detections_second = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
                 for (tlbr, s, c) in zip(
-                    dets_second, scores_second, class_ids_second, speed_ids_second
+                    dets_second, scores_second, class_ids_second, speed_ids_second, detection_ids_second
                 )
             ]
         else:

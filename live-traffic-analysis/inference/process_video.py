@@ -568,6 +568,12 @@ def get_random_job(db):
     # Return the random recording
     return recording.get("filename")
 
+def draw_futures(frame, detections):
+    print(f"detections: {detections}")
+    quit()
+    return frame
+
+
 
 # fmt: off
 def detections(redis, db):
@@ -603,7 +609,7 @@ def render(redis, db):
     job = None
     # job = get_random_job(db)
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-141539.mp4"
+    job = "ByED80IKdIU-20240220-124256.mp4"
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
     recording = get_recording_id(db, redis, job, time)
@@ -623,6 +629,7 @@ def render(redis, db):
                 # break
             hash = hash_frame(frame)
             results, detections = recall_detections(db, tracker, hash)
+            # print(f"detections: {detections}")
             class_names = get_class_names(detections.class_id, results)
             centers = get_image_space_centers(detections)
             labels = get_top_labels(class_names, centers)
@@ -632,6 +639,7 @@ def render(redis, db):
             frame = classs.annotate(frame, detections, labels)
             frame = speed.annotate(frame, detections, speed_labels)
             frame = burn_in_timestamp(frame, time)
+            frame = draw_futures(db,frame, detections)
             sink.write_frame(frame=frame)
             time += frame_duration
             frame_count += 1
