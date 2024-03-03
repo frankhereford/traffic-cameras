@@ -533,6 +533,7 @@ def get_speed_labels(detections):
 
     return speed_labels
 
+
 def get_random_job(db):
     # Create a new cursor object with DictCursor
     cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -568,11 +569,11 @@ def get_random_job(db):
     # Return the random recording
     return recording.get("filename")
 
+
 def draw_futures(frame, detections):
     print(f"detections: {detections}")
     quit()
     return frame
-
 
 
 # fmt: off
