@@ -163,7 +163,6 @@ def detections2boxes(detections: Detections) -> np.ndarray:
     if detections is None:
         return None
 
-
     return np.hstack(
         (
             detections.xyxy,
@@ -289,11 +288,18 @@ class ByteTrack:
         Returns:
             List[STrack]: Updated tracks.
         """
+
+        if tensors is None:
+            return []
+
         self.frame_id += 1
         activated_starcks = []
         refind_stracks = []
         lost_stracks = []
         removed_stracks = []
+
+        # print("tensors in update_with_tensors")
+        # print(tensors)
 
         detection_ids = tensors[:, 7]
         speeds = tensors[:, 6]
@@ -329,7 +335,11 @@ class ByteTrack:
             detections = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c, speed, detection_id)
                 for (tlbr, s, c, speed, detection_id) in zip(
-                    dets, scores_keep, class_ids_keep, speed_ids_keep, detection_ids_keep
+                    dets,
+                    scores_keep,
+                    class_ids_keep,
+                    speed_ids_keep,
+                    detection_ids_keep,
                 )
             ]
         else:
@@ -372,7 +382,11 @@ class ByteTrack:
             detections_second = [
                 STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
                 for (tlbr, s, c) in zip(
-                    dets_second, scores_second, class_ids_second, speed_ids_second, detection_ids_second
+                    dets_second,
+                    scores_second,
+                    class_ids_second,
+                    speed_ids_second,
+                    detection_ids_second,
                 )
             ]
         else:
