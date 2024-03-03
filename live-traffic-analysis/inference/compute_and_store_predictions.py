@@ -148,9 +148,29 @@ def get_detection_from_queue(redis):
 
     return detection_dict
 
+def get_detection_queue_length(redis):
+    # Get the length of the Redis queue
+    queue_length = redis.llen('detection_queue')
+
+    return queue_length
+
+
 def truncate_and_populate_queue(db, redis):
     clear_redis_queue(redis)
     cursor = db.cursor()
+    count_query = """
+        SELECT COUNT(*) as count
+        FROM detections.trackers
+        JOIN detections.detections ON trackers.id = detections.tracker_id
+        JOIN detections.frames ON detections.frame_id = frames.id
+        JOIN detections.recordings on recordings.id = frames.recording_id
+        join detections.detection_objects on (frames.id = detection_objects.frame_id)
+        where trackers.discard_short_track is false
+        and recordings.id in (532,533,534,535,536,537,538,539,540,541)
+    """
+    cursor.execute(count_query)
+    total_detections = cursor.fetchone()['count']
+
     query = """
         SELECT trackers.id AS tracker_id,
             detections.id AS detection_id,
@@ -168,7 +188,7 @@ def truncate_and_populate_queue(db, redis):
     """
     cursor.execute(query)
     print("starting iteration")
-    while True:
+    for _ in tqdm(range(total_detections), desc="Processing detections"):
         detection = cursor.fetchone()
         if detection is None:
             break
@@ -236,6 +256,10 @@ def process_queue(redis, db):
     min_max_scalar = load_min_max_scalar()
     vehicle_tracker = load_vehicle_tracker(hidden_size=256, num_layers=5)
     intersection_model = load_intersection_model(vehicle_tracker)
+
+    initial_queue_length = get_detection_queue_length(redis)
+    progress_bar = tqdm(total=initial_queue_length, desc="Processing queue")
+
     while True:
         detection = get_detection_from_queue(redis)
         if detection is None:
@@ -246,7 +270,14 @@ def process_queue(redis, db):
         future = infer_future_location(min_max_scalar, intersection_model, previous_detections)
         image_space_future = inverse_transform_prediction(inverse_tps, future)
         id = save_future_to_db(db, detection, future, image_space_future)
-        print(f"inserted id: {id}", flush=True)
+        # print(f"inserted id: {id}", flush=True)
+
+        # Update the progress bar
+        current_queue_length = get_detection_queue_length(redis)
+        progress_bar.update(initial_queue_length - current_queue_length)
+        initial_queue_length = current_queue_length
+
+    progress_bar.close()
 
 
 def main():
