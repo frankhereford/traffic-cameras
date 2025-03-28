@@ -15,4 +15,6 @@ Started as
 * doing statistics with it
 * making a machine learning model that was flawed but a huge learning experience
 
+* a ton of random stuff while I just wrote whatever came to mind - it was good
+
 and then i bailed -- I'll stand this up again one day, it's pretty ok. 
