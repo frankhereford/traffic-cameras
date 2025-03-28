@@ -11,6 +11,7 @@ Started as
 * into a method for using thin-plate spline techniques to warp an arbitrarily composed camera image to geographic coordinates (rubber-sheeting)
 * learning how to do this on the gpu to make it fast
 * doing it for live video
+* object detection & tracking
 * doing statistics with it
 * making a machine learning model that was flawed but a huge learning experience
 
