@@ -6,10 +6,10 @@ import pytz
 import uuid
 import copy
 import torch
+import random
 import hashlib
 import argparse
 import psycopg2
-
 import numpy as np
 from tqdm import tqdm
 import psycopg2.extras
@@ -534,6 +534,80 @@ def get_speed_labels(detections):
     return speed_labels
 
 
+def get_random_job(db):
+    # Create a new cursor object with DictCursor
+    cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Execute a query to get all ids from the recordings table
+    cursor.execute("SELECT id FROM detections.recordings;")
+
+    # Fetch all the results
+    ids = cursor.fetchall()
+
+    # Close the cursor
+    cursor.close()
+
+    # If there are no ids, return None
+    if not ids:
+        return None
+
+    # Choose a random id
+    random_id = random.choice(ids)[0]
+
+    # Create a new cursor object with DictCursor
+    cursor = db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Execute a query to get the recording with the random id
+    cursor.execute("SELECT * FROM detections.recordings WHERE id = %s;", (random_id,))
+
+    # Fetch the result
+    recording = cursor.fetchone()
+
+    # Close the cursor
+    cursor.close()
+
+    # Return the random recording
+    return recording.get("filename")
+
+
+def draw_futures(db, frame, detections):
+    if detections is None or detections.detection_id is None:
+        return frame
+
+    image = Image.fromarray(frame)
+    draw = ImageDraw.Draw(image)
+    radius = 5
+
+    for detection in detections.detection_id:
+        detection_int = int(detection)
+        # print(f"detection_int: {detection_int}")
+        sql = """
+        select pixels
+        from detections.predictions
+        where detection_id = %s
+        """
+        cursor = db.cursor()
+        cursor.execute(sql, (detection_int,))
+        pixels = cursor.fetchone()
+        # print(f"pixels: {pixels}")
+        if pixels is not None:
+            previous_loc = None
+            for loc in pixels["pixels"]:
+                x, y = map(int, loc)
+                # print(f"x: {x}, y: {y}")
+                upper_left = (x - radius, y - radius)
+                lower_right = (x + radius, y + radius)
+
+                draw.ellipse([upper_left, lower_right], fill="red")
+
+                if previous_loc is not None:
+                    draw.line([previous_loc, (x, y)], fill="red", width=3)
+                previous_loc = (x, y)
+
+    frame = np.array(image)
+    return frame
+
+
 # fmt: off
 def detections(redis, db):
     while True:
@@ -566,15 +640,15 @@ def detections(redis, db):
 def render(redis, db):
     # while True:
     job = None
+    job = get_random_job(db)
     # job = get_a_job(redis, 'render-videos-queue')
-    job = "ByED80IKdIU-20240220-181909.mp4"
+    # job = "ByED80IKdIU-20240220-125814.mp4" # 9 (problem)
+    # job = "ByED80IKdIU-20240220-122231.mp4" # 2
     print("Processing job: ", job)
     time = get_datetime_from_job(job)
-    recording = get_recording_id(db, redis, job, time)
     information = get_video_information(job)
     input = get_frame_generator(job)
-    model, tracker = get_supervision_objects()
-    tps, inverse_tps = get_tps()
+    _, tracker = get_supervision_objects()
     frame_duration = get_frame_duration(information)
     output_path = get_output_path(job)
     colors = get_colors()
@@ -587,6 +661,7 @@ def render(redis, db):
                 # break
             hash = hash_frame(frame)
             results, detections = recall_detections(db, tracker, hash)
+            # print(f"detections: {detections}")
             class_names = get_class_names(detections.class_id, results)
             centers = get_image_space_centers(detections)
             labels = get_top_labels(class_names, centers)
@@ -596,6 +671,7 @@ def render(redis, db):
             frame = classs.annotate(frame, detections, labels)
             frame = speed.annotate(frame, detections, speed_labels)
             frame = burn_in_timestamp(frame, time)
+            frame = draw_futures(db, frame, detections)
             sink.write_frame(frame=frame)
             time += frame_duration
             frame_count += 1
