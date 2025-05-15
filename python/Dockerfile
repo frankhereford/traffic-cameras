@@ -18,6 +18,7 @@ COPY requirements.txt ./
 
 RUN pip install -r requirements.txt
 
+# this was added to make it run on my cheap ec2 instance
 RUN pip install --upgrade torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY load_model.py ./
