@@ -18,6 +18,8 @@ COPY requirements.txt ./
 
 RUN pip install -r requirements.txt
 
+RUN pip install --upgrade torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
 COPY load_model.py ./
 RUN python ./load_model.py
 
