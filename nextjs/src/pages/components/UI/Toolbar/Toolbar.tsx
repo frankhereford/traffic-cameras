@@ -4,6 +4,7 @@ import ToggleMapFollow from "~/pages/components/UI/Toolbar/Buttons/ToggleMapFoll
 import RandomCamera from "~/pages/components/UI/Toolbar/Buttons/RandomCamera"
 import RandomNewCamera from "./Buttons/RandomNewCamera"
 import Logout from "./Buttons/Logout"
+import Login from "./Buttons/Login"
 import Previous from "./Buttons/Previous"
 import SaveLocation from "./Buttons/SaveLocation"
 import ToggleLocations from "./Buttons/ToggleLocations"
@@ -12,8 +13,10 @@ import ToggleHistoricData from "./Buttons/ToggleHistoricData"
 import GitHub from "./Buttons/GitHub"
 import ToggleTransformedImage from "./Buttons/ToggleTransformedImage"
 import TransparencySlider from "./TransparencySlider"
+import { useSession } from "next-auth/react"
 
 export default function ToolPanel() {
+  const { data: session } = useSession()
   return (
     <>
       <Draggable>
@@ -31,7 +34,7 @@ export default function ToolPanel() {
             <ToggleHistoricData />
             <ToggleTransformedImage />
             <ResetLocations />
-            <Logout />
+            {session ? <Logout /> : <Login />}
             <GitHub />
           </div>
           <TransparencySlider />

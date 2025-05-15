@@ -28,7 +28,8 @@ export default function CameraGeoreferenceApp() {
         justifyContent: "center",
       }}
     >
-      {data && storedData && sessionData ? (
+      {/* {data && storedData && sessionData ? ( */}
+      {data && storedData ? (
         <DualPane socrataData={storedData} />
       ) : (
         <LandingPage />
