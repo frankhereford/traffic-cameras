@@ -57,7 +57,7 @@ export const locationRouter = createTRPCRouter({
       const camera = await ctx.db.camera.findFirstOrThrow({
         where: { coaId: input.camera },
       })
-      const userId = ctx.session?.user?.id ?? process.env.DEFAULT_ANONYMOUS_USER_ID
+      const userId = ctx.session?.user?.id ?? process.env.DEFAULT_ANONYMOUS_USER_ID_FIELD
       const locations = await ctx.db.location.findMany({
         where: { cameraId: camera.id, userId },
       })
