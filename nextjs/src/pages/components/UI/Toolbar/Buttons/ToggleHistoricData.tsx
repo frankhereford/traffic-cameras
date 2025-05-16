@@ -3,6 +3,7 @@ import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useShowHistoricData from "~/pages/hooks/useShowHistoricData"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
@@ -17,6 +18,7 @@ export default function ToggleHistoricData() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
   const camera = useCameraStore((state) => state.camera)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   const historicDetections = api.detection.getHistoricCameraDetections.useQuery(
     {
@@ -66,6 +68,11 @@ export default function ToggleHistoricData() {
     }
   }, [historicDetections.data])
 
+  const handleClick = () => {
+    setShowHistoricData(!showHistoricData)
+    setEmoji(!showHistoricData ? "📚" : "✨")
+  }
+
   if (historicDetections.isLoading) return <></>
   if (historicDetections.isError) return <></>
   if (historicDetections.data?.length === 0) return <></>
@@ -78,7 +85,7 @@ export default function ToggleHistoricData() {
         className="mb-4 p-0"
         variant="contained"
         style={{ fontSize: "35px", position: "relative" }}
-        onClick={() => setShowHistoricData(!showHistoricData)}
+        onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

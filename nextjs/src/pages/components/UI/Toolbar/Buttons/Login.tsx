@@ -3,12 +3,15 @@ import Button from "@mui/material/Button"
 import { signIn } from "next-auth/react"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import Tooltip from "@mui/material/Tooltip"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 export default function Login() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   const handleSignIn = () => {
+    setEmoji("🔑")
     signIn().catch((e) => {
       console.error(e)
     })

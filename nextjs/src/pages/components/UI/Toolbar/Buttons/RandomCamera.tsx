@@ -3,12 +3,14 @@ import Button from "@mui/material/Button"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import Tooltip from "@mui/material/Tooltip"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 
 export default function RandomCamera() {
   const setCamera = useCameraStore((state) => state.setCamera)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } =
@@ -31,6 +33,7 @@ export default function RandomCamera() {
         filteredData[Math.floor(Math.random() * filteredData.length)]!
       const cameraId = randomCamera.coaId
       setCamera(cameraId)
+      setEmoji("🎯")
     }
   }
 

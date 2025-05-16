@@ -9,6 +9,7 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 import { useSession } from "next-auth/react"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 
@@ -27,6 +28,7 @@ export default function Previous() {
     },
   )
   const queryClient = useQueryClient()
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   const [open, setOpen] = useState(false)
 
@@ -37,6 +39,7 @@ export default function Previous() {
 
   const handleConfirmClick = () => {
     handleClose()
+    setEmoji("🧹")
     handleClick()
   }
 

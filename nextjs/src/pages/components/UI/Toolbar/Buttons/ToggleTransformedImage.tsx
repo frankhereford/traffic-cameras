@@ -4,6 +4,7 @@ import Tooltip from "@mui/material/Tooltip"
 import useTransformedImage from "~/pages/hooks/useTransformedImage"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import useCameraStore from "~/pages/hooks/useCameraStore"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 import useMapControls from "~/pages/hooks/useMapControls"
@@ -23,6 +24,8 @@ export default function ToggleTransformedImage() {
 
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -52,6 +55,7 @@ export default function ToggleTransformedImage() {
       setZoomTight(true)
     }
     setShowTransformedImage(!showTransformedImage)
+    setEmoji(showTransformedImage ? "📐" : "📸")
   }
 
   if (locationCount.isLoading) return <></>

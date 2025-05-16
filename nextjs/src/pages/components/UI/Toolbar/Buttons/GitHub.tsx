@@ -2,12 +2,15 @@ import { useEffect, useState } from "react"
 import Button from "@mui/material/Button"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import Tooltip from "@mui/material/Tooltip"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 export default function GitHub() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   const handleOpenGithub = () => {
+    setEmoji("🐙")
     window.open("https://github.com/frankhereford/traffic-cameras", "_blank")
   }
 

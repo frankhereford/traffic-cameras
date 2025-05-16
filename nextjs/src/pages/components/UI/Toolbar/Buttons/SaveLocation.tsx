@@ -6,6 +6,7 @@ import usePendingLocation from "~/pages/hooks/usePendingLocation"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocationControls } from "~/pages/hooks/useLocationControls"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 
@@ -35,6 +36,8 @@ export default function SaveLocation() {
   const setShowLocations = useLocationControls(
     (state) => state.setShowLocations,
   )
+
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   useEffect(() => {
     if (getCorrelatedLocation()) {
@@ -68,6 +71,7 @@ export default function SaveLocation() {
         },
       )
     }
+    setEmoji("📌")
   }
 
   useEffect(() => {

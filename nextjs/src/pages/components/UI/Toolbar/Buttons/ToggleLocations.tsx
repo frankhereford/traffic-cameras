@@ -5,6 +5,7 @@ import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
 import Badge from "@mui/material/Badge"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 
@@ -16,6 +17,7 @@ export default function ToggleLocations() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
   const camera = useCameraStore((state) => state.camera)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
   const locations = api.location.getLocations.useQuery(
     {
       camera: camera!,
@@ -42,12 +44,17 @@ export default function ToggleLocations() {
   if (locations.isError) return <></>
   if (locations.data.length === 0) return <></>
 
+  const handleClick = () => {
+    setShowLocations(!showLocations)
+    setEmoji(!showLocations ? "📍" : "🗺️")
+  }
+
   let button = (
     <Button
       className="mb-4 p-0"
       variant="contained"
       style={{ fontSize: "35px", position: "relative" }}
-      onClick={() => setShowLocations(!showLocations)}
+      onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

@@ -6,6 +6,7 @@ import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import Badge from "@mui/material/Badge"
 import Tooltip from "@mui/material/Tooltip"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 import { api } from "~/utils/api"
 
@@ -14,6 +15,7 @@ export default function RandomNewCamera() {
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
 
   const setCamera = useCameraStore((state) => state.setCamera)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
   const {
     data: cameraData,
     isLoading: isCameraLoading,
@@ -58,6 +60,7 @@ export default function RandomNewCamera() {
         }
       }
     }
+    setEmoji("🛰️")
   }
 
   useEffect(() => {

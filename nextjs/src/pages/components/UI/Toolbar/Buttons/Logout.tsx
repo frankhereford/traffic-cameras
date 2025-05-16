@@ -3,12 +3,15 @@ import Button from "@mui/material/Button"
 import { signOut } from "next-auth/react"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import Tooltip from "@mui/material/Tooltip"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 export default function Logout() {
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   const handleSignOut = () => {
+    setEmoji("✌️")
     signOut().catch((e) => {
       console.error(e)
     })

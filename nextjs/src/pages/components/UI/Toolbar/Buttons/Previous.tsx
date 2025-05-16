@@ -3,16 +3,19 @@ import Button from "@mui/material/Button"
 import Tooltip from "@mui/material/Tooltip"
 import useCameraStore from "~/pages/hooks/useCameraStore"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 
 export default function Previous() {
   const setCamera = useCameraStore((state) => state.setCamera)
   const previousCamera = useCameraStore((state) => state.previousCamera)
   const [isHovered, setIsHovered] = useState(false)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+  const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
   const handleClick = () => {
     if (previousCamera && !isFocus) {
       setCamera(previousCamera)
+      setEmoji("👈")
     }
   }
 
