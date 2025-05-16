@@ -17,6 +17,7 @@ import tempfile
 import os
 import subprocess
 import re
+import multiprocessing
 
 # https://xkcd.com/353/
 
@@ -50,21 +51,6 @@ def check_point_in_camera_location(camera, point):
         return False
 
 
-def throttle(func):
-    throttle._last_called = None
-
-    def wrapper(*args, **kwargs):
-        if throttle._last_called is not None:
-            time_since_last_call = time.time() - throttle._last_called
-            sleep_time = int(round(max(0, 1 - time_since_last_call), 0))
-            logging.info(f"sleep time: {sleep_time} ")
-            time.sleep(sleep_time)
-        throttle._last_called = time.time()
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
 def extract_points(locations):
     cctv_points = torch.tensor([[location.x, location.y] for location in locations])
     map_points = torch.tensor(
@@ -73,19 +59,29 @@ def extract_points(locations):
     return cctv_points, map_points
 
 
-def vision(db, redis):
-    while True:
-        process_one_image(db, redis)
+def vision(db, redis, num_workers=2):
+    """
+    Process images using a configurable number of worker processes.
+    """
+    with multiprocessing.Pool(processes=num_workers) as pool:
+        while True:
+            # Fetch up to num_workers jobs at once
+            jobs = db.image.find_many(
+                where={"detectionsProcessed": False},
+                include={"camera": True},
+                take=num_workers,
+            )
+            if not jobs:
+                time.sleep(1)
+                continue
+
+            # Prepare arguments for each job
+            args = [(job, db, redis) for job in jobs]
+            pool.starmap(process_one_image, args)
 
 
-@throttle
-def process_one_image(db, redis):
-    job = db.image.find_first(
-        where={
-            "detectionsProcessed": False,
-        },
-        include={"camera": True},
-    )
+def process_one_image(job, db, redis):
+    # job is now passed in directly
     if job is None:
         return
 
