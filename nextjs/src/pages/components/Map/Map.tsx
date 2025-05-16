@@ -61,6 +61,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
 
   const [flashLocation, setFlashLocation] = useState<{ lat: number; lng: number } | null>(null)
   const flashTimer = useRef<NodeJS.Timeout | null>(null)
+  const [flashZoom, setFlashZoom] = useState<number | null>(null) // Track zoom at flash start
 
   useEffect(() => {
     if (!zoomTight && map) {
@@ -136,8 +137,8 @@ function Map({ socrataData, paneWidth }: MapProps) {
         } else {
           // Show a red flash at the camera location
           setFlashLocation({ lat: latitude!, lng: longitude! })
+          setFlashZoom(map.getZoom() ?? null) // Store zoom at flash start
           if (flashTimer.current) clearTimeout(flashTimer.current)
-          flashTimer.current = setTimeout(() => setFlashLocation(null), 1200)
         }
       }
       setBounds(map?.getBounds() ?? null)
@@ -146,6 +147,17 @@ function Map({ socrataData, paneWidth }: MapProps) {
       setPendingMapLocationStore(null)
     }
   }, [camera, map, data, zoomTight, setPendingMapLocationStore])
+
+  // Fade out the flash when zoom increases by 2 or more levels
+  useEffect(() => {
+    if (flashLocation && flashZoom !== null && map) {
+      const currentZoom = map.getZoom() ?? 0
+      if (currentZoom >= flashZoom + 2) {
+        setFlashLocation(null)
+        setFlashZoom(null)
+      }
+    }
+  }, [map?.getZoom(), flashLocation, flashZoom, map])
 
   const locationCount = api.location.getLocationCount.useQuery(
     {
@@ -166,8 +178,6 @@ function Map({ socrataData, paneWidth }: MapProps) {
     const [opacity, setOpacity] = useState(1)
     useEffect(() => {
       setOpacity(1)
-      const fade = setTimeout(() => setOpacity(0), 100)
-      return () => clearTimeout(fade)
     }, [location])
     return (
       <OverlayView
@@ -176,17 +186,21 @@ function Map({ socrataData, paneWidth }: MapProps) {
       >
         <div
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: "50%",
-            background: "rgba(255,0,0,0.4)",
-            border: "2px solid red",
-            boxShadow: "0 0 16px 8px rgba(255,0,0,0.5)",
-            opacity,
-            transition: "opacity 1s linear",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             pointerEvents: "none",
+            transform: "translate(16px, -50%)", // 16px right, vertically centered
+            position: "absolute",
+            top: "50%",
+            left: 0,
+            fontSize: 72, // Doubled size
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
+            userSelect: "none",
           }}
-        />
+        >
+          <span role="img" aria-label="point right">👈</span>
+        </div>
       </OverlayView>
     )
   }
