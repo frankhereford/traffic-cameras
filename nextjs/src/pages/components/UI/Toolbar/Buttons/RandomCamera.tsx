@@ -36,6 +36,7 @@ export default function RandomCamera() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) return // Suppress shortcut if Ctrl or Command is held
       if (event.key === "r") {
         handleClick(undefined, { restrictToGeoreferenced: false })
       } else if (event.key === "R") {

@@ -3,6 +3,7 @@ import { useSession } from "next-auth/react"
 import DualPane from "~/pages/components/UI/DualPane"
 import LandingPage from "../UI/LandingPage"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
+import useCameraStore from "~/pages/hooks/useCameraStore"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 
 export default function CameraGeoreferenceApp() {
@@ -13,6 +14,19 @@ export default function CameraGeoreferenceApp() {
   const { data, isLoading, isError, error } = useGetSocrataData()
 
   const [storedData, setStoredData] = useState<SocrataData[] | null>(null)
+
+  const setCamera = useCameraStore((state) => state.setCamera)
+  const camera = useCameraStore((state) => state.camera)
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && camera == null) {
+      const stored = localStorage.getItem("lastViewedCamera")
+      if (stored !== null) {
+        const parsed = parseInt(stored)
+        if (!isNaN(parsed)) setCamera(parsed)
+      }
+    }
+  }, [camera, setCamera])
 
   useEffect(() => {
     if (data) {
@@ -28,7 +42,8 @@ export default function CameraGeoreferenceApp() {
         justifyContent: "center",
       }}
     >
-      {data && storedData && sessionData ? (
+      {/* {data && storedData && sessionData ? ( */}
+      {data && storedData ? (
         <DualPane socrataData={storedData} />
       ) : (
         <LandingPage />

@@ -37,25 +37,29 @@ export const locationRouter = createTRPCRouter({
         },
       })
     }),
-  getLocations: protectedProcedure
+
+  getLocations: publicProcedure
     .input(z.object({ camera: z.number() }))
     .query(async ({ ctx, input }) => {
       const camera = await ctx.db.camera.findFirstOrThrow({
         where: { coaId: input.camera },
       })
+      const userId = ctx.session?.user?.id ?? process.env.DEFAULT_ANONYMOUS_USER_ID_FIELD
       const locations = await ctx.db.location.findMany({
-        where: { cameraId: camera.id, userId: ctx.session.user.id },
+        where: { cameraId: camera.id, userId },
       })
       return locations
     }),
-  getLocationCount: protectedProcedure
+
+  getLocationCount: publicProcedure
     .input(z.object({ camera: z.number() }))
     .query(async ({ ctx, input }) => {
       const camera = await ctx.db.camera.findFirstOrThrow({
         where: { coaId: input.camera },
       })
+      const userId = ctx.session?.user?.id ?? process.env.DEFAULT_ANONYMOUS_USER_ID_FIELD
       const locations = await ctx.db.location.findMany({
-        where: { cameraId: camera.id, userId: ctx.session.user.id },
+        where: { cameraId: camera.id, userId },
       })
       return locations.length
     }),

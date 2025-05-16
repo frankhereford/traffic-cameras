@@ -8,7 +8,7 @@ import {
 
 export const cameraRouter = createTRPCRouter({
   // should be get getSpecificCameras by array of ids
-  getCameras: protectedProcedure
+  getCameras: publicProcedure
     .input(z.object({ cameras: z.array(z.number()) }))
     .query(async ({ ctx, input }) => {
       const cameras = await ctx.db.camera.findMany({
@@ -23,13 +23,13 @@ export const cameraRouter = createTRPCRouter({
       })
       return cameras
     }),
-  getAllCameras: protectedProcedure
+  getAllCameras: publicProcedure
     .input(z.object({}))
     .query(async ({ ctx }) => {
       const cameras = await ctx.db.camera.findMany({})
       return cameras
     }),
-  getWorkingCameras: protectedProcedure
+  getWorkingCameras: publicProcedure
     .input(z.object({}))
     .query(async ({ ctx, input }) => {
       const cameras = await ctx.db.camera.findMany({

@@ -9,6 +9,7 @@ import ReloadProgress from "./UI/ReloadProgress"
 import Locations from "~/pages/components/Camera/Locations/Locations"
 import { FullScreen, useFullScreenHandle } from "react-full-screen"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
+import { useSession } from "next-auth/react"
 
 interface CameraProps {
   paneWidth: number
@@ -27,6 +28,9 @@ export default function Camera({ paneWidth }: CameraProps) {
   const [reloadPercentage, setReloadPercentage] = useState(100)
   const fullScreenHandle = useFullScreenHandle()
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
+
+  const { data: session } = useSession()
+  const isLoggedIn = !!session
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -107,6 +111,7 @@ export default function Camera({ paneWidth }: CameraProps) {
   const handleImageClick = (
     event: React.MouseEvent<HTMLImageElement, MouseEvent>,
   ) => {
+    if (!isLoggedIn) return
     const imgElement = event.currentTarget
     const scaleFactor =
       (imgElement.naturalWidth / imgElement.clientWidth) *
