@@ -4,10 +4,10 @@ import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import useBoundingBox from "~/pages/hooks/useMapBoundingBox"
 import { useMapControls } from "~/pages/hooks/useMapControls"
 import { useCameraStore } from "~/pages/hooks/useCameraStore"
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import usePendingLocation from "~/pages/hooks/usePendingLocation"
-import { GoogleMap, useJsApiLoader } from "@react-google-maps/api"
+import { GoogleMap, useJsApiLoader, OverlayView } from "@react-google-maps/api"
 import Locations from "~/pages/components/Map/Locations/Locations"
 import useShowHistoricData from "~/pages/hooks/useShowHistoricData"
 import Detections from "~/pages/components/Map/Detections/Detections"
@@ -30,7 +30,6 @@ const containerStyle = {
 
 const maxZoom = 20
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function Map({ socrataData, paneWidth }: MapProps) {
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -59,6 +58,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
 
   const { data: session } = useSession()
   const isLoggedIn = !!session
+
+  const [flashLocation, setFlashLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const flashTimer = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!zoomTight && map) {
@@ -96,7 +98,6 @@ function Map({ socrataData, paneWidth }: MapProps) {
     zoomTight,
   ])
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isLoading, isError, error } = useGetSocrataData()
 
   const onUnmount = useCallback(function callback() {
@@ -133,7 +134,10 @@ function Map({ socrataData, paneWidth }: MapProps) {
           map.setZoom(maxZoom)
           map.panTo(location)
         } else {
-          // map.setZoom(15)
+          // Show a red flash at the camera location
+          setFlashLocation({ lat: latitude!, lng: longitude! })
+          if (flashTimer.current) clearTimeout(flashTimer.current)
+          flashTimer.current = setTimeout(() => setFlashLocation(null), 1200)
         }
       }
       setBounds(map?.getBounds() ?? null)
@@ -157,6 +161,35 @@ function Map({ socrataData, paneWidth }: MapProps) {
       console.log(`Location count: ${locationCount.data}`)
     }
   }, [locationCount.data])
+
+  const CameraFlash = ({ location }: { location: { lat: number; lng: number } }) => {
+    const [opacity, setOpacity] = useState(1)
+    useEffect(() => {
+      setOpacity(1)
+      const fade = setTimeout(() => setOpacity(0), 100)
+      return () => clearTimeout(fade)
+    }, [location])
+    return (
+      <OverlayView
+        position={location}
+        mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      >
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: "rgba(255,0,0,0.4)",
+            border: "2px solid red",
+            boxShadow: "0 0 16px 8px rgba(255,0,0,0.5)",
+            opacity,
+            transition: "opacity 1s linear",
+            pointerEvents: "none",
+          }}
+        />
+      </OverlayView>
+    )
+  }
 
   return isLoaded ? (
     <GoogleMap
@@ -189,6 +222,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
           zoom={map?.getZoom()}
         />
       )}
+      {flashLocation && !zoomTight && <CameraFlash location={flashLocation} />}
       {mapLocation && <PendingLocation location={pendingMapLocation} />}{" "}
       {camera && <Locations camera={camera} />}
       {camera && <Detections camera={camera} />}
