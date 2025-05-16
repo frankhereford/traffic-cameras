@@ -14,6 +14,7 @@ import Detections from "~/pages/components/Map/Detections/Detections"
 import PendingLocation from "~/pages/components/Map/Locations/PendingLocation"
 import HistoricDetections from "~/pages/components/Map/HistoricDetections/HistoricDetections"
 import GeoreferencedImage from "~/pages/components/Map/GeoreferencedImage/GeoreferencedImage"
+import { useSession } from "next-auth/react"
 
 import { api } from "~/utils/api"
 
@@ -55,6 +56,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
   )
 
   const mapLocation = usePendingLocation((state) => state.mapLocation)
+
+  const { data: session } = useSession()
+  const isLoggedIn = !!session
 
   useEffect(() => {
     if (!zoomTight && map) {
@@ -165,6 +169,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
       onZoomChanged={OnViewportChange}
       options={{ tilt: 0, mapTypeId: "satellite" }}
       onClick={(e) => {
+        if (!isLoggedIn) return
         if (e.latLng) {
           setPendingMapLocation({
             latitude: e.latLng.lat(),
