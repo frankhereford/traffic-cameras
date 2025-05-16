@@ -8,6 +8,7 @@ import Modal from "@mui/material/Modal"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
+import { useSession } from "next-auth/react"
 
 import { api } from "~/utils/api"
 
@@ -28,6 +29,8 @@ export default function Previous() {
   const queryClient = useQueryClient()
 
   const [open, setOpen] = useState(false)
+
+  const { data: session } = useSession()
 
   const handleOpen = () => setOpen(true)
   const handleClose = () => setOpen(false)
@@ -68,6 +71,8 @@ export default function Previous() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera, isFocus])
+
+  if (!session) return null
 
   if (locations.isLoading) return <></>
   if (locations.isError) return <></>
