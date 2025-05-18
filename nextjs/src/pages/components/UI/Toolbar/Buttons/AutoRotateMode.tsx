@@ -45,8 +45,17 @@ export default function AutoRotateMode() {
       intervalRef.current = setInterval(() => {
         pickRandomCamera()
       }, AUTO_ROTATE_INTERVAL_MS)
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
     }
-  }, [autoRotateMode])
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [autoRotateMode, pickRandomCamera])
 
   const handleClick = () => {
     setAutoRotateMode(!autoRotateMode)
