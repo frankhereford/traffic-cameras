@@ -3,6 +3,7 @@ import Draggable from "react-draggable"
 import ToggleMapFollow from "~/pages/components/UI/Toolbar/Buttons/ToggleMapFollow"
 import RandomCamera from "~/pages/components/UI/Toolbar/Buttons/RandomCamera"
 import RandomNewCamera from "./Buttons/RandomNewCamera"
+import AutoRotateMode from "./Buttons/AutoRotateMode"
 import Logout from "./Buttons/Logout"
 import Login from "./Buttons/Login"
 import Previous from "./Buttons/Previous"
@@ -27,6 +28,7 @@ export default function ToolPanel() {
           <div className="flex flex-wrap justify-between space-x-2">
             <ToggleMapFollow />
             <RandomCamera />
+            <AutoRotateMode />
             <RandomNewCamera />
             <Previous />
             <SaveLocation />
