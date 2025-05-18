@@ -7,6 +7,8 @@ import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 import { api } from "~/utils/api"
 
+const AUTO_ROTATE_INTERVAL_MS = 15000
+
 export default function AutoRotateMode() {
   
   const autoRotateMode = useAutoRotateMode(
@@ -42,7 +44,7 @@ export default function AutoRotateMode() {
     if (autoRotateMode) {
       intervalRef.current = setInterval(() => {
         pickRandomCamera()
-      }, 15000) // 15 seconds
+      }, AUTO_ROTATE_INTERVAL_MS)
     }
   }, [autoRotateMode])
 
