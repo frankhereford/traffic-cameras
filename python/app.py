@@ -7,6 +7,7 @@ from routes.status import status
 from routes.vision import vision
 from routes.image import image
 from routes.vision import transformedImage
+from routes.rekognition import rekognition
 
 app = Flask(__name__)
 
@@ -31,6 +32,8 @@ def main(mode):
         app.run(host="0.0.0.0", debug=True)
     elif mode == "detector":
         vision(db, redis)
+    elif mode == "rekognition":
+        rekognition(db, redis)
 
 
 if __name__ == "__main__":
@@ -39,7 +42,7 @@ if __name__ == "__main__":
         "--mode",
         type=str,
         default="flask",
-        choices=["flask", "detector"],
+        choices=["flask", "detector", "rekognition"],
         required=True,
     )
     args = parser.parse_args()
