@@ -42,6 +42,8 @@ services:
       - ./python:/app
     depends_on:
       - postgis
+    env_file:
+      - ./python/env
     command: ["python", "app.py", "--mode=detector"]
 
   haproxy:
