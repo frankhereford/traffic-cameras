@@ -42,7 +42,10 @@ services:
       - ./python:/app
     depends_on:
       - postgis
-    command: ["python", "app.py", "--mode=detector"]
+    env_file:
+      - ./python/env
+    # command: ["python", "app.py", "--mode=detector"]
+    command: ["python", "app.py", "--mode=rekognition"]
 
   haproxy:
     image: haproxy:latest

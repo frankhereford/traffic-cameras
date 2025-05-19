@@ -8,3 +8,4 @@ redis==5.*
 torch-tps==1.*
 scipy==1.*
 matplotlib==3.*
+boto3==1.38.*

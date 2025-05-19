@@ -43,6 +43,11 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
     // "person",
   ]
 
+  // Helper for case-insensitive comparison
+  const isHighlighted = highlightedLabels
+    .map(l => l.toLowerCase())
+    .includes(label.toLowerCase())
+
   const boxStyle: React.CSSProperties = {
     pointerEvents: "none",
     position: "absolute",
@@ -50,7 +55,7 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
     top: `${scaledYMin}px`,
     width: `${scaledXMax - scaledXMin}px`,
     height: `${scaledYMax - scaledYMin}px`,
-    border: highlightedLabels.includes(label)
+    border: isHighlighted
       ? `2px solid ${theme.palette.success.light}`
       : "1px solid grey",
     backgroundColor: "rgba(256, 256, 256, 0.05)",
@@ -63,14 +68,14 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
       {/* <div>ID: {id}</div> */}
       <Typography
         style={{
-          color: highlightedLabels.includes(label) ? "white" : "grey",
-          fontSize: highlightedLabels.includes(label)
+          color: isHighlighted ? "white" : "grey",
+          fontSize: isHighlighted
             ? `${fontSize * scaleFactor}px`
             : `${(fontSize * scaleFactor) / 2}px`,
           position: "relative",
           bottom: `${fontSize * scaleFactor + 5}px`,
           width: "300px",
-          textShadow: highlightedLabels.includes(label)
+          textShadow: isHighlighted
             ? "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black"
             : "none",
           textTransform: "uppercase",
