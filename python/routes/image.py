@@ -141,16 +141,16 @@ def image(id, db, redis):
         for i in range(-3, 4):
             for j in range(-3, 4):
                 d.text(
-                    (1790 + i, 10 + j),
-                    image_hash[:8],
+                    (1720 + i, 10 + j),
+                    f"{image_hash[:8]}/{id}",
                     font=font,
                     fill=(0, 0, 0),  # Black color
                 )
 
         # Draw the white text
         d.text(
-            (1790, 10),
-            image_hash[:8],
+            (1720, 10),
+            f"{image_hash[:8]}/{id}",
             font=font,
             fill=(255, 255, 255),  # White color
         )
