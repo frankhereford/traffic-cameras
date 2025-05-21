@@ -161,26 +161,26 @@ def image(id, db, redis):
 
         # --- S3 Upload as PNG using createdAt ---
         try:
-            # Prepare PNG in memory
-            png_io = BytesIO()
-            pillow_image.save(png_io, "PNG")
-            png_io.seek(0)
+            image_type = 'jpg'
 
-            # Use createdAt from db.image.upsert()
-            created_at = getattr(image_record, "createdAt", None)
-            if created_at is not None:
-                # If it's a datetime, format it
-                if hasattr(created_at, "strftime"):
-                    timestamp = created_at.strftime("%Y%m%d%H%M%S")
-                else:
-                    # If it's a string, parse and format
-                    timestamp = datetime.fromisoformat(str(created_at)).strftime("%Y%m%d%H%M%S")
+            # Prepare image in memory based on image_type
+            if image_type == 'png':
+                img_io_s3 = BytesIO()
+                pillow_image.save(img_io_s3, "PNG")
+                content_type = "image/png"
+                ext = "png"
+            elif image_type == 'jpg':
+                img_io_s3 = BytesIO()
+                pillow_image.save(img_io_s3, "JPEG", quality=40, optimize=True)
+                content_type = "image/jpeg"
+                ext = "jpg"
             else:
-                # Fallback to current UTC time
-                timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                raise ValueError(f"Unsupported image_type: {image_type}")
+            img_io_s3.seek(0)
 
-            s3_key = f"cameras/{id}/{timestamp}-{image_hash}.png"
-            logging.info(f"Uploading PNG to S3 with key: {s3_key}")
+            # S3 key: cameras/<id>/<hash>.<ext> (no timestamp)
+            s3_key = f"cameras/{id}/{image_hash}.{ext}"
+            logging.info(f"Uploading {ext.upper()} to S3 with key: {s3_key}")
 
             s3 = boto3.client(
                 "s3",
@@ -197,12 +197,12 @@ def image(id, db, redis):
                 if e.response['Error']['Code'] == "404":
                     # File does not exist, upload
                     s3.upload_fileobj(
-                        png_io,
+                        img_io_s3,
                         "atx-traffic-cameras",
                         s3_key,
-                        ExtraArgs={"ContentType": "image/png"},
+                        ExtraArgs={"ContentType": content_type},
                     )
-                    logging.info(f"Uploaded PNG to s3://atx-traffic-cameras/{s3_key}")
+                    logging.info(f"Uploaded {ext.upper()} to s3://atx-traffic-cameras/{s3_key}")
                 else:
                     logging.error(f"Error checking S3 for {s3_key}: {e}")
 
