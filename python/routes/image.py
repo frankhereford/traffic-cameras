@@ -9,6 +9,9 @@ import hashlib
 import pickle
 from xml.dom.minidom import parseString
 from io import BytesIO
+import boto3
+import os
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -111,7 +114,7 @@ def image(id, db, redis):
                     "update": {"statusId": status.id},
                 },
             )
-            db.image.upsert(
+            image_record = db.image.upsert(
                 where={"hash": image_hash, "cameraId": camera.id},
                 data={
                     "create": {
@@ -156,5 +159,56 @@ def image(id, db, redis):
         pillow_image.save(img_io, "JPEG", quality=70)
         image = img_io
 
+        # --- S3 Upload as PNG using createdAt ---
+        try:
+            # Prepare PNG in memory
+            png_io = BytesIO()
+            pillow_image.save(png_io, "PNG")
+            png_io.seek(0)
+
+            # Use createdAt from db.image.upsert()
+            created_at = getattr(image_record, "createdAt", None)
+            if created_at is not None:
+                # If it's a datetime, format it
+                if hasattr(created_at, "strftime"):
+                    timestamp = created_at.strftime("%Y%m%d%H%M%S")
+                else:
+                    # If it's a string, parse and format
+                    timestamp = datetime.fromisoformat(str(created_at)).strftime("%Y%m%d%H%M%S")
+            else:
+                # Fallback to current UTC time
+                timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+            s3_key = f"cameras/{id}/{timestamp}-{image_hash}.png"
+            logging.info(f"Uploading PNG to S3 with key: {s3_key}")
+
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+                region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            )
+
+            # Check if file exists
+            try:
+                s3.head_object(Bucket="atx-traffic-cameras", Key=s3_key)
+                logging.info(f"File already exists in S3: {s3_key}, skipping upload.")
+            except s3.exceptions.ClientError as e:
+                if e.response['Error']['Code'] == "404":
+                    # File does not exist, upload
+                    s3.upload_fileobj(
+                        png_io,
+                        "atx-traffic-cameras",
+                        s3_key,
+                        ExtraArgs={"ContentType": "image/png"},
+                    )
+                    logging.info(f"Uploaded PNG to s3://atx-traffic-cameras/{s3_key}")
+                else:
+                    logging.error(f"Error checking S3 for {s3_key}: {e}")
+
+        except Exception as e:
+            logging.error(f"Failed to upload PNG to S3: {e}")
+
     image.seek(0)  # Rewind to the start of the stream
+
     return send_file(image, mimetype="image/jpeg")
