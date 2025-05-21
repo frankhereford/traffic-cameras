@@ -8,6 +8,7 @@ from routes.vision import vision
 from routes.image import image
 from routes.vision import transformedImage
 from routes.rekognition import rekognition
+from routes.aws_lambda import aws_lambda
 
 app = Flask(__name__)
 
@@ -34,6 +35,8 @@ def main(mode):
         vision(db, redis)
     elif mode == "rekognition":
         rekognition(db, redis)
+    elif mode == "lambda":
+        aws_lambda(db, redis)
 
 
 if __name__ == "__main__":
@@ -42,7 +45,7 @@ if __name__ == "__main__":
         "--mode",
         type=str,
         default="flask",
-        choices=["flask", "detector", "rekognition"],
+        choices=["flask", "detector", "rekognition", "lambda"],
         required=True,
     )
     args = parser.parse_args()

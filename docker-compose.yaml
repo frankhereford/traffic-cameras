@@ -47,7 +47,8 @@ services:
     env_file:
       - ./python/env
     # command: ["python", "app.py", "--mode=detector"]
-    command: ["python", "app.py", "--mode=rekognition"]
+    # command: ["python", "app.py", "--mode=rekognition"]
+    command: ["python", "app.py", "--mode=lambda"]
 
   haproxy:
     image: haproxy:latest
