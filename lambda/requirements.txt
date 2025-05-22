@@ -1,5 +1,5 @@
 #Flask==3.*
-#requests==2.*
+requests==2.*
 transformers<=4.37.0
 pillow==10.*
 #psycopg2-binary==2.*
