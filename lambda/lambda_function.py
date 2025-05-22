@@ -4,6 +4,63 @@ import boto3
 import os
 from botocore.exceptions import ClientError
 import os.path
+import torch
+import logging
+from PIL import Image
+from io import BytesIO
+from transformers import DetrImageProcessor, DetrForObjectDetection
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
+
+# Initialize the object detection model and processor
+processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-101", revision="no_timm")
+model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-101", revision="no_timm")
+
+def detect_objects(image_path):
+    """
+    Perform object detection on an image
+    
+    Parameters:
+        image_path: String path to the image file
+    Returns:
+        List of detected objects with their labels, confidence scores, and bounding boxes
+    """
+    # Open the image
+    image = Image.open(image_path)
+    
+    # Process the image for object detection
+    inputs = processor(images=image, return_tensors="pt")
+    outputs = model(**inputs)
+    
+    # Convert outputs to COCO API format and filter with threshold
+    target_sizes = torch.tensor([image.size[::-1]])
+    results = processor.post_process_object_detection(
+        outputs, target_sizes=target_sizes, threshold=0.9
+    )[0]
+    
+    # Prepare detection results
+    detections = []
+    for score, label, box in zip(results["scores"], results["labels"], results["boxes"]):
+        box = [round(i, 2) for i in box.tolist()]
+        label_name = model.config.id2label[label.item()]
+        confidence = round(score.item(), 3)
+        
+        logging.info(f"Detected {label_name} with confidence {confidence} at location {box}")
+        
+        detections.append({
+            "label": label_name,
+            "confidence": confidence,
+            "box": {
+                "xMin": box[0],
+                "yMin": box[1],
+                "xMax": box[2],
+                "yMax": box[3]
+            }
+        })
+    
+    return detections
 
 def handler(event, context):
     """
@@ -60,13 +117,17 @@ def handler(event, context):
             file_info = os.stat(local_file_path)
             file_size = file_info.st_size
             
+            # Perform object detection on the downloaded image
+            detections = detect_objects(local_file_path)
+            
             input = {
                 'coaId': coa_id,
                 'hash': file_hash,
                 'bucket': bucket_name,
                 'objectKey': object_key,
                 'localPath': local_file_path,
-                'fileSize': file_size
+                'fileSize': file_size,
+                'detections': detections
             }
             
             # Process the message and return success
