@@ -4,9 +4,9 @@ FROM public.ecr.aws/lambda/python:3.12
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 
 # Install the specified packages
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt && rm -frv /root/.cache
 
-RUN pip install --upgrade torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --upgrade torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu && rm -frv /root/.cache
 
 COPY load_model.py ./
 RUN python ./load_model.py
