@@ -1,5 +1,8 @@
 FROM public.ecr.aws/lambda/python:3.12
 
+# Set HuggingFace cache directory to /tmp for Lambda compatibility
+ENV HF_HOME=/tmp/hf_home
+
 # Copy requirements.txt
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 
