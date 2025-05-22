@@ -6,6 +6,12 @@ COPY requirements.txt ${LAMBDA_TASK_ROOT}
 # Install the specified packages
 RUN pip install -r requirements.txt
 
+RUN pip install --upgrade torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
+COPY load_model.py ./
+RUN python ./load_model.py
+
+
 # Copy function code
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
 
