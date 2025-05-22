@@ -9,14 +9,63 @@ import logging
 from PIL import Image
 from io import BytesIO
 from transformers import DetrImageProcessor, DetrForObjectDetection
+import sqlite3
+import hashlib
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
+CACHE_DB_PATH = '/tmp/detection_cache.db'  # SQLite cache database path
 
 # Initialize the object detection model and processor
 processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-101", revision="no_timm")
 model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-101", revision="no_timm")
+
+def init_cache_db():
+    """Initialize the SQLite cache database"""
+    conn = sqlite3.connect(CACHE_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS detection_cache (
+        image_id TEXT PRIMARY KEY,
+        detection_results TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    conn.commit()
+    conn.close()
+    logging.info(f"Cache database initialized at {CACHE_DB_PATH}")
+
+def get_cache_key(coa_id, file_hash):
+    """Generate a unique cache key for the image"""
+    return f"{coa_id}:{file_hash}"
+
+def get_cached_detections(cache_key):
+    """Retrieve cached detection results if available"""
+    conn = sqlite3.connect(CACHE_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT detection_results FROM detection_cache WHERE image_id = ?", (cache_key,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result:
+        logging.info(f"Cache hit for key: {cache_key}")
+        return json.loads(result[0])
+    
+    logging.info(f"Cache miss for key: {cache_key}")
+    return None
+
+def cache_detections(cache_key, detections):
+    """Store detection results in the cache"""
+    conn = sqlite3.connect(CACHE_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR REPLACE INTO detection_cache (image_id, detection_results) VALUES (?, ?)",
+        (cache_key, json.dumps(detections))
+    )
+    conn.commit()
+    conn.close()
+    logging.info(f"Cached detection results for key: {cache_key}")
 
 def detect_objects(image_path):
     """
@@ -72,6 +121,9 @@ def handler(event, context):
         Dict containing status message
     """
     try:
+        # Ensure cache database is initialized
+        init_cache_db()
+        
         # Log the event for debugging
         print("Received event: " + json.dumps(event))
         
@@ -86,6 +138,26 @@ def handler(event, context):
                     'error': 'Missing required parameters: coaId or hash'
                 })
             }
+        
+        # Generate cache key for this request
+        cache_key = get_cache_key(coa_id, file_hash)
+        
+        # Check if we have cached results
+        cached_detections = get_cached_detections(cache_key)
+        if cached_detections is not None:
+            logging.info("Using cached detection results")
+            
+            # Return the cached results
+            response = {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'coaId': coa_id,
+                    'hash': file_hash,
+                    'detections': cached_detections,
+                    'fromCache': True
+                })
+            }
+            return response
         
         # Initialize S3 client with configuration constants
         # If AWS credentials are None, boto3 will use the default AWS credential chain
@@ -120,6 +192,9 @@ def handler(event, context):
             # Perform object detection on the downloaded image
             detections = detect_objects(local_file_path)
             
+            # Cache the detection results
+            cache_detections(cache_key, detections)
+            
             input = {
                 'coaId': coa_id,
                 'hash': file_hash,
@@ -127,7 +202,8 @@ def handler(event, context):
                 'objectKey': object_key,
                 'localPath': local_file_path,
                 'fileSize': file_size,
-                'detections': detections
+                'detections': detections,
+                'fromCache': False
             }
             
             # Process the message and return success
