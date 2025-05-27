@@ -18,3 +18,12 @@ Started as
 * a ton of random stuff while I just wrote whatever came to mind - it was good
 
 and then i bailed -- I'll stand this up again one day, it's pretty ok. 
+
+
+```
+ALTER TABLE detections
+ADD COLUMN location geography(Point, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) STORED;
+
+ALTER TABLE locations
+ADD COLUMN location geography(Point, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) STORED;
+```
