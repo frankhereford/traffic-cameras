@@ -39,6 +39,7 @@ model Image {
     camera              Camera      @relation(fields: [cameraId], references: [id])
     statusId            String?
     status              Status?     @relation(fields: [statusId], references: [id])
+    s3Uploaded          Boolean     @default(false)
     detectionsProcessed Boolean     @default(false)
     detections          Detection[]
 
