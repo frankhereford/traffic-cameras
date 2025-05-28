@@ -123,23 +123,22 @@ def handler(event, context):
     try:
         # Ensure cache database is initialized
         init_cache_db()
-        
-        # Log the event for debugging
         print("Received event: " + json.dumps(event))
         
-        # Extract parameters from event
-        coa_id = event.get("coaId")
-        file_hash = event.get("hash")
-        
-        if not coa_id or not file_hash:
+        # Extract S3 information from the event and parse coaId and hash
+        record = event["Records"][0]
+        s3_info = record["s3"]
+        bucket_name = s3_info["bucket"]["name"]
+        object_key = s3_info["object"]["key"]
+        parts = object_key.split("/")
+        if len(parts) < 3:
             return {
                 'statusCode': 400,
-                'body': json.dumps({
-                    'error': 'Missing required parameters: coaId or hash'
-                })
+                'body': json.dumps({'error': 'Invalid S3 object key format'})
             }
-        
-        # Generate cache key for this request
+        coa_id = parts[1]
+        filename = parts[2]
+        file_hash = filename.rsplit(".", 1)[0]
         cache_key = get_cache_key(coa_id, file_hash)
         
         # Check if we have cached results
