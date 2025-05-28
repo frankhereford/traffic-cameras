@@ -2,92 +2,63 @@ import time
 import logging
 import requests
 import json
+import os  # new import for environment variables
+import boto3  # added boto3
 
 def aws_lambda(db, redis):
+    sqs = boto3.client('sqs', region_name='us-east-1')  # specify AWS region
+    queue_url = sqs.get_queue_url(QueueName="camera-detections")['QueueUrl']
+    
     while True:
-        job = db.image.find_first(
-            where={
-                "detectionsProcessed": False,
-            },
-            include={"camera": True},
+        response = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=10,
+            WaitTimeSeconds=20
         )
-        if job is None:
-            time.sleep(10)
-            continue
-
-        logging.info(job.hash)
-
-        key = f"images:{job.hash}"
-
-        camera = db.camera.find_first(
-            where={"id": job.camera.id}, include={"Location": True}
-        )
-        
-        # Extract the hash from the job
-        image_hash = job.hash
-        
-        # Extract the coaId from the camera
-        coa_id = camera.coaId
-        
-        # Define the Lambda function URL
-        lambda_url = "https://enzcekpb53uebdi4uj62ul5ium0hjjhq.lambda-url.us-east-1.on.aws"
-        # lambda_url = "http://localhost:9000/2015-03-31/functions/function/invocations"
-        
-        # Prepare the payload
-        payload = {
-            "coaId": coa_id,
-            "hash": image_hash
-        }
-
-        try:
-            # Make the request to the Lambda function
-            logging.info(f"Calling Lambda function with payload: {payload}")
-            response = requests.post(lambda_url, json=payload)
-            
-            # Check if the request was successful
-            if response.status_code == 200:
-                logging.info("Lambda function call successful")
-                # Process the response if needed
-                # response_data = response.json()
-            else:
-                logging.error(f"Lambda function call failed with status code: {response.status_code}")
-                raise Exception(f"Response: {response.text}")
-                
-        except Exception as e:
-            logging.error(f"Error calling Lambda function: {str(e)}")
-            # Mark the image as processed to prevent retrying
-            db.image.update(
-                where={"hash": image_hash},
-                data={"detectionsProcessed": True}
-            )
-
-        with db.tx() as transaction:
-            status = db.status.upsert(
-                where={"name": "ok"},
-                data={"create": {"name": "ok"}, "update": {}},
-            )
-            camera = db.camera.upsert(
-                where={"coaId": coa_id},  # Changed from id to coa_id
-                data={
-                    "create": {"coaId": coa_id, "statusId": status.id},  # Changed from id to coa_id
-                    "update": {"statusId": status.id},
-                },
-            )
-            image_record = db.image.upsert(
-                where={"hash": image_hash, "cameraId": camera.id},
-                data={
-                    "create": {
-                        "hash": image_hash,
-                        "cameraId": camera.id,
-                        "statusId": status.id,
-                    },
-                    "update": {"statusId": status.id},
-                },
-            )
-
-        
-        time.sleep(.5)
-        
-        # Continue with the rest of the processing for this image
-        # (You might want to add more code here based on your application requirements)
+        if 'Messages' in response:
+            for message in response['Messages']:
+                logging.info("Received message: " + message.get('Body', ''))
+                # New: Extract S3 object key, coaId, and file hash, then download file
+                body = message.get('Body', '')
+                try:
+                    data = json.loads(body)
+                    if "Records" in data and data["Records"]:
+                        for record in data["Records"]:
+                            object_key = record["s3"]["object"]["key"]
+                            parts = object_key.split('/')
+                            if len(parts) >= 3:
+                                coa_id = parts[1]
+                                file_name = parts[2]
+                                file_hash = file_name.split('.')[0]
+                                # Initialize S3 client with credentials from env vars
+                                s3_client_args = {
+                                    'service_name': 's3',
+                                    'region_name': os.environ.get('AWS_REGION', 'us-east-1')
+                                }
+                                AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+                                AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+                                if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+                                    s3_client_args.update({
+                                        'aws_access_key_id': AWS_ACCESS_KEY_ID,
+                                        'aws_secret_access_key': AWS_SECRET_ACCESS_KEY,
+                                    })
+                                s3_client = boto3.client(**s3_client_args)
+                                bucket_name = os.environ.get('S3_BUCKET', 'atx-traffic-cameras')
+                                expected_key = f"cameras/{coa_id}/{file_hash}.jpg"
+                                s3_address = f"s3://{bucket_name}/{expected_key}"
+                                logging.info(f"Attempting to download from S3 location: {s3_address}")
+                                local_file_path = f"/tmp/{file_hash}.jpg"
+                                try:
+                                    s3_client.download_file(bucket_name, expected_key, local_file_path)
+                                    logging.info(f"Successfully downloaded file from {s3_address} to {local_file_path}")
+                                except Exception as e:
+                                    logging.error(f"Error downloading file: {e}")
+                except Exception as e:
+                    logging.error(f"Error processing message: {e}")
+                # ...existing code...
+                sqs.delete_message(
+                    QueueUrl=queue_url,
+                    ReceiptHandle=message['ReceiptHandle']
+                )
+        time.sleep(5)
 
