@@ -4,6 +4,8 @@ import requests
 import json
 import os  # new import for environment variables
 import boto3  # added boto3
+import io
+from PIL import Image
 
 def aws_lambda(db, redis):
     sqs = boto3.client('sqs', region_name='us-east-1')  # specify AWS region
@@ -47,10 +49,11 @@ def aws_lambda(db, redis):
                                 expected_key = f"cameras/{coa_id}/{file_hash}.jpg"
                                 s3_address = f"s3://{bucket_name}/{expected_key}"
                                 logging.info(f"Attempting to download from S3 location: {s3_address}")
-                                local_file_path = f"/tmp/{file_hash}.jpg"
                                 try:
-                                    s3_client.download_file(bucket_name, expected_key, local_file_path)
-                                    logging.info(f"Successfully downloaded file from {s3_address} to {local_file_path}")
+                                    response = s3_client.get_object(Bucket=bucket_name, Key=expected_key)
+                                    file_data = response['Body'].read()
+                                    img = Image.open(io.BytesIO(file_data))
+                                    logging.info(f"Successfully downloaded and loaded image from {s3_address} into memory")
                                 except Exception as e:
                                     logging.error(f"Error downloading file: {e}")
                 except Exception as e:
