@@ -156,6 +156,18 @@ def handler(event, context):
                     'fromCache': True
                 })
             }
+            # Send message to SQS with the full input event and status
+            try:
+                sqs_client = boto3.client('sqs')
+                message_payload = event.copy()
+                message_payload["status"] = "processed"
+                sqs_client.send_message(
+                    QueueUrl="https://sqs.us-east-1.amazonaws.com/969346816767/camera-detections",
+                    MessageBody=json.dumps(message_payload)
+                )
+            except Exception as sqs_error:
+                logging.error(f"Failed to send SQS message: {sqs_error}")
+            
             return response
         
         # Initialize S3 client with configuration constants
@@ -210,6 +222,18 @@ def handler(event, context):
                 'statusCode': 200,
                 'body': json.dumps(input)
             }
+            
+            # Send message to SQS with the full input event and status
+            try:
+                sqs_client = boto3.client('sqs')
+                message_payload = event.copy()
+                message_payload["status"] = "processed"
+                sqs_client.send_message(
+                    QueueUrl="https://sqs.us-east-1.amazonaws.com/969346816767/camera-detections",
+                    MessageBody=json.dumps(message_payload)
+                )
+            except Exception as sqs_error:
+                logging.error(f"Failed to send SQS message: {sqs_error}")
             
             return response
             
