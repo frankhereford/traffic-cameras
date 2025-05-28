@@ -5,7 +5,28 @@ import json
 import os  # new import for environment variables
 import boto3  # added boto3
 import io
-from PIL import Image
+import base64              # new import for base64 encoding
+from PIL import Image, ImageDraw   # new import for drawing on images
+import numpy as np         # new import for numerical operations
+from matplotlib.path import Path   # new import for convex hull check
+from scipy.spatial import ConvexHull  # new import for convex hull check
+
+# Supporting functions from rekognition.py
+def is_point_in_hull(hull, point):
+    hull_path = Path(hull.points[hull.vertices])
+    return hull_path.contains_point(point)
+
+def check_point_in_camera_location(camera, point):
+    if not camera:
+        return False
+    locations = camera.Location
+    points = np.array([[location.x, location.y] for location in locations])
+    if len(points) >= 3 and points.shape[1] >= 2:
+        hull = ConvexHull(points)
+        return is_point_in_hull(hull, point)
+    else:
+        logging.info("Cannot create a convex hull due to insufficient or invalid points.")
+        return False
 
 def aws_lambda(db, redis):
     sqs = boto3.client('sqs', region_name='us-east-1')  # specify AWS region
@@ -54,8 +75,61 @@ def aws_lambda(db, redis):
                                     file_data = response['Body'].read()
                                     img = Image.open(io.BytesIO(file_data))
                                     logging.info(f"Successfully downloaded and loaded image from {s3_address} into memory")
+                                    
+                                    # New: Process detections from message if present
+                                    if "detections" in data:
+                                        img_width, img_height = img.size
+                                        for detection in data["detections"]:
+                                            box = detection.get("box", {})
+                                            xMin = box.get("xMin")
+                                            yMin = box.get("yMin")
+                                            xMax = box.get("xMax")
+                                            yMax = box.get("yMax")
+                                            label = detection.get("label")
+                                            confidence = detection.get("confidence")
+                                            
+                                            # Calculate width, height, and padding (20%)
+                                            width = xMax - xMin
+                                            height = yMax - yMin
+                                            padding_width = width * 0.2
+                                            padding_height = height * 0.2
+                                            
+                                            # Compute a padded bounding box
+                                            new_box = [
+                                                max(0, xMin - padding_width),
+                                                max(0, yMin - padding_height),
+                                                min(img_width, xMax + padding_width),
+                                                min(img_height, yMax + padding_height)
+                                            ]
+                                            
+                                            # Crop the image using the new bounding box
+                                            detected_object = img.crop(new_box)
+                                            
+                                            # Calculate relative bounding box coordinates for drawing
+                                            relative_box = [
+                                                xMin - new_box[0],
+                                                yMin - new_box[1],
+                                                xMax - new_box[0],
+                                                yMax - new_box[1]
+                                            ]
+                                            
+                                            # Draw the bounding box on the cropped image
+                                            draw = ImageDraw.Draw(detected_object)
+                                            draw.rectangle(relative_box, outline="red", width=1)
+                                            
+                                            # Convert the cropped object to base64 encoded JPEG image
+                                            byte_stream = io.BytesIO()
+                                            detected_object.save(byte_stream, format="JPEG")
+                                            byte_stream.seek(0)
+                                            encoded_image = base64.b64encode(byte_stream.getvalue()).decode("utf-8")
+                                            
+                                            logging.info(f"Processed detection: {label} with confidence {confidence:.3f}")
+                                            # ...optionally store or forward the processed image...
+                                    # End new block
                                 except Exception as e:
                                     logging.error(f"Error downloading file: {e}")
+                    else:
+                        logging.error("No Records found in message")
                 except Exception as e:
                     logging.error(f"Error processing message: {e}")
                 # ...existing code...
