@@ -33,6 +33,7 @@ def aws_lambda(db, redis):
     queue_url = sqs.get_queue_url(QueueName="camera-detections")['QueueUrl']
     
     while True:
+        logging.info(f"About to do a poll of the sqs queue.")
         response = sqs.receive_message(
             QueueUrl=queue_url,
             MaxNumberOfMessages=10,
@@ -173,5 +174,5 @@ def aws_lambda(db, redis):
                     QueueUrl=queue_url,
                     ReceiptHandle=message['ReceiptHandle']
                 )
-        time.sleep(1)
+        # time.sleep(1)
 
