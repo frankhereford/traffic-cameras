@@ -129,7 +129,7 @@ def image(id, db, redis):
         image.seek(0)
         if not redis.exists(f"images:{image_hash}"):
             serialized_image = pickle.dumps(image)
-            redis.setex(f"images:{image_hash}", 86400 * 7, serialized_image)
+            redis.setex(f"images:{image_hash}", 86400 * 1, serialized_image)
 
         image.seek(0)
         pillow_image = Image.open(image)
