@@ -14,6 +14,7 @@ from transformers import DetrImageProcessor, DetrForObjectDetection
 logging.basicConfig(level=logging.INFO)
 
 CACHE_DB_PATH = '/tmp/detection_cache.db'  # SQLite cache database path
+S3_BUCKET = 'atx-traffic-cameras'  # S3 bucket name
 
 # Initialize the object detection model and processor
 processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-101", revision="no_timm")
@@ -93,11 +94,11 @@ def handler(event, context):
         # Initialize S3 client with configuration constants
         # If AWS credentials are None, boto3 will use the default AWS credential chain
         s3_client_args = {'service_name': 's3', 'region_name': AWS_REGION}
-        if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
-            s3_client_args.update({
-                'aws_access_key_id': AWS_ACCESS_KEY_ID,
-                'aws_secret_access_key': AWS_SECRET_ACCESS_KEY,
-            })
+        # if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
+        #     s3_client_args.update({
+        #         'aws_access_key_id': AWS_ACCESS_KEY_ID,
+        #         'aws_secret_access_key': AWS_SECRET_ACCESS_KEY,
+        #     })
         s3_client = boto3.client(**s3_client_args)
         
         # Use the configured bucket name
