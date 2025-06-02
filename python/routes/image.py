@@ -156,7 +156,7 @@ def image(id, db, redis):
         )
 
         img_io = BytesIO()
-        pillow_image.save(img_io, "JPEG", quality=70)
+        pillow_image.save(img_io, "JPEG", quality=100)
         image = img_io
 
         # --- S3 Upload as PNG using createdAt ---
@@ -170,8 +170,8 @@ def image(id, db, redis):
                 content_type = "image/png"
                 ext = "png"
             elif image_type == 'jpg':
-                img_io_s3 = BytesIO()
-                pillow_image.save(img_io_s3, "JPEG", quality=40, optimize=True)
+                # Use the original image bytes received from the source
+                img_io_s3 = BytesIO(image_content)
                 content_type = "image/jpeg"
                 ext = "jpg"
             else:
