@@ -89,11 +89,12 @@ def handler(event, context):
             }
         coa_id = parts[1]
         filename = parts[2]
-        file_hash = filename.rsplit(".", 1)[0]
+        file_hash, file_ext = os.path.splitext(filename)
+        file_ext = file_ext.lstrip('.').lower()  # remove dot and normalize
         
         # Initialize S3 client with configuration constants
         # If AWS credentials are None, boto3 will use the default AWS credential chain
-        s3_client_args = {'service_name': 's3', 'region_name': AWS_REGION}
+        s3_client_args = {'service_name': 's3', 'region_name': 'us-east-1'}
         # if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
         #     s3_client_args.update({
         #         'aws_access_key_id': AWS_ACCESS_KEY_ID,
@@ -103,14 +104,15 @@ def handler(event, context):
         
         # Use the configured bucket name
         bucket_name = S3_BUCKET
-        object_key = f"cameras/{coa_id}/{file_hash}.jpg"
+        object_key = f"cameras/{coa_id}/{file_hash}.{file_ext}"
         
         # Log the S3 address
         s3_address = f"s3://{bucket_name}/{object_key}"
         print(f"Attempting to download from S3 location: {s3_address}")
         
         # Download file from S3 to /tmp (Lambda's writable directory)
-        local_file_path = f"/tmp/{file_hash}.jpg"
+        local_file_path = f"/tmp/{file_hash}.{file_ext}"
+        print(f"Local file path for download: {local_file_path}")
         
         try:
             # Download the file
@@ -123,7 +125,10 @@ def handler(event, context):
             
             # Perform object detection on the downloaded image
             detections = detect_objects(local_file_path)
-            
+
+            print(f"Detected {len(detections)} objects in the image.")
+            # print(f"Detections: {json.dumps(detections, indent=2)}")
+
             input = {
                 'coaId': coa_id,
                 'hash': file_hash,
@@ -146,12 +151,13 @@ def handler(event, context):
                 message_payload = event.copy()
                 message_payload["status"] = "processed"
                 message_payload["detections"] = detections  # include detections in the payload
+                print(f"Sending message to SQS: {json.dumps(message_payload)}")
                 sqs_client.send_message(
                     QueueUrl="https://sqs.us-east-1.amazonaws.com/969346816767/camera-detections",
                     MessageBody=json.dumps(message_payload)
                 )
             except Exception as sqs_error:
-                logging.error(f"Failed to send SQS message: {sqs_error}")
+                print(f"Failed to send SQS message: {sqs_error}")
             
             return response
             
