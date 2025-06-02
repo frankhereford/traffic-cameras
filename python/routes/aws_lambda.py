@@ -53,7 +53,8 @@ def aws_lambda(db, redis):
                             if len(parts) >= 3:
                                 coa_id = parts[1]
                                 file_name = parts[2]
-                                file_hash = file_name.split('.')[0]
+                                file_hash, file_ext = os.path.splitext(file_name)
+                                file_ext = file_ext.lstrip('.').lower()  # remove dot and normalize
                                 # Initialize S3 client with credentials from env vars
                                 s3_client_args = {
                                     'service_name': 's3',
@@ -68,7 +69,7 @@ def aws_lambda(db, redis):
                                     })
                                 s3_client = boto3.client(**s3_client_args)
                                 bucket_name = os.environ.get('S3_BUCKET', 'atx-traffic-cameras')
-                                expected_key = f"cameras/{coa_id}/{file_hash}.jpg"
+                                expected_key = f"cameras/{coa_id}/{file_hash}.{file_ext}"
                                 s3_address = f"s3://{bucket_name}/{expected_key}"
                                 logging.info(f"Attempting to download from S3 location: {s3_address}")
                                 try:
