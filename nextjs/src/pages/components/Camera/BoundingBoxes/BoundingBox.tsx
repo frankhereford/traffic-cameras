@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography"
 import { useTheme } from "@mui/material/styles"
 
 interface BoundingBoxProps {
-  id?: string
+  id: string
   label: string
   confidence: number
   xMin: number
@@ -11,6 +11,8 @@ interface BoundingBoxProps {
   yMin: number
   yMax: number
   paneWidth: number
+  imageWidth?: number
+  imageHeight?: number
 }
 
 const BoundingBox: React.FC<BoundingBoxProps> = ({
@@ -22,12 +24,14 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
   yMin,
   yMax,
   paneWidth,
+  imageWidth = 1920,
+  imageHeight = 1080,
 }) => {
   const theme = useTheme()
 
-  const originalImageWidth = 1920
+  // Use imageWidth for scaling instead of hardcoded value
   const scaleFactor =
-    paneWidth < originalImageWidth ? paneWidth / originalImageWidth : 1
+    imageWidth && paneWidth < imageWidth ? paneWidth / imageWidth : 1
 
   const scaledXMin = xMin * scaleFactor
   const scaledXMax = xMax * scaleFactor
