@@ -46,6 +46,15 @@ def image(id, db, redis):
         # Cache the status code and image content
         redis.setex(image_key, 300, pickle.dumps((status_code, image_content)))
 
+    # Try to detect image dimensions if possible
+    detected_width, detected_height = 1920, 1080  # Default fallback
+    if status_code == 200:
+        try:
+            with Image.open(BytesIO(image_content)) as img_dim:
+                detected_width, detected_height = img_dim.size
+        except Exception as e:
+            logging.warning(f"Could not detect image dimensions: {e}")
+
     if status_code != 200:
         with db.tx() as transaction:
             status = db.status.upsert(
@@ -59,7 +68,8 @@ def image(id, db, redis):
                     "update": {"statusId": status.id},
                 },
             )
-        img = Image.new("RGB", (1920, 1080), color="black")
+        # Use detected dimensions if available, otherwise fallback
+        img = Image.new("RGB", (detected_width, detected_height), color="black")
         d = ImageDraw.Draw(img)
         font_path = "/usr/share/fonts/truetype/MonaspaceNeon-Light.otf"
         font = ImageFont.truetype(font_path, 150)
