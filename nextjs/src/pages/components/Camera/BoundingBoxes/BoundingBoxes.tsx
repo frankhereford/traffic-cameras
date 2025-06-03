@@ -8,6 +8,8 @@ import CircularProgress from "@mui/material/CircularProgress"
 interface BoundingBoxesProps {
   camera: number
   paneWidth: number
+  imageWidth?: number
+  imageHeight?: number
 }
 
 interface Detection {
@@ -20,7 +22,12 @@ interface Detection {
   yMax: number
 }
 
-const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
+const BoundingBoxes: React.FC<BoundingBoxesProps> = ({
+  camera,
+  paneWidth,
+  imageWidth = 1920,
+  imageHeight = 1080,
+}) => {
   const { data, isLoading, isError, error } = api.image.getDetections.useQuery({
     camera: camera,
   })
@@ -56,9 +63,8 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
     return <div>Error: {String(error)}</div>
   }
 
-  const originalImageWidth = 1920
   const scaleFactor =
-    paneWidth < originalImageWidth ? paneWidth / originalImageWidth : 1
+    paneWidth < imageWidth ? paneWidth / imageWidth : 1
 
   return (
     <>
@@ -66,7 +72,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
         <div
           style={{
             position: "absolute",
-            left: 1920 * scaleFactor - 40, // 👈 the width of the spinner
+            left: imageWidth * scaleFactor - 40, // 👈 the width of the spinner
             bottom: 0,
           }}
         >
@@ -86,6 +92,8 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth }) => {
           yMin={detection.yMin}
           yMax={detection.yMax}
           paneWidth={paneWidth}
+          imageWidth={imageWidth}
+          imageHeight={imageHeight}
         />
       ))}
     </>

@@ -86,7 +86,11 @@ export default function Camera({ paneWidth }: CameraProps) {
   }, [imageKey, reloadInterval])
 
   // invalidate certain queries when the image loads
-  const handleImageLoad = () => {
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    // Get native size from the loaded image
+    const target = event.target as HTMLImageElement
+    setImageSize({ width: target.naturalWidth, height: target.naturalHeight })
+
     queryClient
       .invalidateQueries([["image", "getDetections"]])
       .catch((error) => {
@@ -128,6 +132,8 @@ export default function Camera({ paneWidth }: CameraProps) {
   }
 
   const url = `http://flask:5000/image/${camera}?${imageKey}`
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
+
   return (
     <>
       <div>
@@ -140,8 +146,8 @@ export default function Camera({ paneWidth }: CameraProps) {
                   key={imageKey}
                   priority
                   alt="Camera Image"
-                  width={1920}
-                  height={1080}
+                  width={imageSize?.width ?? 1920}
+                  height={imageSize?.height ?? 1080}
                   onLoad={handleImageLoad}
                   onClick={handleImageClick}
                 />
