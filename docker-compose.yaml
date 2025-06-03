@@ -1,8 +1,8 @@
 services:
   postgis:
     image: postgis/postgis
-    # ports:
-      # - 5430:5432
+    ports:
+      - 5430:5432
     environment:
       POSTGRES_DB: cameras
       POSTGRES_PASSWORD: cameras
@@ -28,6 +28,8 @@ services:
       - ./python:/app
     # ports:
     #   - 5000:5000
+    env_file:
+      - ./python/env
     depends_on:
       - postgis
     command: ["python", "app.py", "--mode=flask"]
@@ -45,7 +47,8 @@ services:
     env_file:
       - ./python/env
     # command: ["python", "app.py", "--mode=detector"]
-    command: ["python", "app.py", "--mode=rekognition"]
+    # command: ["python", "app.py", "--mode=rekognition"]
+    command: ["python", "app.py", "--mode=lambda"]
 
   haproxy:
     image: haproxy:latest

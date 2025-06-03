@@ -9,6 +9,9 @@ import hashlib
 import pickle
 from xml.dom.minidom import parseString
 from io import BytesIO
+import boto3
+import os
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -111,7 +114,7 @@ def image(id, db, redis):
                     "update": {"statusId": status.id},
                 },
             )
-            db.image.upsert(
+            image_record = db.image.upsert(
                 where={"hash": image_hash, "cameraId": camera.id},
                 data={
                     "create": {
@@ -126,7 +129,7 @@ def image(id, db, redis):
         image.seek(0)
         if not redis.exists(f"images:{image_hash}"):
             serialized_image = pickle.dumps(image)
-            redis.setex(f"images:{image_hash}", 86400 * 7, serialized_image)
+            redis.setex(f"images:{image_hash}", 86400 * 1, serialized_image)
 
         image.seek(0)
         pillow_image = Image.open(image)
@@ -138,23 +141,74 @@ def image(id, db, redis):
         for i in range(-3, 4):
             for j in range(-3, 4):
                 d.text(
-                    (1790 + i, 10 + j),
-                    image_hash[:8],
+                    (1720 + i, 10 + j),
+                    f"{image_hash[:8]}/{id}",
                     font=font,
                     fill=(0, 0, 0),  # Black color
                 )
 
         # Draw the white text
         d.text(
-            (1790, 10),
-            image_hash[:8],
+            (1720, 10),
+            f"{image_hash[:8]}/{id}",
             font=font,
             fill=(255, 255, 255),  # White color
         )
 
         img_io = BytesIO()
-        pillow_image.save(img_io, "JPEG", quality=70)
+        pillow_image.save(img_io, "JPEG", quality=100)
         image = img_io
 
+        # --- S3 Upload as PNG using createdAt ---
+        try:
+            image_type = 'jpg'
+
+            # Prepare image in memory based on image_type
+            if image_type == 'png':
+                img_io_s3 = BytesIO()
+                pillow_image.save(img_io_s3, "PNG")
+                content_type = "image/png"
+                ext = "png"
+            elif image_type == 'jpg':
+                # Use the original image bytes received from the source
+                img_io_s3 = BytesIO(image_content)
+                content_type = "image/jpeg"
+                ext = "jpg"
+            else:
+                raise ValueError(f"Unsupported image_type: {image_type}")
+            img_io_s3.seek(0)
+
+            # S3 key: cameras/<id>/<hash>.<ext> (no timestamp)
+            s3_key = f"cameras/{id}/{image_hash}.{ext}"
+            logging.info(f"Uploading {ext.upper()} to S3 with key: {s3_key}")
+
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+                region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            )
+
+            # Check if file exists
+            try:
+                s3.head_object(Bucket="atx-traffic-cameras", Key=s3_key)
+                logging.info(f"File already exists in S3: {s3_key}, skipping upload.")
+            except s3.exceptions.ClientError as e:
+                if e.response['Error']['Code'] == "404":
+                    # File does not exist, upload
+                    s3.upload_fileobj(
+                        img_io_s3,
+                        "atx-traffic-cameras",
+                        s3_key,
+                        ExtraArgs={"ContentType": content_type},
+                    )
+                    logging.info(f"Uploaded {ext.upper()} to s3://atx-traffic-cameras/{s3_key}")
+                else:
+                    logging.error(f"Error checking S3 for {s3_key}: {e}")
+
+        except Exception as e:
+            logging.error(f"Failed to upload PNG to S3: {e}")
+
     image.seek(0)  # Rewind to the start of the stream
+
     return send_file(image, mimetype="image/jpeg")
