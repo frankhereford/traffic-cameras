@@ -56,6 +56,7 @@ class Detections:
     class_id: Optional[np.ndarray] = None
     tracker_id: Optional[np.ndarray] = None
     speed: Optional[np.ndarray] = None
+    detection_id: Optional[np.ndarray] = None
     data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -66,6 +67,7 @@ class Detections:
             class_id=self.class_id,
             tracker_id=self.tracker_id,
             speed=self.speed,
+            detection_id=self.detection_id,
             data=self.data,
         )
 
@@ -85,6 +87,7 @@ class Detections:
             Optional[int],
             Optional[int],
             Optional[float],
+            Optional[int],
             Dict[str, Union[np.ndarray, List]],
         ]
     ]:
@@ -100,6 +103,7 @@ class Detections:
                 self.class_id[i] if self.class_id is not None else None,
                 self.tracker_id[i] if self.tracker_id is not None else None,
                 self.speed[i] if self.speed is not None else None,
+                self.detection_id[i] if self.detection_id is not None else None,
                 get_data_item(self.data, i),
             )
 
@@ -112,6 +116,7 @@ class Detections:
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
                 np.array_equal(self.speed, other.speed),
+                np.array_equal(self.detection_id, other.detection_id),
                 is_data_equal(self.data, other.data),
             ]
         )
@@ -756,6 +761,7 @@ class Detections:
                 class_id=detections.class_id,
                 tracker_id=detections.tracker_id,
                 speed=detections.speed,
+                detection_id=detections.detection_id,
                 data=detections.data,
             )
 
@@ -777,6 +783,7 @@ class Detections:
         class_id = stack_or_none("class_id")
         tracker_id = stack_or_none("tracker_id")
         speed = stack_or_none("speed")
+        detection_id = stack_or_none("detection_id")
 
         data = merge_data([d.data for d in detections_list])
 
@@ -787,6 +794,7 @@ class Detections:
             class_id=class_id,
             tracker_id=tracker_id,
             speed=speed,
+            detection_id=detection_id,
             data=data,
         )
 
@@ -901,6 +909,7 @@ class Detections:
             class_id=self.class_id[index] if self.class_id is not None else None,
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
             speed=self.speed[index] if self.speed is not None else None,
+            detection_id=self.detection_id[index] if self.detection_id is not None else None,
             data=get_data_item(self.data, index),
         )
 
