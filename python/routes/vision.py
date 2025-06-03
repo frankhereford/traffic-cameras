@@ -387,7 +387,11 @@ def transformedImage(id, db, redis):
             cctv_points.float()
             map_points.float()
 
-            corners_in_image_space = [(0, 0), (0, 1080), (1920, 1080), (1920, 0)]
+            # Detect image size dynamically
+            width, height = image.size
+
+            # Use actual image dimensions for corners
+            corners_in_image_space = [(0, 0), (0, height), (width, height), (width, 0)]
             list_to_process = torch.tensor(corners_in_image_space)
 
             image_extents_as_geographic_coordinates = (
