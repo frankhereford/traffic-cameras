@@ -9,12 +9,14 @@ import { api } from "~/utils/api"
 import useMapViewportStore from "~/stores/useMapViewportStore"
 import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
+import useCameraViewHistoryStore from "~/stores/useCameraViewHistoryStore"
 
 export default function RandomCamera() {
   const setCamera = useCameraStore((state) => state.setCamera)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
   const setEmoji = useEmojiFavicon((state) => state.setEmoji)
   const mapBounds = useMapViewportStore((state) => state.bounds)
+  const { viewedCameraIds, addCameraToViewHistory } = useCameraViewHistoryStore()
 
   // data from getWorkingCameras (cameras with status 'ok')
   const { data: workingCameras, isLoading: isLoadingWorkingCameras } =
@@ -72,16 +74,50 @@ export default function RandomCamera() {
         });
 
         if (finalFilteredCameras.length > 0) {
-          const randomCamera =
-            finalFilteredCameras[Math.floor(Math.random() * finalFilteredCameras.length)]!;
-          setCamera(randomCamera.coaId);
-          setEmoji("🎯");
+          let cameraToSetId: number | null = null;
+
+          if (filterByExtent && !filterByGeoreference) { // This is the Shift+R case
+            const candidatesInExtent = finalFilteredCameras.map(cam => cam.coaId);
+            
+            // 1. Find cameras in extent that have *not* been viewed
+            const unviewedInExtent = candidatesInExtent.filter(id => !viewedCameraIds.includes(id));
+            if (unviewedInExtent.length > 0) {
+              cameraToSetId = unviewedInExtent[0]!; // Pick the first unviewed one
+            } else {
+              // 2. If all in extent have been viewed, find the least recently viewed among them
+              // Iterate through history (oldest to newest)
+              for (const historicId of viewedCameraIds) {
+                if (candidatesInExtent.includes(historicId)) {
+                  cameraToSetId = historicId;
+                  break;
+                }
+              }
+              // If somehow cameraToSetId is still null (e.g. candidatesInExtent was empty but passed initial check - unlikely)
+              // Fallback to random from this set, though ideally this path isn't hit if candidatesInExtent had items.
+              if (cameraToSetId === null && candidatesInExtent.length > 0) {
+                 cameraToSetId = candidatesInExtent[Math.floor(Math.random() * candidatesInExtent.length)]!;
+              }
+            }
+          } else {
+            // Default: pick randomly from the filtered list
+            const randomCamera =
+              finalFilteredCameras[Math.floor(Math.random() * finalFilteredCameras.length)]!;
+            cameraToSetId = randomCamera.coaId;
+          }
+
+          if (cameraToSetId !== null) {
+            setCamera(cameraToSetId);
+            addCameraToViewHistory(cameraToSetId); // Add to history
+            setEmoji("🎯");
+          } else {
+            console.log("No suitable camera found to set after applying all filters.");
+          }
         } else {
           console.log("No cameras found matching the current criteria.");
         }
       }
     },
-    [workingCameras, socrataCameras, isFocus, mapBounds, setCamera, setEmoji] // Dependencies for useCallback
+    [workingCameras, socrataCameras, isFocus, mapBounds, setCamera, setEmoji, viewedCameraIds, addCameraToViewHistory] // Dependencies for useCallback
   );
 
   useEffect(() => {
@@ -94,10 +130,12 @@ export default function RandomCamera() {
           handleClick(undefined, { filterByExtent: false, filterByGeoreference: true });
         } else if (event.shiftKey) { // Shift+R
           event.preventDefault();
-          handleClick(undefined, { filterByExtent: true, filterByGeoreference: false });
-        } else if (!event.altKey) { // Plain 'r'
-          // No event.preventDefault() needed for plain 'r' unless it causes issues
           handleClick(undefined, { filterByExtent: false, filterByGeoreference: false });
+        } else if (!event.altKey) { // Plain 'r'
+          // No event.preventDefault() needed for plain 'r' normally,
+          // but if it triggers map extent filtering, consider if default browser 'r' actions interfere.
+          // For now, let's assume it's fine or handleClick itself doesn't cause page reloads.
+          handleClick(undefined, { filterByExtent: true, filterByGeoreference: false });
         }
       }
     };
@@ -113,14 +151,14 @@ export default function RandomCamera() {
 
   return (
     <>
-      {!isLoading && workingCameras && workingCameras.length > 0 && ( // Check workingCameras for initial render
-        <Tooltip title="Random Camera | Keys: [r] any, [Shift+r] in map, [Ctrl+r] georeferenced">
+      {!isLoading && workingCameras && workingCameras.length > 0 && (
+        <Tooltip title="Random Camera | Keys: [r] in map (least recent), [Shift+r] any, [Ctrl+r] georeferenced">
           <Button
             className="mb-4 p-0"
             variant="contained"
             style={{ fontSize: "35px", position: "relative" }}
-            onClick={(event) => // Button click: random camera anywhere
-              handleClick(event, { filterByExtent: false, filterByGeoreference: false })
+            onClick={(event) => // Button click: now least recent in map extent
+              handleClick(event, { filterByExtent: true, filterByGeoreference: false })
             }
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
