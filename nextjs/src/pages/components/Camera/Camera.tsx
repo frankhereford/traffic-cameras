@@ -32,6 +32,11 @@ export default function Camera({ paneWidth }: CameraProps) {
   const { data: session } = useSession()
   const isLoggedIn = !!session
 
+  const imageWidth =
+    camera === 51 || camera === 52 ? 3328 : 1920
+  const imageHeight =
+    camera === 51 || camera === 52 ? 1872 : 1080
+
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (!isFocus && event.key === "f") {
@@ -140,8 +145,8 @@ export default function Camera({ paneWidth }: CameraProps) {
                   key={imageKey}
                   priority
                   alt="Camera Image"
-                  width={1920}
-                  height={1080}
+                  width={imageWidth}
+                  height={imageHeight}
                   onLoad={handleImageLoad}
                   onClick={handleImageClick}
                 />
@@ -152,8 +157,8 @@ export default function Camera({ paneWidth }: CameraProps) {
                     location={pendingImageLocation}
                   />
                 )}
-                <BoundingBoxes camera={camera} paneWidth={paneWidth} />
-                <Locations camera={camera} paneWidth={paneWidth} />
+                <BoundingBoxes camera={camera} paneWidth={paneWidth} imageWidth={imageWidth} />
+                <Locations camera={camera} paneWidth={paneWidth} imageWidth={imageWidth} />
               </div>
             </>
           )}

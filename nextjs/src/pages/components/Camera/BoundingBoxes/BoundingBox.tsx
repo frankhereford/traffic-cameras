@@ -11,6 +11,7 @@ interface BoundingBoxProps {
   yMin: number
   yMax: number
   paneWidth: number
+  imageWidth: number
 }
 
 const BoundingBox: React.FC<BoundingBoxProps> = ({
@@ -22,10 +23,11 @@ const BoundingBox: React.FC<BoundingBoxProps> = ({
   yMin,
   yMax,
   paneWidth,
+  imageWidth,
 }) => {
   const theme = useTheme()
 
-  const originalImageWidth = 1920
+  const originalImageWidth = imageWidth
   const scaleFactor =
     paneWidth < originalImageWidth ? paneWidth / originalImageWidth : 1
 

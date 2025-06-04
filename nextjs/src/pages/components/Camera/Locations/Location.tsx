@@ -4,13 +4,14 @@ import Typography from "@mui/material/Typography"
 type LocationProps = {
   location: { x: number; y: number }
   paneWidth: number
+  imageWidth: number
 }
 
-export default function Location({ location, paneWidth }: LocationProps) {
-  // Understand that paneWidth never exceeds 1920
-  paneWidth = paneWidth > 1920 ? 1920 : paneWidth
+export default function Location({ location, paneWidth, imageWidth }: LocationProps) {
+  // Adjust paneWidth capping to use imageWidth
+  paneWidth = paneWidth > imageWidth ? imageWidth : paneWidth
 
-  const scaleFactor = paneWidth / 1920
+  const scaleFactor = paneWidth / imageWidth
   const scaledX = Math.round(location.x * scaleFactor)
   const scaledY = Math.round(location.y * scaleFactor)
 

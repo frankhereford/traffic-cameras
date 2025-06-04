@@ -5,9 +5,10 @@ import { api } from "~/utils/api"
 interface LocationsProps {
   paneWidth: number
   camera: number
+  imageWidth: number
 }
 
-export default function Locations({ paneWidth, camera }: LocationsProps) {
+export default function Locations({ paneWidth, camera, imageWidth }: LocationsProps) {
   const locations = api.location.getLocations.useQuery({
     camera,
   })
@@ -24,6 +25,7 @@ export default function Locations({ paneWidth, camera }: LocationsProps) {
           key={location.id}
           location={{ x: location.x, y: location.y }}
           paneWidth={paneWidth}
+          imageWidth={imageWidth}
         />
       ))}
     </>
