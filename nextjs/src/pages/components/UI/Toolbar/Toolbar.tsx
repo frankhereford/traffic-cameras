@@ -14,6 +14,7 @@ import ToggleHistoricData from "./Buttons/ToggleHistoricData"
 import GitHub from "./Buttons/GitHub"
 import ToggleTransformedImage from "./Buttons/ToggleTransformedImage"
 import TransparencySlider from "./TransparencySlider"
+import IntervalSlider from "./IntervalSlider"
 import { useSession } from "next-auth/react"
 
 export default function ToolPanel() {
@@ -40,6 +41,7 @@ export default function ToolPanel() {
             <GitHub />
           </div>
           <TransparencySlider />
+          <IntervalSlider />
           <CameraPicker />
           <p
             className="pb-p mb-0 text-right font-sans text-xs text-gray-500"
