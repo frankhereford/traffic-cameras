@@ -152,14 +152,20 @@ export default function RandomCamera() {
   return (
     <>
       {!isLoading && workingCameras && workingCameras.length > 0 && (
-        <Tooltip title="Random Camera | Keys: [r] in map (least recent), [Shift+r] any, [Ctrl+r] georeferenced">
+        <Tooltip title="Random Camera | Click: in map (least recent), Shift+Click: any | Keys: [r] in map (LRU), [Shift+r] any, [Ctrl+r] georef">
           <Button
             className="mb-4 p-0"
             variant="contained"
             style={{ fontSize: "35px", position: "relative" }}
-            onClick={(event) => // Button click: now least recent in map extent
-              handleClick(event, { filterByExtent: true, filterByGeoreference: false })
-            }
+            onClick={(event) => {
+              if (event.shiftKey) {
+                // Shift+Click: random camera anywhere (same as Shift+R)
+                handleClick(event, { filterByExtent: false, filterByGeoreference: false });
+              } else {
+                // Normal Click: least recent in map extent (same as plain 'r')
+                handleClick(event, { filterByExtent: true, filterByGeoreference: false });
+              }
+            }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
