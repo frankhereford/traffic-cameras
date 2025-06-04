@@ -152,7 +152,7 @@ export default function RandomCamera() {
   return (
     <>
       {!isLoading && workingCameras && workingCameras.length > 0 && (
-        <Tooltip title="Random Camera | Click: in map (least recent), Shift+Click: any | Keys: [r] in map (LRU), [Shift+r] any, [Ctrl+r] georef">
+        <Tooltip title="Random Camera | Click: least recent in map, Shift+Click: any | Keys: [r] least recent in map, [Shift+r] any, [Ctrl+r] georeferenced">
           <Button
             className="mb-4 p-0"
             variant="contained"
