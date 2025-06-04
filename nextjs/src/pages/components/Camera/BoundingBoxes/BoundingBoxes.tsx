@@ -67,7 +67,7 @@ const BoundingBoxes: React.FC<BoundingBoxesProps> = ({ camera, paneWidth, imageW
         <div
           style={{
             position: "absolute",
-            left: 1920 * scaleFactor - 40, // 👈 the width of the spinner
+            left: originalImageWidth * scaleFactor - 40, // 👈 the width of the spinner
             bottom: 0,
           }}
         >
