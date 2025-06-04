@@ -11,7 +11,9 @@ import useGetSocrataData from "~/pages/hooks/useSocrataData"
 import type { SocrataData } from "~/pages/hooks/useSocrataData"
 import useCameraViewHistoryStore from "~/stores/useCameraViewHistoryStore"
 
-const AUTO_ROTATE_INTERVAL_MS = 15000
+const MIN_INTERVAL_S = 3
+const MAX_INTERVAL_S = 15
+const DEFAULT_INTERVAL_S = 15
 
 export default function AutoRotateMode() {
   
@@ -21,15 +23,16 @@ export default function AutoRotateMode() {
   const setAutoRotateMode = useAutoRotateMode(
     (state) => state.setAutoRotateMode,
   )
+  const autoRotateIntervalS = useAutoRotateMode(
+    (state) => state.autoRotateIntervalS,
+  )
 
-  // const [autoMode, setAutoMode] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const setCamera = useCameraStore((state) => state.setCamera)
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
   const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
-  // Data hooks
   const { data: workingCameras } = api.camera.getWorkingCameras.useQuery({})
   const { data: socrataCameras } = useGetSocrataData()
   const mapBounds = useMapViewportStore((state) => state.bounds)
@@ -42,7 +45,6 @@ export default function AutoRotateMode() {
 
     let cameraToSetId: number | null = null;
 
-    // Attempt to pick least recently viewed camera within map extent
     if (mapBounds) {
       const socrataCameraMap = new Map<number, SocrataData>();
       socrataCameras.forEach(sc => {
@@ -73,14 +75,13 @@ export default function AutoRotateMode() {
               break;
             }
           }
-          if (cameraToSetId === null) { // Should only happen if viewedCameraIds doesn't contain any from camerasInExtent (e.g. history cleared)
+          if (cameraToSetId === null) {
             cameraToSetId = camerasInExtent[Math.floor(Math.random() * camerasInExtent.length)]!;
           }
         }
       }
     }
 
-    // Fallback: if no camera found by extent logic, or mapBounds not available, pick a random working camera
     if (cameraToSetId === null) {
       const randomCamera = workingCameras[Math.floor(Math.random() * workingCameras.length)]!;
       cameraToSetId = randomCamera.coaId;
@@ -96,9 +97,12 @@ export default function AutoRotateMode() {
   useEffect(() => {
     console.log("AutoRotateMode effect: ", autoRotateMode)
     if (autoRotateMode) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
       intervalRef.current = setInterval(() => {
         pickRandomCamera()
-      }, AUTO_ROTATE_INTERVAL_MS)
+      }, autoRotateIntervalS * 1000)
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
@@ -109,7 +113,7 @@ export default function AutoRotateMode() {
         intervalRef.current = null
       }
     }
-  }, [autoRotateMode, pickRandomCamera])
+  }, [autoRotateMode, pickRandomCamera, autoRotateIntervalS])
 
   const handleClick = () => {
     setAutoRotateMode(!autoRotateMode)
@@ -118,7 +122,7 @@ export default function AutoRotateMode() {
   if (!workingCameras || workingCameras.length === 0) return <></>
 
   return (
-    <Tooltip title="Toggle auto camera (15s): least recent in map, else any random">
+    <Tooltip title={`Toggle auto camera (${autoRotateIntervalS}s): least recent in map, else any random`}>
       <Button
         className="mb-4 p-0"
         variant="contained"
