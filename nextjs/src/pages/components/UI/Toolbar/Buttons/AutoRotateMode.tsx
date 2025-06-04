@@ -6,6 +6,10 @@ import useAutoRotateMode from "~/pages/hooks/useAutoRotateMode"
 import useAutocompleteFocus from "~/pages/hooks/useAutocompleteFocus"
 import useEmojiFavicon from "~/pages/hooks/useEmojiFavicon"
 import { api } from "~/utils/api"
+import useMapViewportStore from "~/stores/useMapViewportStore"
+import useGetSocrataData from "~/pages/hooks/useSocrataData"
+import type { SocrataData } from "~/pages/hooks/useSocrataData"
+import useCameraViewHistoryStore from "~/stores/useCameraViewHistoryStore"
 
 const AUTO_ROTATE_INTERVAL_MS = 15000
 
@@ -25,19 +29,69 @@ export default function AutoRotateMode() {
   const isFocus = useAutocompleteFocus((state) => state.isFocus)
   const setEmoji = useEmojiFavicon((state) => state.setEmoji)
 
-  // Use the same query as RandomCamera
-  const { data } = api.camera.getWorkingCameras.useQuery({})
+  // Data hooks
+  const { data: workingCameras } = api.camera.getWorkingCameras.useQuery({})
+  const { data: socrataCameras } = useGetSocrataData()
+  const mapBounds = useMapViewportStore((state) => state.bounds)
+  const { viewedCameraIds, addCameraToViewHistory } = useCameraViewHistoryStore()
 
-  // Pick a random camera from the working set
   const pickRandomCamera = useCallback(() => {
-    if (data && data.length > 0 && !isFocus) {
-      const randomCamera = data[Math.floor(Math.random() * data.length)]
-      if (randomCamera) {
-        setCamera(randomCamera.coaId)
-        setEmoji("🔀")
+    if (!workingCameras || workingCameras.length === 0 || !socrataCameras || isFocus) {
+      return;
+    }
+
+    let cameraToSetId: number | null = null;
+
+    // Attempt to pick least recently viewed camera within map extent
+    if (mapBounds) {
+      const socrataCameraMap = new Map<number, SocrataData>();
+      socrataCameras.forEach(sc => {
+        if (sc.camera_id) {
+          socrataCameraMap.set(parseInt(sc.camera_id, 10), sc);
+        }
+      });
+
+      const camerasInExtent = workingCameras.filter(dbCamera => {
+        const socrataCam = socrataCameraMap.get(dbCamera.coaId);
+        if (!socrataCam?.location?.coordinates) return false;
+        
+        const [longitude, latitude] = socrataCam.location.coordinates;
+        if (typeof latitude !== 'number' || typeof longitude !== 'number') return false;
+
+        const cameraPosition = new google.maps.LatLng(latitude, longitude);
+        return mapBounds.contains(cameraPosition);
+      }).map(cam => cam.coaId);
+
+      if (camerasInExtent.length > 0) {
+        const unviewedInExtent = camerasInExtent.filter(id => !viewedCameraIds.includes(id));
+        if (unviewedInExtent.length > 0) {
+          cameraToSetId = unviewedInExtent[0]!;
+        } else {
+          for (const historicId of viewedCameraIds) {
+            if (camerasInExtent.includes(historicId)) {
+              cameraToSetId = historicId;
+              break;
+            }
+          }
+          if (cameraToSetId === null) { // Should only happen if viewedCameraIds doesn't contain any from camerasInExtent (e.g. history cleared)
+            cameraToSetId = camerasInExtent[Math.floor(Math.random() * camerasInExtent.length)]!;
+          }
+        }
       }
     }
-  }, [data, isFocus, setCamera, setEmoji])
+
+    // Fallback: if no camera found by extent logic, or mapBounds not available, pick a random working camera
+    if (cameraToSetId === null) {
+      const randomCamera = workingCameras[Math.floor(Math.random() * workingCameras.length)]!;
+      cameraToSetId = randomCamera.coaId;
+    }
+
+    if (cameraToSetId !== null) {
+      setCamera(cameraToSetId);
+      addCameraToViewHistory(cameraToSetId);
+      setEmoji("🔀");
+    }
+  }, [workingCameras, socrataCameras, isFocus, setCamera, setEmoji, mapBounds, viewedCameraIds, addCameraToViewHistory]);
 
   useEffect(() => {
     console.log("AutoRotateMode effect: ", autoRotateMode)
@@ -61,10 +115,10 @@ export default function AutoRotateMode() {
     setAutoRotateMode(!autoRotateMode)
   }
 
-  if (!data || data.length === 0) return <></>
+  if (!workingCameras || workingCameras.length === 0) return <></>
 
   return (
-    <Tooltip title="Toggle auto-random camera (every 15s)">
+    <Tooltip title="Toggle auto camera (15s): least recent in map, else any random">
       <Button
         className="mb-4 p-0"
         variant="contained"

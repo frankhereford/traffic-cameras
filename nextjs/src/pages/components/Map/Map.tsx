@@ -17,6 +17,7 @@ import GeoreferencedImage from "~/pages/components/Map/GeoreferencedImage/Georef
 import { useSession } from "next-auth/react"
 
 import { api } from "~/utils/api"
+import useMapViewportStore from "~/stores/useMapViewportStore"
 
 interface MapProps {
   paneWidth: number
@@ -39,6 +40,7 @@ function Map({ socrataData, paneWidth }: MapProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [center, setCenter] = useState<google.maps.LatLng | null>(null)
   const [bounds, setBounds] = useState<google.maps.LatLngBounds | null>(null)
+  const setViewportMapBounds = useMapViewportStore((state) => state.setMapBounds)
   const camera = useCameraStore((state) => state.camera)
   const zoomTight = useMapControls((state) => state.zoomTight)
   const [pendingMapLocation, setPendingMapLocation] = useState<{
@@ -110,7 +112,9 @@ function Map({ socrataData, paneWidth }: MapProps) {
   }, [])
 
   const OnViewportChange = () => {
-    setBounds(map?.getBounds() ?? null)
+    const currentMapBounds = map?.getBounds() ?? null;
+    setBounds(currentMapBounds);
+    setViewportMapBounds(currentMapBounds);
   }
 
   useEffect(() => {
