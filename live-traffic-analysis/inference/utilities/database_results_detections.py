@@ -112,9 +112,15 @@ def from_database(cls, db, hash):
     cur.execute(sql, (hash,))
     results = cur.fetchone()
     cur.close()
+
+    if results is None:
+        return None
+
+
     xyxy = np.array(results["xyxy"], dtype=np.float32)
     confidence = np.array(results["confidence"], dtype=np.float32)
     class_id = np.array(results["class_id"])
     speed = np.array(results["rate_mph"])
+    detection_id = np.array(results["detection_ids"])
 
-    return cls(xyxy=xyxy, confidence=confidence, class_id=class_id, speed=speed)
+    return cls(xyxy=xyxy, confidence=confidence, class_id=class_id, speed=speed, detection_id=detection_id)
