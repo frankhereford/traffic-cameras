@@ -87,9 +87,10 @@ def process_one_image(db, redis):
         include={"camera": True},
     )
     if job is None:
+        logging.info("No unprocessed images found, waiting...")
         return
 
-    logging.info(job.hash)
+    logging.info(f"Processing image {job.hash} for camera {job.camera.id}")
 
     key = f"images:{job.hash}"
 
@@ -124,13 +125,15 @@ def process_one_image(db, redis):
         outputs, target_sizes=target_sizes, threshold=0.9
     )[0]
 
+    detection_count = len(results["scores"])
+    logging.info(f"DETR found {detection_count} detection(s) above 0.9 threshold")
+
     for score, label, box in zip(
         results["scores"], results["labels"], results["boxes"]
     ):
         box = [round(i, 2) for i in box.tolist()]
         logging.info(
-            f"Detected {model.config.id2label[label.item()]} with confidence "
-            f"{round(score.item(), 3)} at location {box}"
+            f"  -> {model.config.id2label[label.item()]} confidence={round(score.item(), 3)} box={box}"
         )
 
         # Calculate the width and height of the bounding box
@@ -241,6 +244,7 @@ def process_one_image(db, redis):
             "detectionsProcessed": True,
         },
     )
+    logging.info(f"Done processing image {job.hash}")
 
 
 def create_geojson_of_image_borders_in_map_space(transformed_points):

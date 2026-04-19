@@ -1,5 +1,6 @@
 #Flask==3.*
 requests
+huggingface_hub==0.26.5
 transformers
 pillow==10.*
 #psycopg2-binary==2.*

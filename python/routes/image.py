@@ -26,7 +26,7 @@ def _get_scaled_font(font_path, base_font_size_at_1080p, current_image_height):
         # Attempt to load a basic default font if custom font fails
         try:
             return ImageFont.load_default(size=scaled_font_size) # Pillow 9.5.0+
-        except AttributeError: # older Pillow or if size arg not supported
+        except (AttributeError, TypeError): # older Pillow or if size arg not supported
              return ImageFont.load_default()
 
 
@@ -138,7 +138,7 @@ def image(id, db, redis):
     final_image_data_for_response: BytesIO
 
     if (
-        image_hash == "58da0d53512030c5748d6ecf8337419586ab95d91e1ca2f9d6347cb8879ea960"
+        image_hash == "db8d3ffca668cac202fd73df14bcc10e703b22f166903e8ff9937998d963e08e"
     ):  # unavailable placeholder image
         with db.tx() as transaction:
             status_obj = db.status.upsert(

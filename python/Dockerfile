@@ -10,7 +10,7 @@ RUN npm install prisma --save-dev
 
 WORKDIR /usr/share/fonts/truetype/
 
-RUN wget "https://github.com/githubnext/monaspace/raw/refs/heads/main/fonts/NerdFonts/Monaspace%20Neon/MonaspaceNeonNF-Light.otf"
+RUN wget "https://github.com/githubnext/monaspace/raw/refs/heads/main/fonts/Static%20Fonts/Monaspace%20Neon/MonaspaceNeon-Light.otf"
 
 WORKDIR /app
 
