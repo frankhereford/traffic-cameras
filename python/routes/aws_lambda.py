@@ -2,14 +2,16 @@ import time
 import logging
 import requests
 import json
-import os  # new import for environment variables
-import boto3  # added boto3
+import os
+import boto3
 import io
-import base64              # new import for base64 encoding
-from PIL import Image, ImageDraw   # new import for drawing on images
-import numpy as np         # new import for numerical operations
-from matplotlib.path import Path   # new import for convex hull check
-from scipy.spatial import ConvexHull  # new import for convex hull check
+import base64
+import torch
+from PIL import Image, ImageDraw
+import numpy as np
+from matplotlib.path import Path
+from scipy.spatial import ConvexHull
+from torch_tps import ThinPlateSpline
 
 # Supporting functions from rekognition.py
 def is_point_in_hull(hull, point):
@@ -27,6 +29,14 @@ def check_point_in_camera_location(camera, point):
     else:
         logging.info("Cannot create a convex hull due to insufficient or invalid points.")
         return False
+
+def extract_points(locations):
+    cctv_points = torch.tensor([[location.x, location.y] for location in locations])
+    map_points = torch.tensor(
+        [[location.latitude, location.longitude] for location in locations]
+    )
+    return cctv_points, map_points
+
 
 def aws_lambda(db, redis):
     sqs = boto3.client('sqs', region_name='us-east-1')  # specify AWS region
@@ -46,6 +56,7 @@ def aws_lambda(db, redis):
                 body = message.get('Body', '')
                 try:
                     data = json.loads(body)
+                    logging.info(f"Parsed message top-level keys: {list(data.keys())}")
                     if "Records" in data and data["Records"]:
                         for record in data["Records"]:
                             object_key = record["s3"]["object"]["key"]
@@ -88,10 +99,15 @@ def aws_lambda(db, redis):
                                     where={"id": db_image.cameraId},
                                     include={"Location": True}
                                 )
+                                location_count = len(camera_record.Location) if camera_record else 0
                                 logging.info(f"Found camera in database: {camera_record}")
+                                logging.info(f"Camera {coa_id} has {location_count} control points (need >=5 to georeference)")
 
-                                
                                 # New: Process detections from message if present
+                                if "detections" in data:
+                                    logging.info(f"Message contains {len(data['detections'])} detections")
+                                else:
+                                    logging.warning(f"Message has no 'detections' key — keys present: {list(data.keys())}")
                                 if "detections" in data:
                                     img_width, img_height = img.size
                                     for detection in data["detections"]:
@@ -138,8 +154,8 @@ def aws_lambda(db, redis):
                                         byte_stream.seek(0)
                                         encoded_image = base64.b64encode(byte_stream.getvalue()).decode("utf-8")
                                         
-                                        logging.info(f"Processed detection: {label} with confidence {confidence:.3f}")
-                                        
+                                        logging.info(f"Detection: label={label}, confidence={confidence:.3f}, box=({xMin},{yMin})->({xMax},{yMax})")
+
                                         if camera_record:
                                             center_x = (xMin + xMax) / 2
                                             center_y = (yMin + yMax) / 2
@@ -147,8 +163,9 @@ def aws_lambda(db, redis):
                                             is_in_hull = check_point_in_camera_location(camera_record, point)
                                         else:
                                             is_in_hull = False
-                                        
-                                        # NEW: Create detection record in DB
+
+                                        logging.info(f"  isInsideConvexHull={is_in_hull}, location_count={location_count}")
+
                                         db.detection.create(
                                             data={
                                                 "label": label,
@@ -162,6 +179,32 @@ def aws_lambda(db, redis):
                                                 "isInsideConvexHull": is_in_hull,
                                             }
                                         )
+
+                                # TPS georeferencing
+                                cctv_points, map_points = extract_points(camera_record.Location)
+                                if len(cctv_points) >= 5:
+                                    tps = ThinPlateSpline(0.5)
+                                    tps.fit(cctv_points.float(), map_points.float())
+
+                                    latest_image = db.image.find_first(
+                                        where={"id": db_image.id},
+                                        include={"detections": True},
+                                    )
+                                    points_to_transform = torch.tensor(
+                                        [[(d.xMin + d.xMax) / 2, d.yMax] for d in latest_image.detections]
+                                    ).float()
+
+                                    if points_to_transform.shape[0] > 0:
+                                        transformed_xy = tps.transform(points_to_transform)
+                                        for d, xy in zip(latest_image.detections, transformed_xy.tolist()):
+                                            db.detection.update(
+                                                where={"id": d.id},
+                                                data={"latitude": xy[0], "longitude": xy[1]},
+                                            )
+                                            logging.info(f"  Georeferenced detection {d.id} ({d.label}) -> lat={xy[0]:.6f}, lon={xy[1]:.6f}")
+                                else:
+                                    logging.info(f"Skipping georeferencing: only {location_count} control points (need >=5)")
+
                                 db.image.update(
                                     where={"id": db_image.id},
                                     data={"detectionsProcessed": True}
