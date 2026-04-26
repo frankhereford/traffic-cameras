@@ -1,8 +1,9 @@
 services:
   postgis:
+    restart: unless-stopped
     image: postgis/postgis
-    ports:
-      - 5430:5432
+    # ports:
+    #   - 5430:5432
     environment:
       POSTGRES_DB: cameras
       POSTGRES_PASSWORD: cameras
@@ -30,6 +31,7 @@ services:
     restart: "no"
 
   nextjs:
+    restart: unless-stopped
     build:
       context: ./nextjs
     volumes:
@@ -46,6 +48,7 @@ services:
     command: ["sh", "-c", "npx prisma generate && npm run dev"]
 
   flask:
+    restart: unless-stopped
     build:
       context: ./python
     volumes:
@@ -63,6 +66,7 @@ services:
   # better is to figure out how to run it locally on the metal
 
   detector:
+    restart: unless-stopped
     build:
       context: ./python
     volumes:
@@ -76,6 +80,7 @@ services:
     command: ["python", "app.py", "--mode=lambda"]
 
   certbot:
+    restart: "no"
     build:
       context: ./certbot
     env_file:
@@ -87,6 +92,7 @@ services:
       - ./certbot/entrypoint.sh:/entrypoint.sh:ro
 
   haproxy:
+    restart: unless-stopped
     image: haproxy:latest
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
@@ -108,11 +114,13 @@ services:
       #   condition: service_started
 
   redis:
+    restart: unless-stopped
     image: redis:latest
     # ports:
     #   - 6379:6379
 
   postgrest:
+    restart: unless-stopped
     image: postgrest/postgrest
     #ports:
       #- 3001:3000
@@ -127,6 +135,7 @@ services:
       - postgis
 
   swagger:
+    restart: unless-stopped
     image: swaggerapi/swagger-ui
     # ports:
       # - "8080:8080"
