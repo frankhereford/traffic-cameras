@@ -568,6 +568,8 @@ def validate_speed(speed: Any, n: int) -> None:
             f"shape {actual_shape}"
         )
 
+def validate_detection_id(detection_id: Any, n: int) -> None:
+    pass
 
 def validate_data(data: Dict[str, Any], n: int) -> None:
     for key, value in data.items():
@@ -592,6 +594,7 @@ def validate_detections_fields(
     confidence: Any,
     tracker_id: Any,
     speed: Any,
+    detection_id: Any,
     data: Dict[str, Any],
 ) -> None:
     validate_xyxy(xyxy)
@@ -601,6 +604,7 @@ def validate_detections_fields(
     validate_confidence(confidence, n)
     validate_tracker_id(tracker_id, n)
     validate_speed(speed, n)
+    validate_detection_id(detection_id, n)
     validate_data(data, n)
 
 
